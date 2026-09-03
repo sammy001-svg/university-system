@@ -244,6 +244,30 @@ final class Validator
 
     public function validated(): array
     {
-        return array_intersect_key($this->data, $this->rules);
+        $data = array_intersect_key($this->data, $this->rules);
+
+        // An untouched optional number or date arrives as '', which MySQL
+        // rejects outright under STRICT_TRANS_TABLES ("Incorrect integer
+        // value: ''"). Where the field is declared nullable and typed, an
+        // empty submission means "no value", so store NULL. Text fields are
+        // left alone: '' is valid for them and may be meaningful.
+        foreach ($data as $field => $value) {
+            if ($value !== '') {
+                continue;
+            }
+            $rules = $this->rules[$field] ?? '';
+            $rules = is_array($rules) ? $rules : explode('|', $rules);
+            if (!in_array('nullable', $rules, true)) {
+                continue;
+            }
+            foreach ($rules as $rule) {
+                if (in_array(explode(':', $rule, 2)[0], ['integer', 'numeric', 'date'], true)) {
+                    $data[$field] = null;
+                    break;
+                }
+            }
+        }
+
+        return $data;
     }
 }
