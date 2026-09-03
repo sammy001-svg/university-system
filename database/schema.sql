@@ -5,9 +5,9 @@
 SET FOREIGN_KEY_CHECKS = 0;
 SET NAMES utf8mb4;
 
-CREATE DATABASE IF NOT EXISTS `university_db`
-  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `university_db`;
+-- CREATE DATABASE IF NOT EXISTS `university_db`
+--   DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- USE `university_db`;
 
 -- =====================================================================
 --  SECTION 1 : IDENTITY, ACCESS CONTROL & SYSTEM
