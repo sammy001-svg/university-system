@@ -60,7 +60,7 @@ return [
         'name'       => env('APP_NAME', 'Best Brain University'),
         'short_name' => env('APP_SHORT_NAME', 'BBU'),
         'env'        => env('APP_ENV', 'production'),
-        'debug'      => (bool) env('APP_DEBUG', false),
+        'debug'      => (bool) env('APP_DEBUG', true),
         'url'        => rtrim((string) env('APP_URL', ''), '/'),
         'timezone'   => env('APP_TIMEZONE', 'Africa/Monrovia'),
         'key'        => env('APP_KEY', 'insecure-development-key'),
