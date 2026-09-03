@@ -1,7 +1,5 @@
--- =====================================================================
---  UNIVERSITY MANAGEMENT SYSTEM  --  ADMIN & CORE SEED SQL
---  Import this file into phpMyAdmin after importing schema.sql
--- =====================================================================
+-- University System Admin Seed SQL
+-- Import this file into phpMyAdmin after importing schema.sql
 
 -- 1. Insert Core Roles
 INSERT INTO `roles` (`id`, `name`, `slug`, `description`, `level`, `is_system`) VALUES
