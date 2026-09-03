@@ -1,0 +1,19 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Middleware;
+
+use App\Core\Auth;
+use App\Core\Request;
+use App\Core\Response;
+
+/** Keeps signed-in users away from the login/registration screens. */
+final class GuestMiddleware
+{
+    public function handle(Request $request, ?string $argument = null): void
+    {
+        if (Auth::check()) {
+            Response::redirect('/dashboard');
+        }
+    }
+}
