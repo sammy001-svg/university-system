@@ -47,7 +47,7 @@
             <tbody>
                 <tr>
                     <td>Student Fee Payment (Receipt Ref: <?= e($payment['receipt_number']) ?>)</td>
-                    <td class="text-end fw-bold">KES <?= number_format((float)$payment['amount'], 2) ?></td>
+                    <td class="text-end fw-bold"><?= e(money($payment['amount'])) ?></td>
                 </tr>
             </tbody>
         </table>

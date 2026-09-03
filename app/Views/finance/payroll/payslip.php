@@ -37,21 +37,21 @@
             <thead class="table-light">
                 <tr>
                     <th>Item Description</th>
-                    <th class="text-end">Amount (KES)</th>
+                    <th class="text-end">Amount (<?= e(currency_code()) ?>)</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>Basic Salary</td>
-                    <td class="text-end fw-semibold">KES <?= number_format((float)$payslip['basic_salary'], 2) ?></td>
+                    <td class="text-end fw-semibold"><?= e(money($payslip['basic_salary'])) ?></td>
                 </tr>
                 <tr class="table-light fw-bold">
                     <td>Gross Pay</td>
-                    <td class="text-end">KES <?= number_format((float)($payslip['gross_pay'] ?? $payslip['basic_salary']), 2) ?></td>
+                    <td class="text-end"><?= e(money($payslip['gross_pay'] ?? $payslip['basic_salary'])) ?></td>
                 </tr>
                 <tr class="table-success fw-bold fs-6">
                     <td>Net Pay</td>
-                    <td class="text-end text-success">KES <?= number_format((float)($payslip['net_pay'] ?? $payslip['basic_salary']), 2) ?></td>
+                    <td class="text-end text-success"><?= e(money($payslip['net_pay'] ?? $payslip['basic_salary'])) ?></td>
                 </tr>
             </tbody>
         </table>

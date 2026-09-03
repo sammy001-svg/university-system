@@ -5,9 +5,9 @@
 
 <div class="row g-3 mb-4">
     <?php $tiles = [
-        ['Total Billed', 'KES ' . number_format($totalBilled, 2), 'finance', ''],
-        ['Total Paid', 'KES ' . number_format($totalPaid, 2), 'check', 'tone-green'],
-        ['Outstanding', 'KES ' . number_format($balance, 2), 'warning', $balance > 0 ? 'tone-red' : 'tone-green'],
+        ['Total Billed', money($totalBilled), 'finance', ''],
+        ['Total Paid', money($totalPaid), 'check', 'tone-green'],
+        ['Outstanding', money($balance), 'warning', $balance > 0 ? 'tone-red' : 'tone-green'],
     ];
     foreach ($tiles as [$label, $value, $iconName, $tone]): ?>
         <div class="col-md-4">

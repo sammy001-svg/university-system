@@ -25,29 +25,29 @@
             <thead>
                 <tr>
                     <th>Item Description</th>
-                    <th class="text-end">Amount (KES)</th>
+                    <th class="text-end">Amount (<?= e(currency_code()) ?>)</th>
                 </tr>
             </thead>
             <tbody>
             <?php foreach ($items as $item): ?>
                 <tr>
                     <td><?= e($item['fee_type_name']) ?></td>
-                    <td class="text-end"><?= number_format((float)$item['amount'], 2) ?></td>
+                    <td class="text-end"><?= e(money($item['amount'])) ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
             <tfoot>
                 <tr class="fw-bold bg-light">
                     <td>Total Amount</td>
-                    <td class="text-end">KES <?= number_format((float)$invoice['total_amount'], 2) ?></td>
+                    <td class="text-end"><?= e(money($invoice['total_amount'])) ?></td>
                 </tr>
                 <tr class="text-success">
                     <td>Amount Paid</td>
-                    <td class="text-end">KES <?= number_format((float)$invoice['amount_paid'], 2) ?></td>
+                    <td class="text-end"><?= e(money($invoice['amount_paid'])) ?></td>
                 </tr>
                 <tr class="fw-bold <?= (float)$invoice['balance'] > 0 ? 'text-danger' : 'text-success' ?>">
                     <td>Balance Due</td>
-                    <td class="text-end">KES <?= number_format((float)$invoice['balance'], 2) ?></td>
+                    <td class="text-end"><?= e(money($invoice['balance'])) ?></td>
                 </tr>
             </tfoot>
         </table>

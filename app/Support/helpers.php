@@ -104,9 +104,19 @@ function has_role(string|array $roles): bool
 /** Format money in the configured currency. */
 function money(float|int|string|null $amount, bool $withSymbol = true): string
 {
-    $value     = number_format((float) ($amount ?? 0), 2);
-    $symbol    = (string) Config::get('locale.currency_symbol', '');
+    $value  = number_format((float) ($amount ?? 0), 2);
+    $symbol = (string) Setting::get('currency_symbol', Config::get('locale.currency_symbol', '$'));
     return $withSymbol ? $symbol . ' ' . $value : $value;
+}
+
+function currency_code(): string
+{
+    return (string) Setting::get('currency_code', Config::get('locale.currency', 'USD'));
+}
+
+function currency_symbol(): string
+{
+    return (string) Setting::get('currency_symbol', Config::get('locale.currency_symbol', '$'));
 }
 
 function fdate(?string $date, string $format = null): string

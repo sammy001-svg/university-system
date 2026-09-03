@@ -16,7 +16,7 @@
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Amount (KES) <span class="text-danger">*</span></label>
+                    <label class="form-label">Amount (<?= e(currency_code()) ?>) <span class="text-danger">*</span></label>
                     <input type="number" step="0.01" name="amount" class="form-control" value="<?= e(old('amount')) ?>" required>
                 </div>
                 <div class="col-md-4">

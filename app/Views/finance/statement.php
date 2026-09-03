@@ -14,7 +14,7 @@
     <div class="d-flex justify-content-between align-items-center">
         <div>
             <div class="text-muted-sm">Current Balance Due</div>
-            <div class="fs-3 fw-bold <?= $balance > 0 ? 'text-danger' : 'text-success' ?>">KES <?= number_format($balance, 2) ?></div>
+            <div class="fs-3 fw-bold <?= $balance > 0 ? 'text-danger' : 'text-success' ?>"><?= e(money($balance)) ?></div>
         </div>
     </div>
 </div>

@@ -37,7 +37,7 @@
                     <td><code><?= e($p['receipt_number']) ?></code></td>
                     <td><code><?= e($p['admission_number']) ?></code></td>
                     <td class="fw-semibold"><?= e($p['first_name'] . ' ' . $p['last_name']) ?></td>
-                    <td class="text-end fw-semibold text-success">KES <?= number_format((float)$p['amount'], 2) ?></td>
+                    <td class="text-end fw-semibold text-success"><?= e(money($p['amount'])) ?></td>
                     <td><?= e(humanize($p['method'])) ?></td>
                     <td><code><?= e($p['reference'] ?? '—') ?></code></td>
                     <td class="text-muted-sm"><?= date_fmt($p['paid_at'] ?? '') ?></td>

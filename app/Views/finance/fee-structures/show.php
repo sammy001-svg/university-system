@@ -16,7 +16,7 @@
                     <thead>
                         <tr>
                             <th>Fee Type</th>
-                            <th class="text-end">Amount (KES)</th>
+                            <th class="text-end">Amount (<?= e(currency_code()) ?>)</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -31,7 +31,7 @@
                     ?>
                         <tr>
                             <td class="fw-semibold"><?= e($item['fee_type_name']) ?></td>
-                            <td class="text-end"><?= number_format((float)$item['amount'], 2) ?></td>
+                            <td class="text-end"><?= e(money($item['amount'])) ?></td>
                             <td class="text-end">
                                 <?php if (can('finance.manage')): ?>
                                     <form method="post" action="<?= url('/fee-structures/' . $structure['id'] . '/items/' . $item['id'] . '/delete') ?>" onsubmit="return confirm('Remove fee item?')">
@@ -47,7 +47,7 @@
                     <tfoot>
                         <tr class="fw-bold bg-light">
                             <td>Total Fee Amount</td>
-                            <td class="text-end">KES <?= number_format($total, 2) ?></td>
+                            <td class="text-end"><?= e(money($total)) ?></td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -71,7 +71,7 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Amount (KES) <span class="text-danger">*</span></label>
+                        <label class="form-label">Amount (<?= e(currency_code()) ?>) <span class="text-danger">*</span></label>
                         <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required>
                     </div>
                 </div>

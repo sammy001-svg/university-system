@@ -12,7 +12,7 @@
         <div class="stat">
             <span class="stat-icon"><?= icon('finance', 'ico-lg') ?></span>
             <div>
-                <div class="stat-value">KES <?= number_format((float)($summary['total_billed'] ?? 0), 2) ?></div>
+                <div class="stat-value"><?= e(money($summary['total_billed'] ?? 0)) ?></div>
                 <div class="stat-label">Total Billed</div>
             </div>
         </div>
@@ -21,7 +21,7 @@
         <div class="stat tone-green">
             <span class="stat-icon"><?= icon('check', 'ico-lg') ?></span>
             <div>
-                <div class="stat-value">KES <?= number_format((float)($summary['total_collected'] ?? 0), 2) ?></div>
+                <div class="stat-value"><?= e(money($summary['total_collected'] ?? 0)) ?></div>
                 <div class="stat-label">Total Collected</div>
             </div>
         </div>
@@ -30,7 +30,7 @@
         <div class="stat tone-red">
             <span class="stat-icon"><?= icon('warning', 'ico-lg') ?></span>
             <div>
-                <div class="stat-value">KES <?= number_format((float)($summary['outstanding'] ?? 0), 2) ?></div>
+                <div class="stat-value"><?= e(money($summary['outstanding'] ?? 0)) ?></div>
                 <div class="stat-label">Outstanding Balance</div>
             </div>
         </div>
@@ -44,14 +44,14 @@
             <thead>
                 <tr>
                     <th>Month</th>
-                    <th class="text-end">Amount Collected (KES)</th>
+                    <th class="text-end">Amount Collected (<?= e(currency_code()) ?>)</th>
                 </tr>
             </thead>
             <tbody>
             <?php foreach ($monthly as $row): ?>
                 <tr>
                     <td class="fw-semibold"><?= e($row['month']) ?></td>
-                    <td class="text-end text-success fw-bold"><?= number_format((float)$row['total'], 2) ?></td>
+                    <td class="text-end text-success fw-bold"><?= e(money($row['total'])) ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

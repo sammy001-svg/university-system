@@ -8,7 +8,7 @@
 
 <div class="row g-3 mb-4">
     <?php $tiles = [
-        ['Balance Due', 'KES ' . number_format($balance, 2), 'finance', $balance > 0 ? 'tone-red' : 'tone-green'],
+        ['Balance Due', money($balance), 'finance', $balance > 0 ? 'tone-red' : 'tone-green'],
         ['Registered Units', count($registrations), 'course', ''],
         ['Attendance', $attendance . '%', 'attendance', $attendance < 75 ? 'tone-amber' : 'tone-green'],
         ['Year of Study', 'Year ' . $student['year_of_study'], 'student', ''],
