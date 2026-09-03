@@ -66,8 +66,9 @@ $field = static function (string $name, string $label, array $opts = []) use ($s
                         $field('gender', 'Gender', ['type' => 'enum', 'values' => ['male', 'female', 'other'], 'placeholder' => 'Not specified', 'width' => 3]);
                         $field('date_of_birth', 'Date of birth', ['type' => 'date', 'width' => 3]);
                         $field('national_id', 'National ID / passport', ['width' => 3]);
-                        $field('nationality', 'Nationality', ['width' => 3, 'default' => 'Kenyan']);
+                        $field('nationality', 'Nationality', ['width' => 3, 'default' => 'Liberian']);
                         $field('avatar', 'Photograph', ['type' => 'file', 'width' => 6]);
+                        ?>
                     </div>
 
                     <div class="form-section-title">Contact</div>
@@ -99,4 +100,73 @@ $field = static function (string $name, string $label, array $opts = []) use ($s
                         $field('study_mode', 'Study mode', ['type' => 'enum', 'values' => ['full_time', 'part_time', 'evening', 'distance'], 'width' => 3, 'required' => true]);
                         $field('year_of_study', 'Year of study', ['type' => 'number', 'min' => 1, 'max' => 6, 'width' => 3, 'required' => true, 'default' => 1]);
                         $field('current_semester', 'Current semester', ['type' => 'number', 'min' => 1, 'max' => 4, 'width' => 3, 'required' => true, 'default' => 1]);
-                        $field('admission_number', 'Admission number', ['
+                        $field('admission_number', 'Admission number', ['width' => 3, 'help' => $isNew ? 'Leave blank to generate automatically.' : null]);
+                        $field('registration_number', 'Registration number', ['width' => 3]);
+                        $field('admission_date', 'Admission date', ['type' => 'date', 'width' => 3]);
+                        if (!$isNew) {
+                            $field('status', 'Status', [
+                                'type'     => 'enum',
+                                'values'   => ['active', 'deferred', 'suspended', 'graduated', 'withdrawn', 'expelled', 'alumni'],
+                                'width'    => 3,
+                                'required' => true,
+                                'default'  => 'active',
+                            ]);
+                        }
+                        ?>
+                    </div>
+
+                    <div class="form-section-title">Sponsorship</div>
+                    <div class="row g-3">
+                        <?php
+                        $field('sponsor_type', 'Sponsor type', [
+                            'type'    => 'enum',
+                            'values'  => ['self', 'government', 'scholarship', 'employer', 'parent', 'other'],
+                            'width'   => 4,
+                            'default' => 'self',
+                        ]);
+                        $field('sponsor_name', 'Sponsor name', ['width' => 8]);
+                        ?>
+                    </div>
+
+                    <div class="form-section-title">Previous education</div>
+                    <div class="row g-3">
+                        <?php
+                        $field('previous_school', 'Previous institution', ['width' => 6]);
+                        $field('previous_qualification', 'Qualification', ['width' => 3, 'placeholder' => 'e.g. WASSCE']);
+                        $field('previous_grade', 'Grade obtained', ['width' => 3]);
+                        ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="card">
+                <div class="card-header"><?= icon('check') ?> Save</div>
+                <div class="card-body">
+                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <?= $isNew ? 'Admit student' : 'Save changes' ?>
+                    </button>
+                    <a href="<?= url('/students') ?>" class="btn btn-outline-secondary w-100">Cancel</a>
+
+                    <?php if ($isNew): ?>
+                        <div class="divider"></div>
+                        <div class="text-muted-sm">
+                            A portal account is created automatically and the temporary
+                            password is emailed to the student.
+                        </div>
+                    <?php elseif (!empty($student['created_at'])): ?>
+                        <div class="divider"></div>
+                        <div class="text-muted-sm">
+                            <div>Created <?= fdatetime($student['created_at']) ?></div>
+                            <?php if (!empty($student['updated_at'])): ?>
+                                <div>Updated <?= ago($student['updated_at']) ?></div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<?php endsection(); ?>

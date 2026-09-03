@@ -13,7 +13,7 @@ section('content');
         <label class="form-label" for="identifier">Username or email <span class="req">*</span></label>
         <input type="text" class="form-control <?= has_error('identifier') ? 'is-invalid' : '' ?>"
                id="identifier" name="identifier" value="<?= old('identifier') ?>"
-               placeholder="e.g. jdoe or jdoe@university.ac.ke" autofocus required>
+               placeholder="e.g. jdoe or jdoe@bestbrain.edu.lr" autofocus required>
         <?php if (has_error('identifier')): ?>
             <div class="invalid-feedback d-block"><?= error_for('identifier') ?></div>
         <?php endif; ?>
@@ -44,6 +44,6 @@ section('content');
     Applying for admission? <a href="<?= url('/apply') ?>">Start an application</a>.
 </p>
 <p class="text-muted-sm">Trouble signing in? Contact the ICT helpdesk on
-    <a href="mailto:<?= e(setting('support_email', 'ict@university.ac.ke')) ?>"><?= e(setting('support_email', 'ict@university.ac.ke')) ?></a>.
+    <a href="mailto:<?= e(setting('support_email', 'ict@bestbrain.edu.lr')) ?>"><?= e(setting('support_email', 'ict@bestbrain.edu.lr')) ?></a>.
 </p>
 <?php endsection(); ?>

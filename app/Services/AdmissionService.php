@@ -145,6 +145,36 @@ final class AdmissionService
         Mailer::send((string) $application['email'], 'Your admission has been confirmed', $body);
     }
 
+    /**
+     * Acknowledge a freshly submitted application by email.
+     *
+     * @param array $data the application row as written, including
+     *                    application_number, first_name, email,
+     *                    program_id and intake_id.
+     */
+    public function sendApplicationReceipt(array $data): void
+    {
+        $program = Database::selectOne('SELECT name FROM programs WHERE id = ?', [(int) $data['program_id']]);
+        $intake  = Database::selectOne('SELECT name FROM intakes  WHERE id = ?', [(int) $data['intake_id']]);
+
+        $statusUrl = url('/apply/status');
+        $body = '<p>Dear ' . e($data['first_name']) . ',</p>'
+              . '<p>Thank you for applying. Your application has been received and is awaiting review.</p>'
+              . '<table style="border-collapse:collapse">'
+              . '<tr><td style="padding:4px 12px 4px 0"><strong>Application number</strong></td><td>'
+              . e($data['application_number']) . '</td></tr>'
+              . '<tr><td style="padding:4px 12px 4px 0"><strong>Programme</strong></td><td>'
+              . e($program['name'] ?? '-') . '</td></tr>'
+              . '<tr><td style="padding:4px 12px 4px 0"><strong>Intake</strong></td><td>'
+              . e($intake['name'] ?? '-') . '</td></tr>'
+              . '</table>'
+              . '<p>Keep your application number safe. You can check your progress at any time at '
+              . '<a href="' . e($statusUrl) . '">' . e($statusUrl) . '</a> '
+              . 'using that number and this email address.</p>';
+
+        Mailer::send((string) $data['email'], 'We have received your application', $body);
+    }
+
     /** Move an application through the review workflow. */
     public function review(int $applicationId, string $status, ?string $remarks, ?float $score, ?int $reviewerId): array
     {

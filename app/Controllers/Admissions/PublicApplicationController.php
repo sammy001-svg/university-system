@@ -4,10 +4,13 @@ declare(strict_types=1);
 namespace App\Controllers\Admissions;
 
 use App\Core\Controller;
+use App\Core\Database;
 use App\Core\Request;
+use App\Core\Session;
 use App\Models\Application;
 use App\Models\Intake;
 use App\Models\Program;
+use App\Services\AdmissionService;
 
 /**
  * Public-facing online application portal.
@@ -68,10 +71,12 @@ final class PublicApplicationController extends Controller
         ]);
 
         $data['application_number'] = $this->applicationModel->nextApplicationNumber();
-        $data['status']             = 'pending';
+        $data['status']             = 'submitted';
         $data['submitted_at']       = date('Y-m-d H:i:s');
 
         $id = $this->applicationModel->create($data);
+
+        (new AdmissionService())->sendApplicationReceipt($data);
 
         return $this->view('admissions.apply-success', [
             'pageTitle'         => 'Application Submitted',
@@ -100,7 +105,7 @@ final class PublicApplicationController extends Controller
         ]);
 
         $application = null;
-        $row = \App\Core\Database::selectOne(
+        $row = Database::selectOne(
             'SELECT a.*, p.name AS program_name, p.code AS program_code, i.name AS intake_name
                FROM applications a
                JOIN programs p ON p.id = a.program_id
@@ -110,7 +115,7 @@ final class PublicApplicationController extends Controller
         );
 
         if ($row === null) {
-            \App\Core\Session::flash('error', 'No application found. Please check your application number and email.');
+            Session::flash('error', 'No application found. Please check your application number and email.');
         } else {
             $application = $row;
         }
@@ -127,7 +132,7 @@ final class PublicApplicationController extends Controller
 
     private function openIntakes(): array
     {
-        return \App\Core\Database::select(
+        return Database::select(
             "SELECT id, name, code, application_open, application_close
                FROM intakes
               WHERE status = 'open'
@@ -137,7 +142,7 @@ final class PublicApplicationController extends Controller
 
     private function activePrograms(): array
     {
-        return \App\Core\Database::select(
+        return Database::select(
             "SELECT p.id, p.code, p.name, p.award, p.level, p.study_mode,
                     p.application_fee, f.name AS faculty_name
                FROM programs p

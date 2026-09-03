@@ -49,7 +49,7 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Nationality <span class="text-danger">*</span></label>
-                    <input type="text" name="nationality" class="form-control" value="<?= e(old('nationality', 'Kenyan')) ?>" required>
+                    <input type="text" name="nationality" class="form-control" value="<?= e(old('nationality', 'Liberian')) ?>" required>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">National ID / Passport <span class="text-danger">*</span></label>

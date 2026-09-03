@@ -79,6 +79,8 @@ final class ApplicationController extends Controller
         $data['submitted_at']       = date('Y-m-d H:i:s');
 
         $this->model->create($data);
+        (new AdmissionService())->sendApplicationReceipt($data);
+
         $this->success('Application created.', '/admissions/applications');
     }
 
@@ -106,12 +108,19 @@ final class ApplicationController extends Controller
             'remarks' => 'nullable|max:1000',
         ]);
 
-        Database::statement(
-            'UPDATE applications SET status=?, score=?, remarks=?, reviewed_by=?, reviewed_at=NOW() WHERE id=?',
-            [$data['status'], $data['score'] ?? null, $data['remarks'] ?? null, \App\Core\Auth::id(), (int) $id]
+        $result = (new AdmissionService())->review(
+            (int) $id,
+            $data['status'],
+            $data['remarks'] ?? null,
+            isset($data['score']) ? (float) $data['score'] : null,
+            \App\Core\Auth::id()
         );
 
-        $this->success('Application updated.', '/admissions/applications/' . $id);
+        if (!$result['ok']) {
+            $this->error($result['message'], '/admissions/applications/' . $id);
+        }
+
+        $this->success($result['message'], '/admissions/applications/' . $id);
     }
 
     public function enrol(Request $request, string $id): never
@@ -122,8 +131,12 @@ final class ApplicationController extends Controller
         $application = $this->model->detail((int) $id);
         if (!$application) { throw new HttpException(404); }
 
-        (new AdmissionService())->enrol($application, \App\Core\Auth::id());
-        $this->success('Applicant enrolled as a student.', '/admissions/applications/' . $id);
+        $result = (new AdmissionService())->enrol((int) $id, \App\Core\Auth::id());
+        if (!$result['ok']) {
+            $this->error($result['message'], '/admissions/applications/' . $id);
+        }
+
+        $this->success($result['message'], '/admissions/applications/' . $id);
     }
 
     public function destroy(Request $request, string $id): never

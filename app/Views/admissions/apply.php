@@ -179,7 +179,7 @@ $appName = $appName ?? 'University';
                 <div class="col-md-4">
                     <label class="form-label" for="nationality">Nationality <span class="req">*</span></label>
                     <input type="text" class="form-control <?= has_error('nationality') ? 'is-invalid' : '' ?>"
-                           id="nationality" name="nationality" value="<?= old('nationality') ?>" placeholder="e.g. Kenyan" required>
+                           id="nationality" name="nationality" value="<?= old('nationality') ?>" placeholder="e.g. Liberian" required>
                     <?php if (has_error('nationality')): ?>
                         <div class="invalid-feedback d-block"><?= error_for('nationality') ?></div>
                     <?php endif ?>
@@ -203,7 +203,7 @@ $appName = $appName ?? 'University';
                 <div class="col-md-4">
                     <label class="form-label" for="phone">Phone number <span class="req">*</span></label>
                     <input type="tel" class="form-control <?= has_error('phone') ? 'is-invalid' : '' ?>"
-                           id="phone" name="phone" value="<?= old('phone') ?>" placeholder="+254 7XX XXX XXX" required>
+                           id="phone" name="phone" value="<?= old('phone') ?>" placeholder="+231 7X XXX XXXX" required>
                     <?php if (has_error('phone')): ?>
                         <div class="invalid-feedback d-block"><?= error_for('phone') ?></div>
                     <?php endif ?>
@@ -228,7 +228,7 @@ $appName = $appName ?? 'University';
                 <div class="col-md-6">
                     <label class="form-label" for="qualification">Highest qualification</label>
                     <input type="text" class="form-control" id="qualification" name="qualification"
-                           value="<?= old('qualification') ?>" placeholder="e.g. KCSE, A-Level, Diploma">
+                           value="<?= old('qualification') ?>" placeholder="e.g. WASSCE, A-Level, Diploma">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="grade_obtained">Grade / GPA</label>

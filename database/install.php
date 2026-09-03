@@ -110,7 +110,7 @@ echo "  Administrator : admin      / Admin@2026\n";
 if (!isset($options['no-demo'])) {
     echo "  Registrar     : registrar  / Staff@2026\n";
     echo "  Finance       : bursar     / Staff@2026\n";
-    echo "  Lecturer      : jmwangi    / Staff@2026\n";
-    echo "  Student       : swanjiru   / Student@2026\n";
+    echo "  Lecturer      : vtubman    / Staff@2026\n";
+    echo "  Student       : mjohnson   / Student@2026\n";
 }
 echo "\nChange these passwords immediately after the first sign-in.\n";

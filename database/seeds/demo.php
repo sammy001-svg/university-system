@@ -21,8 +21,8 @@ return static function (PDO $pdo): void {
     /* ---------------- Campus, buildings, rooms ---------------- */
     $pdo->exec(
         "INSERT INTO campuses (code, name, address, city, country, phone, email, is_main, status)
-         VALUES ('MAIN', 'Main Campus', 'Thika Road', 'Nairobi', 'Kenya', '+254 20 000 0001', 'main@university.ac.ke', 1, 'active'),
-                ('TOWN', 'Town Campus', 'Moi Avenue', 'Nairobi', 'Kenya', '+254 20 000 0002', 'town@university.ac.ke', 0, 'active')"
+         VALUES ('MAIN', 'Main Campus', 'Tubman Boulevard, Sinkor', 'Monrovia', 'Liberia', '+231 77 000 0001', 'main@bestbrain.edu.lr', 1, 'active'),
+                ('TOWN', 'Town Campus', 'Broad Street', 'Monrovia', 'Liberia', '+231 77 000 0002', 'town@bestbrain.edu.lr', 0, 'active')"
     );
     $pdo->exec(
         "INSERT INTO buildings (campus_id, code, name, floors, status) VALUES
@@ -53,34 +53,34 @@ return static function (PDO $pdo): void {
     /* ---------------- Faculties and departments ---------------- */
     $pdo->exec(
         "INSERT INTO faculties (campus_id, code, name, email, established_year, status) VALUES
-           (1, 'FST', 'Faculty of Science and Technology', 'fst@university.ac.ke', 1998, 'active'),
-           (1, 'FBE', 'Faculty of Business and Economics', 'fbe@university.ac.ke', 2001, 'active'),
-           (1, 'FED', 'Faculty of Education and Arts', 'fed@university.ac.ke', 2003, 'active'),
-           (1, 'FHS', 'Faculty of Health Sciences', 'fhs@university.ac.ke', 2010, 'active')"
+           (1, 'FST', 'Faculty of Science and Technology', 'fst@bestbrain.edu.lr', 1998, 'active'),
+           (1, 'FBE', 'Faculty of Business and Economics', 'fbe@bestbrain.edu.lr', 2001, 'active'),
+           (1, 'FED', 'Faculty of Education and Arts', 'fed@bestbrain.edu.lr', 2003, 'active'),
+           (1, 'FHS', 'Faculty of Health Sciences', 'fhs@bestbrain.edu.lr', 2010, 'active')"
     );
     $pdo->exec(
         "INSERT INTO departments (faculty_id, code, name, email, status) VALUES
-           (1, 'CS',  'Department of Computer Science', 'cs@university.ac.ke', 'active'),
-           (1, 'MTH', 'Department of Mathematics', 'maths@university.ac.ke', 'active'),
-           (1, 'PHY', 'Department of Physical Sciences', 'physics@university.ac.ke', 'active'),
-           (2, 'ACC', 'Department of Accounting and Finance', 'accounting@university.ac.ke', 'active'),
-           (2, 'MGT', 'Department of Management', 'management@university.ac.ke', 'active'),
-           (3, 'EDU', 'Department of Educational Studies', 'education@university.ac.ke', 'active'),
-           (4, 'NUR', 'Department of Nursing', 'nursing@university.ac.ke', 'active')"
+           (1, 'CS',  'Department of Computer Science', 'cs@bestbrain.edu.lr', 'active'),
+           (1, 'MTH', 'Department of Mathematics', 'maths@bestbrain.edu.lr', 'active'),
+           (1, 'PHY', 'Department of Physical Sciences', 'physics@bestbrain.edu.lr', 'active'),
+           (2, 'ACC', 'Department of Accounting and Finance', 'accounting@bestbrain.edu.lr', 'active'),
+           (2, 'MGT', 'Department of Management', 'management@bestbrain.edu.lr', 'active'),
+           (3, 'EDU', 'Department of Educational Studies', 'education@bestbrain.edu.lr', 'active'),
+           (4, 'NUR', 'Department of Nursing', 'nursing@bestbrain.edu.lr', 'active')"
     );
 
     /* ---------------- Programmes ---------------- */
     $pdo->exec(
         "INSERT INTO programs (department_id, code, name, award, level, duration_years, semesters_per_year,
                                total_credit_hours, study_mode, min_entry_grade, application_fee, status) VALUES
-           (1, 'BCS', 'Bachelor of Science in Computer Science', 'BSc (Computer Science)', 'bachelor', 4.0, 2, 144, 'full_time', 'C+', 2000, 'active'),
-           (1, 'BIT', 'Bachelor of Science in Information Technology', 'BSc (IT)', 'bachelor', 4.0, 2, 144, 'full_time', 'C+', 2000, 'active'),
-           (2, 'BMA', 'Bachelor of Science in Applied Mathematics', 'BSc (Applied Mathematics)', 'bachelor', 4.0, 2, 138, 'full_time', 'C+', 2000, 'active'),
-           (4, 'BCM', 'Bachelor of Commerce', 'BCom', 'bachelor', 4.0, 2, 140, 'full_time', 'C+', 2000, 'active'),
-           (5, 'MBA', 'Master of Business Administration', 'MBA', 'masters', 2.0, 2, 60, 'evening', 'Second Class', 3000, 'active'),
-           (6, 'BED', 'Bachelor of Education (Arts)', 'BEd (Arts)', 'bachelor', 4.0, 2, 140, 'full_time', 'C+', 2000, 'active'),
-           (7, 'BSN', 'Bachelor of Science in Nursing', 'BScN', 'bachelor', 4.0, 2, 160, 'full_time', 'B-', 2500, 'active'),
-           (1, 'DCS', 'Diploma in Computer Science', 'Diploma', 'diploma', 2.0, 2, 72, 'full_time', 'C-', 1500, 'active')"
+           (1, 'BCS', 'Bachelor of Science in Computer Science', 'BSc (Computer Science)', 'bachelor', 4.0, 2, 144, 'full_time', 'C6', 25, 'active'),
+           (1, 'BIT', 'Bachelor of Science in Information Technology', 'BSc (IT)', 'bachelor', 4.0, 2, 144, 'full_time', 'C6', 25, 'active'),
+           (2, 'BMA', 'Bachelor of Science in Applied Mathematics', 'BSc (Applied Mathematics)', 'bachelor', 4.0, 2, 138, 'full_time', 'C6', 25, 'active'),
+           (4, 'BCM', 'Bachelor of Commerce', 'BCom', 'bachelor', 4.0, 2, 140, 'full_time', 'C6', 25, 'active'),
+           (5, 'MBA', 'Master of Business Administration', 'MBA', 'masters', 2.0, 2, 60, 'evening', 'Second Class', 40, 'active'),
+           (6, 'BED', 'Bachelor of Education (Arts)', 'BEd (Arts)', 'bachelor', 4.0, 2, 140, 'full_time', 'C6', 25, 'active'),
+           (7, 'BSN', 'Bachelor of Science in Nursing', 'BScN', 'bachelor', 4.0, 2, 160, 'full_time', 'C4', 30, 'active'),
+           (1, 'DCS', 'Diploma in Computer Science', 'Diploma', 'diploma', 2.0, 2, 72, 'full_time', 'D7', 20, 'active')"
     );
     echo "  Campus structure, 4 faculties, 7 departments, 8 programmes.\n";
 
@@ -230,34 +230,34 @@ return static function (PDO $pdo): void {
 
     $staffSeed = [
         // username, first, last, title, gender, dept, designation, category, qualification, salary, role
-        ['registrar', 'Grace', 'Achieng', 'Dr', 'female', 1, 'University Registrar', 'administrative', 'PhD Education Management', 320000, 'registrar'],
-        ['bursar', 'Peter', 'Otieno', 'CPA', 'male', 4, 'Finance Officer', 'administrative', 'CPA (K), MBA Finance', 290000, 'finance-officer'],
-        ['jmwangi', 'James', 'Mwangi', 'Dr', 'male', 1, 'Senior Lecturer', 'academic', 'PhD Computer Science', 260000, 'lecturer'],
-        ['akamau', 'Alice', 'Kamau', 'Prof', 'female', 1, 'Professor', 'academic', 'PhD Software Engineering', 380000, 'hod'],
-        ['dochieng', 'David', 'Ochieng', 'Mr', 'male', 2, 'Lecturer', 'academic', 'MSc Applied Mathematics', 190000, 'lecturer'],
-        ['mwafula', 'Mary', 'Wafula', 'Dr', 'female', 4, 'Senior Lecturer', 'academic', 'PhD Accounting', 265000, 'lecturer'],
-        ['skiptoo', 'Sarah', 'Kiptoo', 'Ms', 'female', null, 'University Librarian', 'administrative', 'MSc Information Science', 180000, 'librarian'],
-        ['bnjoroge', 'Brian', 'Njoroge', 'Mr', 'male', null, 'Hostel Warden', 'support', 'BA Social Work', 120000, 'warden'],
-        ['lchebet', 'Linda', 'Chebet', 'Ms', 'female', null, 'HR Officer', 'administrative', 'BCom Human Resources', 165000, 'hr-officer'],
-        ['fmutua', 'Faith', 'Mutua', 'Ms', 'female', null, 'Admissions Officer', 'administrative', 'BA Communication', 145000, 'admissions-officer'],
-        ['jkariuki', 'John', 'Kariuki', 'Dr', 'male', 7, 'Medical Officer', 'support', 'MBChB', 310000, 'medical-officer'],
-        ['tanyango', 'Tom', 'Anyango', 'Mr', 'male', 1, 'ICT Support Officer', 'technical', 'BSc Information Technology', 135000, 'support-desk'],
+        ['registrar', 'Korto', 'Wesseh', 'Dr', 'female', 1, 'University Registrar', 'administrative', 'PhD Education Management', 1900, 'registrar'],
+        ['bursar', 'Emmanuel', 'Kollie', 'CPA', 'male', 4, 'Finance Officer', 'administrative', 'CPA, MBA Finance', 1750, 'finance-officer'],
+        ['vtubman', 'Varney', 'Tubman', 'Dr', 'male', 1, 'Senior Lecturer', 'academic', 'PhD Computer Science', 1500, 'lecturer'],
+        ['mfreeman', 'Massa', 'Freeman', 'Prof', 'female', 1, 'Professor', 'academic', 'PhD Software Engineering', 2200, 'hod'],
+        ['agaye', 'Alfred', 'Gaye', 'Mr', 'male', 2, 'Lecturer', 'academic', 'MSc Applied Mathematics', 1100, 'lecturer'],
+        ['hnyanti', 'Hawa', 'Nyanti', 'Dr', 'female', 4, 'Senior Lecturer', 'academic', 'PhD Accounting', 1520, 'lecturer'],
+        ['bdahn', 'Bendu', 'Dahn', 'Ms', 'female', null, 'University Librarian', 'administrative', 'MSc Information Science', 1050, 'librarian'],
+        ['ptoe', 'Prince', 'Toe', 'Mr', 'male', null, 'Hostel Warden', 'support', 'BA Social Work', 700, 'warden'],
+        ['mbrownell', 'Miatta', 'Brownell', 'Ms', 'female', null, 'HR Officer', 'administrative', 'BCom Human Resources', 950, 'hr-officer'],
+        ['fkamara', 'Fatu', 'Kamara', 'Ms', 'female', null, 'Admissions Officer', 'administrative', 'BA Communication', 850, 'admissions-officer'],
+        ['sjohnson', 'Saah', 'Johnson', 'Dr', 'male', 7, 'Medical Officer', 'support', 'MBChB', 1800, 'medical-officer'],
+        ['tnagbe', 'Tarnue', 'Nagbe', 'Mr', 'male', 1, 'ICT Support Officer', 'technical', 'BSc Information Technology', 800, 'support-desk'],
     ];
 
     $staffIdByUsername = [];
     foreach ($staffSeed as $i => $row) {
         [$username, $first, $last, $title, $gender, $dept, $designation, $category, $qualification, $salary, $role] = $row;
         $userInsert->execute([
-            $uuid(), $username, $username . '@university.ac.ke', $hash('Staff@2026'),
+            $uuid(), $username, $username . '@bestbrain.edu.lr', $hash('Staff@2026'),
             $title, $first, $last, $gender, date('Y-m-d', strtotime('-' . (30 + $i) . ' years')),
-            '+2547' . str_pad((string) (10000000 + $i * 137), 8, '0', STR_PAD_LEFT),
+            '+23177' . str_pad((string) (1000000 + $i * 137), 7, '0', STR_PAD_LEFT),
             $category === 'academic' ? 'lecturer' : 'staff',
         ]);
         $userId = (int) $pdo->lastInsertId();
 
         $staffInsert->execute([
             $userId,
-            sprintf('MU/STF/%04d/2020', $i + 1),
+            sprintf('BBU/STF/%04d/2020', $i + 1),
             $dept,
             $designation,
             $category,
@@ -277,8 +277,8 @@ return static function (PDO $pdo): void {
     echo "  " . count($staffSeed) . " staff accounts.\n";
 
     /* Heads of department and deans */
-    $pdo->exec("UPDATE departments SET hod_id = (SELECT user_id FROM staff WHERE staff_number = 'MU/STF/0004/2020') WHERE code = 'CS'");
-    $pdo->exec("UPDATE faculties SET dean_id = (SELECT user_id FROM staff WHERE staff_number = 'MU/STF/0004/2020') WHERE code = 'FST'");
+    $pdo->exec("UPDATE departments SET hod_id = (SELECT user_id FROM staff WHERE staff_number = 'BBU/STF/0004/2020') WHERE code = 'CS'");
+    $pdo->exec("UPDATE faculties SET dean_id = (SELECT user_id FROM staff WHERE staff_number = 'BBU/STF/0004/2020') WHERE code = 'FST'");
 
     /* ---------------- Students ---------------- */
     $studentInsert = $pdo->prepare(
@@ -287,17 +287,17 @@ return static function (PDO $pdo): void {
                                nationality, national_id, county, physical_address,
                                emergency_contact_name, emergency_contact_phone, emergency_contact_relation,
                                previous_school, previous_qualification, previous_grade, status)
-         VALUES (?, ?, ?, ?, ?, 1, ?, ?, "full_time", ?, ?, "Kenyan", ?, ?, ?, ?, ?, "parent", ?, "KCSE", ?, "active")'
+         VALUES (?, ?, ?, ?, ?, 1, ?, ?, "full_time", ?, ?, "Liberian", ?, ?, ?, ?, ?, "parent", ?, "WASSCE", ?, "active")'
     );
 
-    $firstNames = ['Susan', 'Kevin', 'Mercy', 'Dennis', 'Joy', 'Collins', 'Faith', 'Victor', 'Nancy', 'Brian',
-                   'Cynthia', 'Emmanuel', 'Winnie', 'Samuel', 'Esther', 'Anthony', 'Ruth', 'Felix', 'Diana', 'Martin',
-                   'Caroline', 'George', 'Lydia', 'Isaac', 'Purity', 'Elijah', 'Beatrice', 'Simon', 'Hellen', 'Patrick'];
-    $lastNames  = ['Wanjiru', 'Omondi', 'Njeri', 'Kiprop', 'Atieno', 'Mutiso', 'Chepkoech', 'Kimani', 'Adhiambo', 'Barasa',
-                   'Wekesa', 'Muthoni', 'Onyango', 'Cherono', 'Maina', 'Kilonzo', 'Wambui', 'Rotich', 'Auma', 'Gitau',
-                   'Nyambura', 'Sang', 'Akinyi', 'Waweru', 'Chelangat', 'Mbugua', 'Owino', 'Karanja', 'Naliaka', 'Kiptanui'];
-    $counties   = ['Nairobi', 'Kiambu', 'Nakuru', 'Kisumu', 'Mombasa', 'Machakos', 'Uasin Gishu', 'Kakamega', 'Meru', 'Nyeri'];
-    $grades     = ['A-', 'B+', 'B', 'B-', 'C+', 'A'];
+    $firstNames = ['Musu', 'Emmanuel', 'Korto', 'Alfred', 'Massa', 'Prince', 'Kula', 'Varney', 'Yatta', 'Momo',
+                   'Bendu', 'Sekou', 'Hawa', 'Augustine', 'Satta', 'Boakai', 'Kebbeh', 'Tarnue', 'Deddeh', 'Flomo',
+                   'Miatta', 'Saah', 'Nyema', 'Konah', 'Garmai', 'Weah', 'Fatu', 'Sando', 'Wologosi', 'Zoe'];
+    $lastNames  = ['Johnson', 'Kollie', 'Gbessay', 'Wesseh', 'Tubman', 'Doe', 'Sirleaf', 'Kpehe', 'Nyanti', 'Toe',
+                   'Kamara', 'Freeman', 'Dahn', 'Gbaya', 'Massaquoi', 'Gaye', 'Brownell', 'Nagbe', 'Zeon', 'Cooper',
+                   'Wolobah', 'Sumo', 'Kieh', 'Barclay', 'Yancy', 'Karnga', 'Sherman', 'Togba', 'Dolo', 'Kpoto'];
+    $counties   = ['Montserrado', 'Nimba', 'Bong', 'Lofa', 'Grand Bassa', 'Margibi', 'Grand Gedeh', 'Maryland', 'Sinoe', 'Bomi'];
+    $grades     = ['A1', 'B2', 'B3', 'C4', 'C5', 'C6'];
     $sponsors   = ['self', 'parent', 'government', 'scholarship'];
 
     $programRows = $pdo->query("SELECT id, code FROM programs WHERE status = 'active'")->fetchAll(PDO::FETCH_ASSOC);
@@ -319,15 +319,15 @@ return static function (PDO $pdo): void {
         }
 
         $userInsert->execute([
-            $uuid(), $username, $username . '@students.university.ac.ke', $hash('Student@2026'),
+            $uuid(), $username, $username . '@students.bestbrain.edu.lr', $hash('Student@2026'),
             null, $first, $last, $i % 2 === 0 ? 'female' : 'male',
             date('Y-m-d', strtotime('-' . (18 + ($i % 6)) . ' years')),
-            '+2547' . str_pad((string) (20000000 + $i * 971), 8, '0', STR_PAD_LEFT),
+            '+23177' . str_pad((string) (2000000 + $i * 971), 7, '0', STR_PAD_LEFT),
             'student',
         ]);
         $userId = (int) $pdo->lastInsertId();
 
-        $admission = sprintf('MU/%s/%04d/%d', $program['code'], $i + 1, $entry);
+        $admission = sprintf('BBU/%s/%04d/%d', $program['code'], $i + 1, $entry);
         $studentInsert->execute([
             $userId,
             $admission,
@@ -340,10 +340,10 @@ return static function (PDO $pdo): void {
             $sponsors[$i % count($sponsors)],
             (string) (30000000 + $i * 3301),
             $counties[$i % count($counties)],
-            $counties[$i % count($counties)] . ', Kenya',
+            $counties[$i % count($counties)] . ', Liberia',
             $firstNames[($i * 3) % count($firstNames)] . ' ' . $last,
-            '+2547' . str_pad((string) (30000000 + $i * 811), 8, '0', STR_PAD_LEFT),
-            $lastNames[($i * 5) % count($lastNames)] . ' Secondary School',
+            '+23177' . str_pad((string) (3000000 + $i * 811), 7, '0', STR_PAD_LEFT),
+            $lastNames[($i * 5) % count($lastNames)] . ' High School',
             $grades[$i % count($grades)],
         ]);
         $studentIds[] = (int) $pdo->lastInsertId();
@@ -521,8 +521,8 @@ return static function (PDO $pdo): void {
     );
 
     $feeTemplate = [
-        'TUI' => 48000, 'REG' => 2500, 'EXM' => 4000, 'LIB' => 2000,
-        'ICT' => 3500, 'MED' => 3000, 'ACT' => 1500, 'CAU' => 2000,
+        'TUI' => 750, 'REG' => 40, 'EXM' => 60, 'LIB' => 30,
+        'ICT' => 50, 'MED' => 45, 'ACT' => 25, 'CAU' => 30,
     ];
 
     foreach ($programRows as $program) {
@@ -630,18 +630,18 @@ return static function (PDO $pdo): void {
 
     /* ---------------- Library ---------------- */
     $books = [
-        ['9780262033848', 'Introduction to Algorithms', 'Cormen, Leiserson, Rivest, Stein', 'MIT Press', '4th', 2022, 9, 12, 8500],
-        ['9780134685991', 'Effective Java', 'Joshua Bloch', 'Addison-Wesley', '3rd', 2018, 9, 8, 6200],
-        ['9780132350884', 'Clean Code', 'Robert C. Martin', 'Prentice Hall', '1st', 2008, 9, 10, 5800],
-        ['9780133594140', 'Computer Networking: A Top-Down Approach', 'Kurose and Ross', 'Pearson', '8th', 2021, 9, 6, 7400],
-        ['9781118063330', 'Operating System Concepts', 'Silberschatz, Galvin, Gagne', 'Wiley', '10th', 2018, 9, 7, 7900],
-        ['9780073523323', 'Database System Concepts', 'Silberschatz, Korth, Sudarshan', 'McGraw-Hill', '7th', 2019, 9, 9, 8100],
-        ['9781292024820', 'Financial Accounting', 'Weygandt and Kimmel', 'Wiley', '10th', 2019, 4, 11, 6900],
-        ['9780078112720', 'Principles of Management', 'Griffin', 'Cengage', '12th', 2017, 4, 8, 5600],
-        ['9780321749086', 'University Physics', 'Young and Freedman', 'Pearson', '14th', 2016, 2, 6, 8800],
-        ['9781259253157', 'Calculus: Early Transcendentals', 'James Stewart', 'Cengage', '8th', 2015, 2, 10, 9200],
-        ['9780323673204', 'Fundamentals of Nursing', 'Potter and Perry', 'Elsevier', '10th', 2021, 6, 7, 10500],
-        ['9780199234899', 'A Dictionary of Education', 'Susan Wallace', 'Oxford', '2nd', 2015, 8, 4, 3600],
+        ['9780262033848', 'Introduction to Algorithms', 'Cormen, Leiserson, Rivest, Stein', 'MIT Press', '4th', 2022, 9, 12, 95],
+        ['9780134685991', 'Effective Java', 'Joshua Bloch', 'Addison-Wesley', '3rd', 2018, 9, 8, 60],
+        ['9780132350884', 'Clean Code', 'Robert C. Martin', 'Prentice Hall', '1st', 2008, 9, 10, 45],
+        ['9780133594140', 'Computer Networking: A Top-Down Approach', 'Kurose and Ross', 'Pearson', '8th', 2021, 9, 6, 85],
+        ['9781118063330', 'Operating System Concepts', 'Silberschatz, Galvin, Gagne', 'Wiley', '10th', 2018, 9, 7, 90],
+        ['9780073523323', 'Database System Concepts', 'Silberschatz, Korth, Sudarshan', 'McGraw-Hill', '7th', 2019, 9, 9, 92],
+        ['9781292024820', 'Financial Accounting', 'Weygandt and Kimmel', 'Wiley', '10th', 2019, 4, 11, 78],
+        ['9780078112720', 'Principles of Management', 'Griffin', 'Cengage', '12th', 2017, 4, 8, 62],
+        ['9780321749086', 'University Physics', 'Young and Freedman', 'Pearson', '14th', 2016, 2, 6, 98],
+        ['9781259253157', 'Calculus: Early Transcendentals', 'James Stewart', 'Cengage', '8th', 2015, 2, 10, 105],
+        ['9780323673204', 'Fundamentals of Nursing', 'Potter and Perry', 'Elsevier', '10th', 2021, 6, 7, 120],
+        ['9780199234899', 'A Dictionary of Education', 'Susan Wallace', 'Oxford', '2nd', 2015, 8, 4, 40],
     ];
     $bookInsert = $pdo->prepare(
         'INSERT INTO books (accession_number, isbn, title, author, publisher, edition, publication_year,
@@ -682,9 +682,9 @@ return static function (PDO $pdo): void {
     /* ---------------- Hostels ---------------- */
     $pdo->exec(
         "INSERT INTO hostels (campus_id, code, name, gender, total_rooms, location, status) VALUES
-           (1, 'HST-A', 'Kilimanjaro Hall', 'male', 40, 'North wing', 'active'),
-           (1, 'HST-B', 'Kenyatta Hall', 'female', 40, 'South wing', 'active'),
-           (1, 'HST-C', 'Elgon Hall', 'mixed', 30, 'East wing', 'active')"
+           (1, 'HST-A', 'Ducor Hall', 'male', 40, 'North wing', 'active'),
+           (1, 'HST-B', 'Providence Hall', 'female', 40, 'South wing', 'active'),
+           (1, 'HST-C', 'Nimba Hall', 'mixed', 30, 'East wing', 'active')"
     );
     $hostelRoomInsert = $pdo->prepare(
         'INSERT INTO hostel_rooms (hostel_id, room_number, floor, room_type, capacity, occupied, fee_per_semester, status)
@@ -698,7 +698,7 @@ return static function (PDO $pdo): void {
                 (int) ceil($room / 10),
                 $room % 5 === 0 ? 'single' : 'double',
                 $room % 5 === 0 ? 1 : 2,
-                $room % 5 === 0 ? 18000 : 12000,
+                $room % 5 === 0 ? 280 : 180,
             ]);
         }
     }
@@ -722,7 +722,7 @@ return static function (PDO $pdo): void {
                                    gender, date_of_birth, nationality, national_id, county, previous_school,
                                    qualification, grade_obtained, year_completed, study_mode, sponsor_type,
                                    application_fee_paid, score, status, submitted_at)
-         VALUES (?, 3, ?, ?, ?, ?, ?, ?, ?, "Kenyan", ?, ?, ?, "KCSE", ?, 2025, "full_time", ?, 1, ?, ?, ?)'
+         VALUES (?, 3, ?, ?, ?, ?, ?, ?, ?, "Liberian", ?, ?, ?, "WASSCE", ?, 2025, "full_time", ?, 1, ?, ?, ?)'
     );
     $applicationStatuses = ['submitted', 'submitted', 'under_review', 'shortlisted', 'accepted', 'rejected', 'submitted', 'accepted'];
     for ($i = 0; $i < 24; $i++) {
@@ -735,7 +735,7 @@ return static function (PDO $pdo): void {
             $first,
             $last,
             strtolower($first . '.' . $last . $i) . '@example.com',
-            '+2547' . str_pad((string) (40000000 + $i * 613), 8, '0', STR_PAD_LEFT),
+            '+23177' . str_pad((string) (4000000 + $i * 613), 7, '0', STR_PAD_LEFT),
             $i % 2 === 0 ? 'male' : 'female',
             date('Y-m-d', strtotime('-' . (18 + ($i % 4)) . ' years')),
             (string) (40000000 + $i * 1237),
@@ -852,9 +852,9 @@ return static function (PDO $pdo): void {
     /* A couple of scholarships. */
     $pdo->exec(
         "INSERT INTO scholarships (name, sponsor, award_type, percentage, amount, slots, criteria, status) VALUES
-           ('Vice Chancellor Merit Award', 'Metropolitan University', 'partial', 50.00, 0, 20, 'Awarded to students with a CGPA of 3.6 and above.', 'active'),
-           ('Needy Students Bursary', 'University Endowment Fund', 'fixed_amount', 0, 25000, 50, 'Means-tested support for students from low income households.', 'active'),
-           ('Sports Excellence Scholarship', 'Athletics Kenya', 'full', 100.00, 0, 5, 'Full tuition waiver for students representing the university nationally.', 'active')"
+           ('Vice Chancellor Merit Award', 'Best Brain University', 'partial', 50.00, 0, 20, 'Awarded to students with a CGPA of 3.6 and above.', 'active'),
+           ('Needy Students Bursary', 'University Endowment Fund', 'fixed_amount', 0, 600, 50, 'Means-tested support for students from low income households.', 'active'),
+           ('Sports Excellence Scholarship', 'Liberia National Sports Commission', 'full', 100.00, 0, 5, 'Full tuition waiver for students representing the university nationally.', 'active')"
     );
 
     /* Attendance for the current semester so the reports have data. */

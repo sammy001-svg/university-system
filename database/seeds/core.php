@@ -151,13 +151,13 @@ return static function (PDO $pdo): void {
         )->execute([
             App\Core\Hash::uuid4(),
             'admin',
-            'admin@university.ac.ke',
+            'admin@bestbrain.edu.lr',
             App\Core\Hash::make('Admin@2026'),
             'Mr',
             'System',
             'Administrator',
             'male',
-            '+254700000000',
+            '+231770000000',
             'admin',
             'active',
         ]);

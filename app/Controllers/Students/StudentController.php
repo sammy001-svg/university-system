@@ -206,7 +206,7 @@ final class StudentController extends Controller
                 'admission_date'             => $request->input('admission_date') ?: date('Y-m-d'),
                 'sponsor_type'               => $request->input('sponsor_type', 'self'),
                 'sponsor_name'               => $request->input('sponsor_name'),
-                'nationality'                => $request->input('nationality', 'Kenyan'),
+                'nationality'                => $request->input('nationality', 'Liberian'),
                 'national_id'                => $data['national_id'],
                 'county'                     => $data['county'],
                 'physical_address'           => $request->input('physical_address'),
