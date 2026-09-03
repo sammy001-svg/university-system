@@ -1,8 +1,15 @@
 /.env
-/storage/logs/*.log
+
+# Keep the runtime directories in the repo, ignore whatever lands in them.
+/storage/logs/*
 /storage/cache/*
 /storage/uploads/*
+!/storage/uploads/avatars/
+!/storage/uploads/documents/
+/storage/uploads/avatars/*
+/storage/uploads/documents/*
 /public/uploads/*
-!/storage/uploads/.gitkeep
+!.gitkeep
+
 .DS_Store
 Thumbs.db
