@@ -1,3 +1,14 @@
+# Never serve the environment file, whatever mod_rewrite is doing.
+<Files ".env">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</Files>
+
 # Route all web traffic safely to /public without rewrite loops
 <IfModule mod_rewrite.c>
     RewriteEngine On
