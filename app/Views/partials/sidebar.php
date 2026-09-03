@@ -8,7 +8,11 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 ?>
 <aside class="sidebar" id="sidebar">
     <a class="sidebar-brand" href="<?= url('/dashboard') ?>">
-        <span class="crest"><?= e(substr((string) $appShortName, 0, 2)) ?></span>
+        <?php if (!empty($appLogo)): ?>
+            <img src="<?= uploaded($appLogo) ?>" alt="Logo" class="sidebar-logo me-2" style="height:32px;width:32px;object-fit:contain;border-radius:4px">
+        <?php else: ?>
+            <span class="crest"><?= e(substr((string) $appShortName, 0, 2)) ?></span>
+        <?php endif; ?>
         <span>
             <span class="name d-block"><?= e(str_limit($appName, 22, '')) ?></span>
             <span class="sub">Management System</span>

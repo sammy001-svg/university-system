@@ -171,3 +171,36 @@ ON DUPLICATE KEY UPDATE
 
 -- 5. Link Admin User to Super Administrator Role
 INSERT IGNORE INTO `user_roles` (`user_id`, `role_id`) VALUES (1, 1);
+
+-- 6. Insert Default System Settings
+INSERT INTO `settings` (`setting_key`, `setting_value`, `setting_group`, `data_type`, `label`) VALUES
+('institution_name', 'Best Brain University', 'general', 'string', 'Institution name'),
+('institution_short_name', 'BBU', 'general', 'string', 'Short name / abbreviation'),
+('institution_motto', 'Excellence in Education & Innovation', 'general', 'string', 'Motto'),
+('institution_email', 'info@bestbrain.edu.lr', 'general', 'string', 'Official email'),
+('institution_phone', '+231 77 000 000', 'general', 'string', 'Telephone'),
+('institution_address', 'Monrovia, Liberia', 'general', 'text', 'Postal address'),
+('institution_country', 'Liberia', 'general', 'string', 'Country'),
+('institution_website', 'https://www.bestbrain.edu.lr', 'general', 'string', 'Website'),
+('institution_logo', '', 'general', 'file', 'Institution Logo'),
+('support_email', 'ict@bestbrain.edu.lr', 'general', 'string', 'ICT helpdesk email'),
+('academic_year_label', '2025/2026', 'academic', 'string', 'Current academic year label'),
+('min_credits_per_semester', '12', 'academic', 'integer', 'Minimum credit hours per semester'),
+('max_credits_per_semester', '21', 'academic', 'integer', 'Maximum credit hours per semester'),
+('pass_mark', '40', 'academic', 'integer', 'Overall pass mark (percent)'),
+('coursework_weight', '30', 'academic', 'integer', 'Default coursework weighting (percent)'),
+('exam_weight', '70', 'academic', 'integer', 'Default examination weighting (percent)'),
+('attendance_threshold', '75', 'academic', 'integer', 'Minimum attendance to sit exams (percent)'),
+('require_registration_approval', '1', 'academic', 'boolean', 'Course registrations need approval'),
+('fee_threshold_percent', '60', 'finance', 'integer', 'Minimum fee paid (percent) before registration'),
+('currency_code', 'USD', 'finance', 'string', 'Currency code'),
+('currency_symbol', '$', 'finance', 'string', 'Currency symbol'),
+('invoice_due_days', '30', 'finance', 'integer', 'Days until an invoice falls due'),
+('late_payment_penalty', '0', 'finance', 'decimal', 'Late payment penalty (percent)'),
+('library_loan_days', '14', 'library', 'integer', 'Standard loan period (days)'),
+('library_borrow_limit', '3', 'library', 'integer', 'Titles a member may hold at once'),
+('library_fine_per_day', '1.00', 'library', 'decimal', 'Overdue fine per day ($)'),
+('library_max_renewals', '2', 'library', 'integer', 'Maximum renewals per loan'),
+('hostel_application_open', '1', 'hostel', 'boolean', 'Accommodation applications are open')
+ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`), `label` = VALUES(`label`);
+

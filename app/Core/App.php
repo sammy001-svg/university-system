@@ -89,6 +89,7 @@ final class App
     {
         View::share('appName', Setting::get('institution_name', Config::get('app.name')));
         View::share('appShortName', Setting::get('institution_short_name', Config::get('app.short_name')));
+        View::share('appLogo', Setting::get('institution_logo', null));
         View::share('currentUser', Auth::user());
         View::share('flash', [
             'success' => Session::getFlash('success'),

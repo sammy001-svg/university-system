@@ -57,12 +57,12 @@ function env(string $key, mixed $default = null): mixed
 
 return [
     'app' => [
-        'name'       => env('APP_NAME', 'University Management System'),
-        'short_name' => env('APP_SHORT_NAME', 'UMS'),
+        'name'       => env('APP_NAME', 'Best Brain University'),
+        'short_name' => env('APP_SHORT_NAME', 'BBU'),
         'env'        => env('APP_ENV', 'production'),
         'debug'      => (bool) env('APP_DEBUG', false),
         'url'        => rtrim((string) env('APP_URL', ''), '/'),
-        'timezone'   => env('APP_TIMEZONE', 'Africa/Nairobi'),
+        'timezone'   => env('APP_TIMEZONE', 'Africa/Monrovia'),
         'key'        => env('APP_KEY', 'insecure-development-key'),
         'version'    => '1.0.0',
     ],
@@ -86,7 +86,7 @@ return [
         'user'      => env('MAIL_USER', ''),
         'pass'      => env('MAIL_PASS', ''),
         'from'      => env('MAIL_FROM', 'no-reply@localhost'),
-        'from_name' => env('MAIL_FROM_NAME', 'University'),
+        'from_name' => env('MAIL_FROM_NAME', 'Best Brain University'),
     ],
     'security' => [
         'max_login_attempts'  => (int) env('MAX_LOGIN_ATTEMPTS', 5),
@@ -94,8 +94,8 @@ return [
         'password_min_length' => (int) env('PASSWORD_MIN_LENGTH', 8),
     ],
     'locale' => [
-        'currency'        => env('CURRENCY', 'KES'),
-        'currency_symbol' => env('CURRENCY_SYMBOL', 'KSh'),
+        'currency'        => env('CURRENCY', 'USD'),
+        'currency_symbol' => env('CURRENCY_SYMBOL', '$'),
         'date_format'     => 'd M Y',
         'datetime_format' => 'd M Y H:i',
     ],
