@@ -1,15 +1,20 @@
 <?php
 /**
  * Sidebar navigation map.
+ *
  * Each item may declare a permission; the link is hidden when the user lacks it.
+ * An item may also declare 'user_type': these are personal workspaces backed by
+ * a linked student/staff record, so holding the permission is not enough. The
+ * super-admin role is granted every permission, which would otherwise advertise
+ * "My Portal" and "My Classes" to administrators who have no such record.
  */
 return [
     [
         'title' => 'Overview',
         'items' => [
             ['label' => 'Dashboard',     'url' => '/dashboard',     'icon' => 'dashboard',  'permission' => null],
-            ['label' => 'My Portal',     'url' => '/portal',        'icon' => 'student',    'permission' => 'portal.access'],
-            ['label' => 'My Classes',    'url' => '/teaching',      'icon' => 'clipboard',  'permission' => 'teaching.access'],
+            ['label' => 'My Portal',     'url' => '/portal',        'icon' => 'student',    'permission' => 'portal.access',  'user_type' => ['student']],
+            ['label' => 'My Classes',    'url' => '/teaching',      'icon' => 'clipboard',  'permission' => 'teaching.access', 'user_type' => ['lecturer', 'staff']],
         ],
     ],
     [

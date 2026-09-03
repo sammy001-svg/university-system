@@ -23,7 +23,17 @@ function url(string $path = '/'): string
 
 function asset(string $path): string
 {
-    return Response::url('assets/' . ltrim($path, '/'));
+    $relative = 'assets/' . ltrim($path, '/');
+    $url      = Response::url($relative);
+
+    // Stamp the file's mtime so a deployed CSS/JS change is not masked by a
+    // stale browser or proxy cache.
+    $file = Config::get('paths.public') . '/' . $relative;
+    if (is_file($file)) {
+        $url .= (str_contains($url, '?') ? '&' : '?') . 'v=' . filemtime($file);
+    }
+
+    return $url;
 }
 
 function uploaded(?string $path, string $fallback = 'assets/img/avatar.svg'): string

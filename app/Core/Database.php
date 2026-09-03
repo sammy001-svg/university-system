@@ -41,9 +41,18 @@ final class Database
                 PDO::MYSQL_ATTR_INIT_COMMAND => "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'",
             ]);
         } catch (PDOException $e) {
+            // A missing .env is by far the most common cause: config.php then
+            // falls back to root/no-password and MySQL rejects the connection.
+            // Say so plainly rather than pointing at MySQL.
+            $envPath = dirname(__DIR__, 2) . '/.env';
+            $hint    = is_file($envPath) && is_readable($envPath)
+                ? ' (check the DB_ credentials in ' . $envPath . ' and that MySQL is running)'
+                : ' -- no readable .env file at ' . $envPath . ', so the'
+                  . ' fallback credentials in config/config.php were used.'
+                  . ' Create that file from .env.example and set DB_NAME, DB_USER and DB_PASS.';
+
             throw new RuntimeException(
-                'Database connection failed: ' . $e->getMessage() .
-                ' (check credentials in .env and that MySQL is running)',
+                'Database connection failed: ' . $e->getMessage() . $hint,
                 (int) $e->getCode()
             );
         }

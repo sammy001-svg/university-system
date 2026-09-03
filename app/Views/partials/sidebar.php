@@ -1,7 +1,9 @@
 <?php
 /**
  * Navigation is permission-driven: a link only appears when the signed-in
- * user holds at least one of the permissions listed for it.
+ * user holds at least one of the permissions listed for it. Items that also
+ * declare 'user_type' are personal workspaces and additionally require the
+ * signed-in user to be of that type.
  */
 $nav = require config('paths.app') . '/Support/navigation.php';
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
@@ -22,7 +24,11 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
     <nav class="pb-4">
         <?php foreach ($nav as $group): ?>
             <?php
-            $visible = array_filter($group['items'], static function (array $item): bool {
+            $userType = $currentUser['user_type'] ?? null;
+            $visible = array_filter($group['items'], static function (array $item) use ($userType): bool {
+                if (isset($item['user_type']) && !in_array($userType, (array) $item['user_type'], true)) {
+                    return false;
+                }
                 if (($item['permission'] ?? null) === null) {
                     return true;
                 }
