@@ -5,7 +5,7 @@
         <p class="lede">Student fee billing invoices.</p>
     </div>
     <?php if (can('finance.create')): ?>
-        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/invoices/generate') ?>">
+        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/finance/invoices/generate') ?>">
             <?= icon('plus', 'ico-sm') ?> Generate Invoices
         </a>
     <?php endif; ?>
@@ -43,7 +43,7 @@
                     <td class="text-muted-sm"><?= date_fmt($inv['due_date'] ?? '') ?></td>
                     <td><?= status_badge($inv['status']) ?></td>
                     <td class="text-end">
-                        <a class="btn btn-sm btn-light" href="<?= url('/invoices/' . $inv['id']) ?>"><?= icon('eye', 'ico-sm') ?> View</a>
+                        <a class="btn btn-sm btn-light" href="<?= url('/finance/invoices/' . $inv['id']) ?>"><?= icon('eye', 'ico-sm') ?> View</a>
                     </td>
                 </tr>
             <?php endforeach; ?>

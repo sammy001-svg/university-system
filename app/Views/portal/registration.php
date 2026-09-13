@@ -25,7 +25,7 @@
                             <td class="text-center"><?= (int)$r['credit_hours'] ?></td>
                             <td><?= status_badge($r['approval_status'] ?? '') ?></td>
                             <td class="text-end">
-                                <form method="post" action="<?= url('/registration/' . $r['id'] . '/drop') ?>" onsubmit="return confirm('Drop this course?')">
+                                <form method="post" action="<?= url('/portal/registration/' . $r['id'] . '/drop') ?>" onsubmit="return confirm('Drop this course?')">
                                     <?= csrf_field() ?>
                                     <button class="btn btn-sm btn-outline-danger">Drop</button>
                                 </form>
@@ -57,7 +57,7 @@
                             <td class="text-center"><?= (int)$c['credit_hours'] ?></td>
                             <td class="text-center"><?= (int)$c['capacity'] - (int)$c['enrolled_count'] ?></td>
                             <td class="text-end">
-                                <form method="post" action="<?= url('/registration') ?>">
+                                <form method="post" action="<?= url('/portal/registration') ?>">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="offering_id" value="<?= $c['offering_id'] ?>">
                                     <button class="btn btn-sm btn-primary">Register</button>

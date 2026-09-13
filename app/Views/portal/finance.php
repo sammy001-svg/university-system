@@ -38,7 +38,7 @@
                             <td class="<?= $inv['balance'] > 0 ? 'text-danger fw-semibold' : 'text-success' ?>"><?= number_format((float)$inv['balance'], 2) ?></td>
                             <td class="text-muted-sm"><?= date_fmt($inv['due_date'] ?? '') ?></td>
                             <td><?= status_badge($inv['status']) ?></td>
-                            <td><a class="btn btn-sm btn-light" href="<?= url('/portal/invoices/' . $inv['id']) ?>">View</a></td>
+                            <td><a class="btn btn-sm btn-light" href="<?= url('/portal/finance/invoice/' . $inv['id']) ?>">View</a></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>

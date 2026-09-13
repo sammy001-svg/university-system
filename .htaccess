@@ -1,5 +1,7 @@
 # Never serve the environment file, whatever mod_rewrite is doing.
-<Files ".env">
+# Scoped to .env* / env.ini only -- a blanket dotfile deny would also block
+# /.well-known/acme-challenge and break cPanel AutoSSL renewals.
+<FilesMatch "^(\.env($|\.)|env\.ini$)">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -7,7 +9,7 @@
         Order allow,deny
         Deny from all
     </IfModule>
-</Files>
+</FilesMatch>
 
 # Route all web traffic safely to /public without rewrite loops
 <IfModule mod_rewrite.c>

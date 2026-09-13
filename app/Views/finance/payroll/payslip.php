@@ -6,7 +6,7 @@
     </div>
     <div class="d-flex gap-2">
         <button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><?= icon('download', 'ico-sm') ?> Print Payslip</button>
-        <a class="btn btn-sm btn-light" href="<?= url('/payroll/' . $payslip['payroll_period_id']) ?>">&larr; Back to Period</a>
+        <a class="btn btn-sm btn-light" href="<?= url('/finance/payroll/' . $payslip['payroll_period_id']) ?>">&larr; Back to Period</a>
     </div>
 </div>
 

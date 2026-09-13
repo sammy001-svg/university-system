@@ -49,11 +49,11 @@
                     <td><?= status_badge($r['approval_status']) ?></td>
                     <td class="text-end text-nowrap">
                         <?php if ($r['approval_status'] === 'pending' && can('registrations.approve')): ?>
-                            <form method="post" action="<?= url('/registrations/' . $r['id'] . '/approve') ?>" class="d-inline">
+                            <form method="post" action="<?= url('/academics/registrations/' . $r['id'] . '/approve') ?>" class="d-inline">
                                 <?= csrf_field() ?>
                                 <button class="btn btn-sm btn-success">Approve</button>
                             </form>
-                            <form method="post" action="<?= url('/registrations/' . $r['id'] . '/reject') ?>" class="d-inline">
+                            <form method="post" action="<?= url('/academics/registrations/' . $r['id'] . '/reject') ?>" class="d-inline">
                                 <?= csrf_field() ?>
                                 <button class="btn btn-sm btn-outline-danger">Reject</button>
                             </form>

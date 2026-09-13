@@ -5,7 +5,7 @@
         <p class="lede">Student admission applications pipeline.</p>
     </div>
     <?php if (can('admissions.create')): ?>
-        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/applications/create') ?>">
+        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/admissions/applications/create') ?>">
             <?= icon('plus', 'ico-sm') ?> New Application
         </a>
     <?php endif; ?>
@@ -78,7 +78,7 @@
                     <td class="text-muted-sm"><?= date_fmt($row['submitted_at'] ?? '') ?></td>
                     <td><?= status_badge($row['status']) ?></td>
                     <td class="text-end">
-                        <a class="btn btn-sm btn-light" href="<?= url('/applications/' . $row['id']) ?>"><?= icon('eye', 'ico-sm') ?> View</a>
+                        <a class="btn btn-sm btn-light" href="<?= url('/admissions/applications/' . $row['id']) ?>"><?= icon('eye', 'ico-sm') ?> View</a>
                     </td>
                 </tr>
             <?php endforeach; ?>

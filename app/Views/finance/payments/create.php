@@ -1,11 +1,11 @@
 <?php layout('layouts.app'); section('content'); ?>
 <div class="page-head">
     <div><h1>Record Payment</h1></div>
-    <a class="btn btn-sm btn-light" href="<?= url('/payments') ?>">&larr; Back to Payments</a>
+    <a class="btn btn-sm btn-light" href="<?= url('/finance/payments') ?>">&larr; Back to Payments</a>
 </div>
 
 <div class="card">
-    <form method="post" action="<?= url('/payments') ?>">
+    <form method="post" action="<?= url('/finance/payments') ?>">
         <?= csrf_field() ?>
         <div class="card-body">
             <div class="row g-3">
@@ -37,7 +37,7 @@
         </div>
         <div class="card-footer d-flex gap-2">
             <button type="submit" class="btn btn-primary">Record Payment &amp; Issue Receipt</button>
-            <a href="<?= url('/payments') ?>" class="btn btn-light">Cancel</a>
+            <a href="<?= url('/finance/payments') ?>" class="btn btn-light">Cancel</a>
         </div>
     </form>
 </div>

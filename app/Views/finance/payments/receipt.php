@@ -5,7 +5,7 @@
     </div>
     <div class="d-flex gap-2">
         <button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><?= icon('download', 'ico-sm') ?> Print Receipt</button>
-        <a class="btn btn-sm btn-light" href="<?= url('/payments') ?>">&larr; Back to Payments</a>
+        <a class="btn btn-sm btn-light" href="<?= url('/finance/payments') ?>">&larr; Back to Payments</a>
     </div>
 </div>
 

@@ -1,7 +1,7 @@
 <?php layout('layouts.app'); section('content'); ?>
 <div class="page-head">
     <div><h1>My Results</h1><p class="lede"><?= e($student['admission_number']) ?> &middot; <?= e($student['program_name']) ?></p></div>
-    <a class="btn btn-sm btn-outline-secondary" href="<?= url('/transcript') ?>"><?= icon('file','ico-sm') ?> Full Transcript</a>
+    <a class="btn btn-sm btn-outline-secondary" href="<?= url('/portal/transcript') ?>"><?= icon('file','ico-sm') ?> Full Transcript</a>
 </div>
 
 <?php if (!empty($history)): ?>

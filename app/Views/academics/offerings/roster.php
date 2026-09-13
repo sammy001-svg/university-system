@@ -4,7 +4,7 @@
         <h1>Class Roster: <?= e($offering['code'] ?? '') ?></h1>
         <p class="lede">Section <?= e($offering['section'] ?? '1') ?> &middot; Enrolled Students</p>
     </div>
-    <a class="btn btn-sm btn-light" href="<?= url('/offerings') ?>">&larr; Back to Offerings</a>
+    <a class="btn btn-sm btn-light" href="<?= url('/academics/offerings') ?>">&larr; Back to Offerings</a>
 </div>
 
 <div class="card">

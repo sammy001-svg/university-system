@@ -4,7 +4,7 @@
         <h1><?= e($structure['name']) ?></h1>
         <p class="lede"><?= e($structure['study_mode'] ?? 'full_time') ?> &middot; Year <?= (int)$structure['year_of_study'] ?></p>
     </div>
-    <a class="btn btn-sm btn-light" href="<?= url('/fee-structures') ?>">&larr; Back to Fee Structures</a>
+    <a class="btn btn-sm btn-light" href="<?= url('/finance/fee-structures') ?>">&larr; Back to Fee Structures</a>
 </div>
 
 <div class="row g-4">
@@ -34,7 +34,7 @@
                             <td class="text-end"><?= e(money($item['amount'])) ?></td>
                             <td class="text-end">
                                 <?php if (can('finance.manage')): ?>
-                                    <form method="post" action="<?= url('/fee-structures/' . $structure['id'] . '/items/' . $item['id'] . '/delete') ?>" onsubmit="return confirm('Remove fee item?')">
+                                    <form method="post" action="<?= url('/finance/fee-structures/' . $structure['id'] . '/items/' . $item['id'] . '/delete') ?>" onsubmit="return confirm('Remove fee item?')">
                                         <?= csrf_field() ?>
                                         <button class="btn btn-sm btn-outline-danger"><?= icon('trash', 'ico-sm') ?></button>
                                     </form>
@@ -61,7 +61,7 @@
         <?php if (can('finance.manage')): ?>
         <div class="card">
             <div class="card-header"><?= icon('plus') ?> Add Fee Item</div>
-            <form method="post" action="<?= url('/fee-structures/' . $structure['id'] . '/items') ?>">
+            <form method="post" action="<?= url('/finance/fee-structures/' . $structure['id'] . '/items') ?>">
                 <?= csrf_field() ?>
                 <div class="card-body">
                     <div class="mb-3">

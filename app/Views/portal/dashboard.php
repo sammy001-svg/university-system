@@ -51,7 +51,7 @@
             </div>
             <?php endif; ?>
             <div class="card-footer">
-                <a class="btn btn-sm btn-outline-primary" href="<?= url('/registration') ?>">Manage Registration</a>
+                <a class="btn btn-sm btn-outline-primary" href="<?= url('/portal/registration') ?>">Manage Registration</a>
             </div>
         </div>
     </div>
@@ -76,7 +76,7 @@
                 <a href="<?= url('/portal/results') ?>" class="list-group-item list-group-item-action"><?= icon('file','ico-sm') ?> My Results</a>
                 <a href="<?= url('/portal/finance') ?>" class="list-group-item list-group-item-action"><?= icon('finance','ico-sm') ?> Fee Statement</a>
                 <a href="<?= url('/timetable') ?>" class="list-group-item list-group-item-action"><?= icon('clock','ico-sm') ?> Timetable</a>
-                <a href="<?= url('/transcript') ?>" class="list-group-item list-group-item-action"><?= icon('file','ico-sm') ?> Transcript</a>
+                <a href="<?= url('/portal/transcript') ?>" class="list-group-item list-group-item-action"><?= icon('file','ico-sm') ?> Transcript</a>
             </div>
         </div>
     </div>

@@ -4,7 +4,7 @@
         <h1>Application: <?= e($application['application_number']) ?></h1>
         <p class="lede"><?= e($application['first_name'] . ' ' . $application['last_name']) ?> &middot; <?= e($application['program_name'] ?? '') ?></p>
     </div>
-    <a class="btn btn-sm btn-light" href="<?= url('/applications') ?>">&larr; Back to Applications</a>
+    <a class="btn btn-sm btn-light" href="<?= url('/admissions/applications') ?>">&larr; Back to Applications</a>
 </div>
 
 <div class="row g-4">
@@ -36,7 +36,7 @@
                         <h6 class="mb-1 text-success">Application Accepted</h6>
                         <p class="text-muted-sm mb-0">Applicant is ready to be enrolled into the student body.</p>
                     </div>
-                    <form method="post" action="<?= url('/applications/' . $application['id'] . '/enrol') ?>">
+                    <form method="post" action="<?= url('/admissions/applications/' . $application['id'] . '/enrol') ?>">
                         <?= csrf_field() ?>
                         <button class="btn btn-success"><?= icon('student', 'ico-sm') ?> Enrol as Student</button>
                     </form>
@@ -49,7 +49,7 @@
         <?php if (can('admissions.review')): ?>
         <div class="card">
             <div class="card-header"><?= icon('edit') ?> Review Application</div>
-            <form method="post" action="<?= url('/applications/' . $application['id'] . '/review') ?>">
+            <form method="post" action="<?= url('/admissions/applications/' . $application['id'] . '/review') ?>">
                 <?= csrf_field() ?>
                 <div class="card-body">
                     <div class="mb-3">

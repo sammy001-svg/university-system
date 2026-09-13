@@ -5,7 +5,7 @@
         <p class="lede">Student fee payment transactions and receipts.</p>
     </div>
     <?php if (can('finance.create')): ?>
-        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/payments/create') ?>">
+        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/finance/payments/create') ?>">
             <?= icon('plus', 'ico-sm') ?> Record Payment
         </a>
     <?php endif; ?>
@@ -43,9 +43,9 @@
                     <td class="text-muted-sm"><?= date_fmt($p['paid_at'] ?? '') ?></td>
                     <td><?= status_badge($p['status']) ?></td>
                     <td class="text-end text-nowrap">
-                        <a class="btn btn-sm btn-light" href="<?= url('/payments/' . $p['id'] . '/receipt') ?>"><?= icon('file', 'ico-sm') ?> Receipt</a>
+                        <a class="btn btn-sm btn-light" href="<?= url('/finance/payments/' . $p['id'] . '/receipt') ?>"><?= icon('file', 'ico-sm') ?> Receipt</a>
                         <?php if ($p['status'] === 'confirmed' && can('finance.reverse')): ?>
-                            <form method="post" action="<?= url('/payments/' . $p['id'] . '/reverse') ?>" class="d-inline" onsubmit="return confirm('Reverse this payment?')">
+                            <form method="post" action="<?= url('/finance/payments/' . $p['id'] . '/reverse') ?>" class="d-inline" onsubmit="return confirm('Reverse this payment?')">
                                 <?= csrf_field() ?>
                                 <button class="btn btn-sm btn-outline-danger">Reverse</button>
                             </form>

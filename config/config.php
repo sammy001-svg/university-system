@@ -6,15 +6,51 @@
 
 declare(strict_types=1);
 
+/**
+ * Places the environment file may live, in priority order.
+ *
+ * `.env` is the convention, but cPanel's File Manager makes dotfiles awkward
+ * to create, so `env.ini` is accepted as an equivalent. The path above the
+ * site directory is checked last: a file kept there survives a redeploy that
+ * replaces the whole web folder. Everything inside the site root is blocked
+ * from being served by the root .htaccess.
+ *
+ * @return list<string>
+ */
+function ums_env_candidates(): array
+{
+    $root = dirname(__DIR__);
+
+    return [
+        $root . '/.env',
+        $root . '/env.ini',
+        dirname($root) . '/.env',
+    ];
+}
+
+/** The first environment file that actually exists and can be read. */
+function ums_env_path(): ?string
+{
+    foreach (ums_env_candidates() as $candidate) {
+        if (is_file($candidate) && is_readable($candidate)) {
+            return $candidate;
+        }
+    }
+    return null;
+}
+
 /** Minimal .env parser (no external dependency). */
-function ums_load_env(string $path): array
+function ums_load_env(string $path = ''): array
 {
     static $cache = null;
     if ($cache !== null) {
         return $cache;
     }
     $cache = [];
-    if (!is_file($path)) {
+    if ($path === '' || !is_file($path) || !is_readable($path)) {
+        $path = (string) ums_env_path();
+    }
+    if ($path === '' || !is_file($path)) {
         return $cache;
     }
     foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
@@ -41,7 +77,7 @@ function ums_load_env(string $path): array
 
 function env(string $key, mixed $default = null): mixed
 {
-    $vars = ums_load_env(dirname(__DIR__) . '/.env');
+    $vars = ums_load_env();
     if (!array_key_exists($key, $vars)) {
         return $default;
     }

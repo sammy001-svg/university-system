@@ -8,7 +8,7 @@
 
 <div class="card mb-4">
     <div class="card-header"><?= icon('plus') ?> Create New Payroll Period</div>
-    <form method="post" action="<?= url('/payroll') ?>">
+    <form method="post" action="<?= url('/finance/payroll') ?>">
         <?= csrf_field() ?>
         <div class="card-body">
             <div class="row g-3">
@@ -62,7 +62,7 @@
                     <td><?= date_fmt($p['pay_date'] ?? '') ?></td>
                     <td><?= status_badge($p['status']) ?></td>
                     <td class="text-end">
-                        <a class="btn btn-sm btn-light" href="<?= url('/payroll/' . $p['id']) ?>"><?= icon('eye', 'ico-sm') ?> View Payroll</a>
+                        <a class="btn btn-sm btn-light" href="<?= url('/finance/payroll/' . $p['id']) ?>"><?= icon('eye', 'ico-sm') ?> View Payroll</a>
                     </td>
                 </tr>
             <?php endforeach; ?>

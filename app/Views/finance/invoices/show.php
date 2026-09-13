@@ -5,9 +5,9 @@
         <p class="lede">Student: <?= e($invoice['first_name'] . ' ' . $invoice['last_name']) ?> (<?= e($invoice['admission_number']) ?>)</p>
     </div>
     <div class="d-flex gap-2">
-        <a class="btn btn-sm btn-light" href="<?= url('/invoices') ?>">&larr; Back to Invoices</a>
+        <a class="btn btn-sm btn-light" href="<?= url('/finance/invoices') ?>">&larr; Back to Invoices</a>
         <?php if ($invoice['status'] !== 'cancelled' && can('finance.edit')): ?>
-            <form method="post" action="<?= url('/invoices/' . $invoice['id'] . '/cancel') ?>" onsubmit="return confirm('Cancel this invoice?')">
+            <form method="post" action="<?= url('/finance/invoices/' . $invoice['id'] . '/cancel') ?>" onsubmit="return confirm('Cancel this invoice?')">
                 <?= csrf_field() ?>
                 <button class="btn btn-sm btn-outline-danger">Cancel Invoice</button>
             </form>

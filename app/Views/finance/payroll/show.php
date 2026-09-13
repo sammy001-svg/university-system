@@ -5,9 +5,9 @@
         <p class="lede">Pay Date: <?= date_fmt($period['pay_date'] ?? '') ?></p>
     </div>
     <div class="d-flex gap-2">
-        <a class="btn btn-sm btn-light" href="<?= url('/payroll') ?>">&larr; Back to Payroll</a>
+        <a class="btn btn-sm btn-light" href="<?= url('/finance/payroll') ?>">&larr; Back to Payroll</a>
         <?php if ($period['status'] === 'draft' && can('payroll.create')): ?>
-            <form method="post" action="<?= url('/payroll/' . $period['id'] . '/process') ?>">
+            <form method="post" action="<?= url('/finance/payroll/' . $period['id'] . '/process') ?>">
                 <?= csrf_field() ?>
                 <button class="btn btn-sm btn-primary">Process Payroll &amp; Generate Payslips</button>
             </form>
@@ -43,7 +43,7 @@
                     <td class="text-end fw-bold text-success"><?= number_format((float)($ps['net_pay'] ?? $ps['basic_salary']), 2) ?></td>
                     <td><?= status_badge($ps['status']) ?></td>
                     <td class="text-end">
-                        <a class="btn btn-sm btn-light" href="<?= url('/payroll/payslip/' . $ps['id']) ?>"><?= icon('file', 'ico-sm') ?> Payslip</a>
+                        <a class="btn btn-sm btn-light" href="<?= url('/finance/payroll/payslip/' . $ps['id']) ?>"><?= icon('file', 'ico-sm') ?> Payslip</a>
                     </td>
                 </tr>
             <?php endforeach; ?>

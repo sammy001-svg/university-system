@@ -4,7 +4,7 @@
         <h1>Curriculum: <?= e($program['name']) ?></h1>
         <p class="lede"><?= e($program['code']) ?> &middot; Program Course Structure</p>
     </div>
-    <a class="btn btn-sm btn-light" href="<?= url('/programs') ?>">&larr; Back to Programs</a>
+    <a class="btn btn-sm btn-light" href="<?= url('/academics/programs') ?>">&larr; Back to Programs</a>
 </div>
 
 <div class="row g-4 mb-4">
@@ -37,7 +37,7 @@
                             <td class="text-center"><?= (int)$item['credit_hours'] ?></td>
                             <td><?= $item['is_elective'] ? '<span class="badge text-bg-info">Elective</span>' : '<span class="badge text-bg-primary">Core</span>' ?></td>
                             <td class="text-end">
-                                <form method="post" action="<?= url('/programs/' . $program['id'] . '/curriculum/' . $item['course_id'] . '/delete') ?>" onsubmit="return confirm('Remove course from curriculum?')">
+                                <form method="post" action="<?= url('/academics/programs/' . $program['id'] . '/curriculum/' . $item['course_id'] . '/delete') ?>" onsubmit="return confirm('Remove course from curriculum?')">
                                     <?= csrf_field() ?>
                                     <button class="btn btn-sm btn-outline-danger"><?= icon('trash', 'ico-sm') ?></button>
                                 </form>
@@ -52,7 +52,7 @@
     <div class="col-lg-4">
         <div class="card">
             <div class="card-header"><?= icon('plus') ?> Add Course to Curriculum</div>
-            <form method="post" action="<?= url('/programs/' . $program['id'] . '/curriculum') ?>">
+            <form method="post" action="<?= url('/academics/programs/' . $program['id'] . '/curriculum') ?>">
                 <?= csrf_field() ?>
                 <div class="card-body">
                     <div class="mb-3">

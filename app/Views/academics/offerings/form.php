@@ -1,11 +1,11 @@
 <?php layout('layouts.app'); section('content'); ?>
 <div class="page-head">
     <div><h1><?= e($isNew ? 'New Class Offering' : 'Edit Class Offering') ?></h1></div>
-    <a class="btn btn-sm btn-light" href="<?= url('/offerings') ?>">&larr; Back to Offerings</a>
+    <a class="btn btn-sm btn-light" href="<?= url('/academics/offerings') ?>">&larr; Back to Offerings</a>
 </div>
 
 <div class="card">
-    <form method="post" action="<?= $isNew ? url('/offerings') : url('/offerings/' . ($record['id'] ?? '')) ?>">
+    <form method="post" action="<?= $isNew ? url('/academics/offerings') : url('/academics/offerings/' . ($record['id'] ?? '')) ?>">
         <?= csrf_field() ?>
         <?php if (!$isNew): ?><input type="hidden" name="_method" value="PUT"><?php endif; ?>
         <div class="card-body">
@@ -56,7 +56,7 @@
         </div>
         <div class="card-footer d-flex gap-2">
             <button type="submit" class="btn btn-primary"><?= $isNew ? 'Create Offering' : 'Save Changes' ?></button>
-            <a href="<?= url('/offerings') ?>" class="btn btn-light">Cancel</a>
+            <a href="<?= url('/academics/offerings') ?>" class="btn btn-light">Cancel</a>
         </div>
     </form>
 </div>

@@ -9,14 +9,14 @@
             <a class="btn btn-outline-secondary btn-sm" href="#" onclick="event.preventDefault(); document.getElementById('generate-form').submit();">
                 <?= icon('refresh', 'ico-sm') ?> Auto-Generate Offerings
             </a>
-            <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/offerings/create') ?>">
+            <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/academics/offerings/create') ?>">
                 <?= icon('plus', 'ico-sm') ?> New Offering
             </a>
         <?php endif; ?>
     </div>
 </div>
 
-<form id="generate-form" method="post" action="<?= url('/offerings/generate') ?>" class="d-none">
+<form id="generate-form" method="post" action="<?= url('/academics/offerings/generate') ?>" class="d-none">
     <?= csrf_field() ?>
     <input type="hidden" name="semester_id" value="<?= e($semesters[0]['id'] ?? '') ?>">
 </form>
@@ -54,9 +54,9 @@
                     <td><?= (int)($row['enrolled_count'] ?? 0) ?> / <?= (int)($row['capacity'] ?? 0) ?></td>
                     <td><?= status_badge($row['status'] ?? 'open') ?></td>
                     <td class="text-end text-nowrap">
-                        <a class="btn btn-sm btn-light" title="Class Roster" href="<?= url('/offerings/' . $row['id'] . '/roster') ?>"><?= icon('student', 'ico-sm') ?></a>
+                        <a class="btn btn-sm btn-light" title="Class Roster" href="<?= url('/academics/offerings/' . $row['id'] . '/roster') ?>"><?= icon('student', 'ico-sm') ?></a>
                         <?php if (can('offerings.edit')): ?>
-                            <a class="btn btn-sm btn-light" title="Edit" href="<?= url('/offerings/' . $row['id'] . '/edit') ?>"><?= icon('edit', 'ico-sm') ?></a>
+                            <a class="btn btn-sm btn-light" title="Edit" href="<?= url('/academics/offerings/' . $row['id'] . '/edit') ?>"><?= icon('edit', 'ico-sm') ?></a>
                         <?php endif; ?>
                     </td>
                 </tr>

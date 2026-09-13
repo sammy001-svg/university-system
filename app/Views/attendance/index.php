@@ -5,7 +5,7 @@
         <p class="lede">Class attendance sessions and records.</p>
     </div>
     <?php if (can('attendance.create')): ?>
-        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/attendance/create') ?>">
+        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/attendance/sessions/create') ?>">
             <?= icon('plus', 'ico-sm') ?> New Session
         </a>
     <?php endif; ?>

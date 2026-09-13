@@ -1,11 +1,11 @@
 <?php layout('layouts.app'); section('content'); ?>
 <div class="page-head">
     <div><h1><?= e($isNew ? 'New Fee Structure' : 'Edit Fee Structure') ?></h1></div>
-    <a class="btn btn-sm btn-light" href="<?= url('/fee-structures') ?>">&larr; Back to Fee Structures</a>
+    <a class="btn btn-sm btn-light" href="<?= url('/finance/fee-structures') ?>">&larr; Back to Fee Structures</a>
 </div>
 
 <div class="card">
-    <form method="post" action="<?= $isNew ? url('/fee-structures') : url('/fee-structures/' . ($record['id'] ?? '')) ?>">
+    <form method="post" action="<?= $isNew ? url('/finance/fee-structures') : url('/finance/fee-structures/' . ($record['id'] ?? '')) ?>">
         <?= csrf_field() ?>
         <?php if (!$isNew): ?><input type="hidden" name="_method" value="PUT"><?php endif; ?>
         <div class="card-body">
@@ -44,7 +44,7 @@
         </div>
         <div class="card-footer d-flex gap-2">
             <button type="submit" class="btn btn-primary"><?= $isNew ? 'Create Fee Structure' : 'Save Changes' ?></button>
-            <a href="<?= url('/fee-structures') ?>" class="btn btn-light">Cancel</a>
+            <a href="<?= url('/finance/fee-structures') ?>" class="btn btn-light">Cancel</a>
         </div>
     </form>
 </div>

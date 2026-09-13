@@ -5,7 +5,7 @@
         <p class="lede">Institution fee schedules per program &amp; academic year.</p>
     </div>
     <?php if (can('finance.manage')): ?>
-        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/fee-structures/create') ?>">
+        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/finance/fee-structures/create') ?>">
             <?= icon('plus', 'ico-sm') ?> New Fee Structure
         </a>
     <?php endif; ?>
@@ -37,9 +37,9 @@
                     <td><?= e(humanize($s['study_mode'] ?? 'full_time')) ?></td>
                     <td>Year <?= (int)$s['year_of_study'] ?></td>
                     <td class="text-end text-nowrap">
-                        <a class="btn btn-sm btn-light" href="<?= url('/fee-structures/' . $s['id']) ?>"><?= icon('eye', 'ico-sm') ?> View Items</a>
+                        <a class="btn btn-sm btn-light" href="<?= url('/finance/fee-structures/' . $s['id']) ?>"><?= icon('eye', 'ico-sm') ?> View Items</a>
                         <?php if (can('finance.manage')): ?>
-                            <a class="btn btn-sm btn-light" href="<?= url('/fee-structures/' . $s['id'] . '/edit') ?>"><?= icon('edit', 'ico-sm') ?> Edit</a>
+                            <a class="btn btn-sm btn-light" href="<?= url('/finance/fee-structures/' . $s['id'] . '/edit') ?>"><?= icon('edit', 'ico-sm') ?> Edit</a>
                         <?php endif; ?>
                     </td>
                 </tr>

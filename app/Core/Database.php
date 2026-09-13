@@ -41,15 +41,33 @@ final class Database
                 PDO::MYSQL_ATTR_INIT_COMMAND => "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'",
             ]);
         } catch (PDOException $e) {
-            // A missing .env is by far the most common cause: config.php then
-            // falls back to root/no-password and MySQL rejects the connection.
-            // Say so plainly rather than pointing at MySQL.
-            $envPath = dirname(__DIR__, 2) . '/.env';
-            $hint    = is_file($envPath) && is_readable($envPath)
-                ? ' (check the DB_ credentials in ' . $envPath . ' and that MySQL is running)'
-                : ' -- no readable .env file at ' . $envPath . ', so the'
-                  . ' fallback credentials in config/config.php were used.'
-                  . ' Create that file from .env.example and set DB_NAME, DB_USER and DB_PASS.';
+            // A missing environment file is by far the most common cause:
+            // config.php then falls back to root/no-password and MySQL rejects
+            // the connection. Report each candidate path and why it was passed
+            // over, so the difference between "not there" and "there but not
+            // readable" is visible without shell access.
+            $found = function_exists('ums_env_path') ? ums_env_path() : null;
+
+            if ($found !== null) {
+                $hint = ' (check the DB_ credentials in ' . $found . ' and that MySQL is running)';
+            } else {
+                $lines = [];
+                foreach (function_exists('ums_env_candidates') ? ums_env_candidates() : [] as $candidate) {
+                    if (!file_exists($candidate)) {
+                        $why = 'does not exist';
+                    } elseif (!is_file($candidate)) {
+                        $why = 'exists but is not a regular file';
+                    } elseif (!is_readable($candidate)) {
+                        $why = 'exists but PHP cannot read it -- check permissions/ownership';
+                    } else {
+                        $why = 'unreadable';
+                    }
+                    $lines[] = $candidate . ' (' . $why . ')';
+                }
+                $hint = ' -- no environment file found, so the fallback credentials in'
+                      . ' config/config.php were used. Checked: ' . implode('; ', $lines)
+                      . '. Create one of those from .env.example and set DB_NAME, DB_USER and DB_PASS.';
+            }
 
             throw new RuntimeException(
                 'Database connection failed: ' . $e->getMessage() . $hint,

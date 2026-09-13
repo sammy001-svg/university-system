@@ -1,11 +1,11 @@
 <?php layout('layouts.app'); section('content'); ?>
 <div class="page-head">
     <div><h1>Generate Batch Invoices</h1><p class="lede">Generate fee invoices for students based on fee structure rules.</p></div>
-    <a class="btn btn-sm btn-light" href="<?= url('/invoices') ?>">&larr; Back to Invoices</a>
+    <a class="btn btn-sm btn-light" href="<?= url('/finance/invoices') ?>">&larr; Back to Invoices</a>
 </div>
 
 <div class="card">
-    <form method="post" action="<?= url('/invoices/generate') ?>">
+    <form method="post" action="<?= url('/finance/invoices/generate') ?>">
         <?= csrf_field() ?>
         <div class="card-body">
             <div class="row g-3">
@@ -23,7 +23,7 @@
         </div>
         <div class="card-footer d-flex gap-2">
             <button type="submit" class="btn btn-primary">Generate Invoices</button>
-            <a href="<?= url('/invoices') ?>" class="btn btn-light">Cancel</a>
+            <a href="<?= url('/finance/invoices') ?>" class="btn btn-light">Cancel</a>
         </div>
     </form>
 </div>
