@@ -77,7 +77,7 @@ final class ResultController extends Controller
         $this->authorize('results.manage');
         $this->verifyCsrf($request);
         $data = $this->validate($request, ['semester_id' => 'required|integer|exists:semesters,id']);
-        (new GpaService())->computeSemester((int)$data['semester_id']);
+        (new GpaService())->computeSemesterForAll((int)$data['semester_id']);
         $this->success('GPA computation complete.', '/exams/results');
     }
 
