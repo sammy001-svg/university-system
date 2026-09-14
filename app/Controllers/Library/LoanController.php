@@ -19,10 +19,10 @@ final class LoanController extends Controller
             'SELECT bl.*, b.title, b.accession_number, b.author,
                     s.admission_number, u.first_name, u.last_name
                FROM book_loans bl
-               JOIN books b    ON b.id = bl.book_id
-               JOIN students s ON s.id = bl.student_id
-               JOIN users u    ON u.id = s.user_id
-              ORDER BY bl.issued_date DESC
+               JOIN books b    ON b.id  = bl.book_id
+               JOIN users u    ON u.id  = bl.user_id
+               JOIN students s ON s.user_id = bl.user_id
+              ORDER BY bl.issued_at DESC
               LIMIT 200'
         );
         return $this->view('library.loans.index', ['pageTitle' => 'Book Loans', 'loans' => $loans]);
@@ -50,9 +50,12 @@ final class LoanController extends Controller
         $loanDays = (int) \App\Core\Setting::get('library_loan_days', 14);
         $due = date('Y-m-d', strtotime("+{$loanDays} days"));
 
+        // book_loans.user_id references users.id; we need the user_id of the student.
+        $userId = (int) Database::scalar('SELECT user_id FROM students WHERE id = ?', [$data['student_id']]);
+
         Database::statement(
-            'INSERT INTO book_loans (book_id, student_id, issued_date, due_date, issued_by, status) VALUES (?,?,CURDATE(),?,?,"borrowed")',
-            [$data['book_id'], $data['student_id'], $due, Auth::id()]
+            'INSERT INTO book_loans (book_id, user_id, issued_at, due_date, issued_by, status) VALUES (?,?,NOW(),?,?,"borrowed")',
+            [$data['book_id'], $userId, $due, Auth::id()]
         );
         Database::statement('UPDATE books SET available_copies = available_copies - 1 WHERE id=?', [$data['book_id']]);
         $this->success('Book issued. Due: ' . $due, '/library/loans');
@@ -65,7 +68,7 @@ final class LoanController extends Controller
         $loan = Database::selectOne('SELECT * FROM book_loans WHERE id=?', [(int)$id]);
         if (!$loan) { throw new HttpException(404); }
 
-        Database::statement("UPDATE book_loans SET returned_date=CURDATE(), status='returned', returned_to=? WHERE id=?", [Auth::id(), (int)$id]);
+        Database::statement("UPDATE book_loans SET returned_at=NOW(), status='returned', received_by=? WHERE id=?", [Auth::id(), (int)$id]);
         Database::statement('UPDATE books SET available_copies = available_copies + 1 WHERE id=?', [$loan['book_id']]);
         $this->success('Book returned.', '/library/loans');
     }
