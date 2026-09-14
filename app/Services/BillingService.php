@@ -288,4 +288,58 @@ final class BillingService
             ),
         ];
     }
+    /** Bulk-generate invoices for all eligible active students tied to a fee structure. */
+    public function generateInvoices(int $feeStructureId, string $dueDate, ?int $issuedBy = null): int
+    {
+        $structure = $this->structures->find($feeStructureId);
+        if ($structure === null) {
+            return 0;
+        }
+
+        // Find the current (or most recent active) semester.
+        $semester = Database::selectOne(
+            'SELECT * FROM semesters WHERE is_current = 1 LIMIT 1'
+        );
+        if ($semester === null) {
+            $semester = Database::selectOne(
+                'SELECT * FROM semesters WHERE status = "active" ORDER BY id DESC LIMIT 1'
+            );
+        }
+        if ($semester === null) {
+            return 0;
+        }
+
+        // Match students by program, year, semester_number and study_mode.
+        $students = Database::select(
+            'SELECT id FROM students
+              WHERE status = "active"
+                AND program_id = ?
+                AND year_of_study = ?
+                AND current_semester = ?
+                AND study_mode = ?',
+            [
+                $structure['program_id'],
+                $structure['year_of_study'],
+                $structure['semester_number'],
+                $structure['study_mode'],
+            ]
+        );
+
+        $created = 0;
+        foreach ($students as $row) {
+            // Override the due date on each generated invoice.
+            $result = $this->invoiceStudent((int) $row['id'], (int) $semester['id'], $issuedBy);
+            if ($result['ok']) {
+                // Apply the custom due_date.
+                if (!empty($dueDate) && isset($result['invoice_id'])) {
+                    Database::statement(
+                        'UPDATE invoices SET due_date = ? WHERE id = ?',
+                        [$dueDate, $result['invoice_id']]
+                    );
+                }
+                $created++;
+            }
+        }
+        return $created;
+    }
 }

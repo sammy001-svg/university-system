@@ -63,7 +63,7 @@ final class InvoiceController extends Controller
             [(int)$id]
         );
         if (!$invoice) { throw new HttpException(404); }
-        $items = Database::select('SELECT ii.*, ft.name AS fee_type_name FROM invoice_items ii JOIN fee_types ft ON ft.id=ii.fee_type_id WHERE ii.invoice_id=?', [(int)$id]);
+        $items = Database::select('SELECT ii.*, ft.name AS fee_type_name FROM invoice_items ii LEFT JOIN fee_types ft ON ft.id=ii.fee_type_id WHERE ii.invoice_id=?', [(int)$id]);
         return $this->view('finance.invoices.show', ['pageTitle' => 'Invoice', 'invoice' => $invoice, 'items' => $items]);
     }
 

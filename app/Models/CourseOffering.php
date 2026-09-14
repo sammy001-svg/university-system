@@ -110,4 +110,63 @@ final class CourseOffering extends Model
             [$studentId, $studentId, $semesterId]
         );
     }
+
+    /**
+     * Auto-generate one offering per distinct (course, program) pair that
+     * appears in the curriculum but has no offering yet for the given semester.
+     * Assigns an active academic lecturer and a lecture-hall room where possible.
+     */
+    public function generateForSemester(int $semesterId): int
+    {
+        // All curriculum pairs that don't already have an offering this semester.
+        $missing = Database::select(
+            'SELECT DISTINCT pc.course_id, pc.program_id
+               FROM program_courses pc
+          LEFT JOIN course_offerings co
+                 ON co.course_id = pc.course_id
+                AND co.semester_id = ?
+              WHERE co.id IS NULL',
+            [$semesterId]
+        );
+
+        if ($missing === []) {
+            return 0;
+        }
+
+        // Pick a default lecturer and room for round-robin assignment.
+        $lecturers = array_column(
+            Database::select("SELECT id FROM staff WHERE staff_category = 'academic' AND status = 'active'"),
+            'id'
+        );
+        $rooms = array_column(
+            Database::select("SELECT id FROM rooms WHERE room_type = 'lecture_hall' AND status = 'available'"),
+            'id'
+        );
+
+        $created = 0;
+        foreach ($missing as $i => $row) {
+            $existing = Database::scalar(
+                'SELECT id FROM course_offerings WHERE course_id = ? AND semester_id = ? LIMIT 1',
+                [$row['course_id'], $semesterId]
+            );
+            if ($existing) {
+                continue;
+            }
+            $this->create([
+                'course_id'          => (int) $row['course_id'],
+                'semester_id'        => $semesterId,
+                'program_id'         => (int) $row['program_id'],
+                'section'            => 'A',
+                'lecturer_id'        => $lecturers !== [] ? $lecturers[$i % count($lecturers)] : null,
+                'room_id'            => $rooms !== [] ? $rooms[$i % count($rooms)] : null,
+                'capacity'           => 60,
+                'delivery_mode'      => 'physical',
+                'coursework_weight'  => 30,
+                'exam_weight'        => 70,
+                'status'             => 'open',
+            ]);
+            $created++;
+        }
+        return $created;
+    }
 }

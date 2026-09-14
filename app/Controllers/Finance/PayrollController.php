@@ -26,7 +26,7 @@ final class PayrollController extends Controller
             'year'     => 'required|integer|min:2020|max:2099',
             'pay_date' => 'nullable|date',
         ]);
-        $dateObj    = DateTime::createFromFormat('!m', (string)$data['month']);
+        $dateObj    = \DateTime::createFromFormat('!m', (string)$data['month']);
         $monthName  = $dateObj ? $dateObj->format('F') : 'Month ' . $data['month'];
         $periodName = $monthName . ' ' . $data['year'];
         $payDate    = !empty($data['pay_date']) ? $data['pay_date'] : date('Y-m-t', strtotime("{$data['year']}-{$data['month']}-01"));

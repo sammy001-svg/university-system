@@ -47,7 +47,8 @@ final class FeeStructureController extends Controller
             'program_id'       => 'nullable|integer|exists:programs,id',
             'academic_year_id' => 'required|integer|exists:academic_years,id',
             'study_mode'       => 'required|in:full_time,part_time,evening,distance',
-            'year_of_study'    => 'required|integer',
+            'year_of_study'    => 'required|integer|between:1,6',
+            'semester_number'  => 'required|integer|between:1,4',
             'name'             => 'required|max:120',
         ]);
         $id = $this->model->create($data);

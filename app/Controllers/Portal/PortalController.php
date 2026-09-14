@@ -148,8 +148,9 @@ final class PortalController extends Controller
             'SELECT bl.*, b.title, b.author, b.accession_number
                FROM book_loans bl
                JOIN books b ON b.id = bl.book_id
-              WHERE bl.student_id = ?
-              ORDER BY bl.issued_date DESC',
+               JOIN students s ON s.user_id = bl.user_id
+              WHERE s.id = ?
+              ORDER BY bl.issued_at DESC',
             [$student['id']]
         );
 
@@ -166,9 +167,9 @@ final class PortalController extends Controller
         $allocation = \App\Core\Database::selectOne(
             'SELECT ha.*, hr.room_number, hr.floor, h.name AS hostel_name
                FROM hostel_allocations ha
-               JOIN hostel_rooms hr ON hr.id = ha.room_id
+               JOIN hostel_rooms hr ON hr.id = ha.hostel_room_id
                JOIN hostels h       ON h.id = hr.hostel_id
-              WHERE ha.student_id = ? AND ha.status = "active"
+              WHERE ha.student_id = ? AND ha.status IN ("allocated","checked_in")
               LIMIT 1',
             [$student['id']]
         );
@@ -184,7 +185,7 @@ final class PortalController extends Controller
     {
         $student = $this->getStudent();
         $items   = \App\Core\Database::select(
-            'SELECT * FROM clearances WHERE student_id = ? ORDER BY department',
+            'SELECT * FROM clearances WHERE student_id = ? ORDER BY unit',
             [$student['id']]
         );
 

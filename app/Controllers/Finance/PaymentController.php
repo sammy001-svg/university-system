@@ -47,7 +47,7 @@ final class PaymentController extends Controller
             'student_id'     => 'required|integer|exists:students,id',
             'invoice_id'     => 'nullable|integer|exists:invoices,id',
             'amount'         => 'required|numeric',
-            'method'         => 'required|in:cash,mpesa,bank_transfer,cheque,card,other',
+            'method'         => 'required|in:cash,mpesa,bank_transfer,cheque,card,bursary,scholarship,waiver',
             'reference'      => 'nullable|max:80',
             'paid_at'        => 'required|date',
         ]);
@@ -79,7 +79,7 @@ final class PaymentController extends Controller
     {
         $this->authorize('finance.reverse');
         $this->verifyCsrf($request);
-        Database::statement("UPDATE payments SET status='reversed', updated_at=NOW() WHERE id=?", [(int)$id]);
+        Database::statement("UPDATE payments SET status='reversed' WHERE id=?", [(int)$id]);
         $this->success('Payment reversed.', '/finance/payments');
     }
 }

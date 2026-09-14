@@ -19,11 +19,11 @@ final class AllocationController extends Controller
             'SELECT ha.*, hr.room_number, hr.floor, h.name AS hostel_name,
                     s.admission_number, u.first_name, u.last_name
                FROM hostel_allocations ha
-               JOIN hostel_rooms hr ON hr.id = ha.room_id
+               JOIN hostel_rooms hr ON hr.id = ha.hostel_room_id
                JOIN hostels h       ON h.id  = hr.hostel_id
                JOIN students s      ON s.id  = ha.student_id
                JOIN users u         ON u.id  = s.user_id
-              WHERE ha.status = "active"
+              WHERE ha.status IN ("allocated","checked_in")
               ORDER BY h.name, hr.room_number'
         );
         return $this->view('hostel.allocations.index', ['pageTitle' => 'Room Allocations', 'allocations' => $allocations]);
@@ -43,7 +43,7 @@ final class AllocationController extends Controller
                 "SELECT s.id, CONCAT(s.admission_number,' – ',u.first_name,' ',u.last_name) AS label
                    FROM students s JOIN users u ON u.id=s.user_id
                   WHERE s.status='active'
-                    AND s.id NOT IN (SELECT student_id FROM hostel_allocations WHERE status='active')
+                    AND s.id NOT IN (SELECT student_id FROM hostel_allocations WHERE status IN ('allocated','checked_in'))
                   ORDER BY u.last_name"
             ),
         ]);
@@ -54,14 +54,17 @@ final class AllocationController extends Controller
         $this->authorize('hostel.allocate');
         $this->verifyCsrf($request);
         $data = $this->validate($request, [
-            'student_id'   => 'required|integer|exists:students,id',
-            'room_id'      => 'required|integer|exists:hostel_rooms,id',
-            'check_in_date'=> 'required|date',
+            'student_id'      => 'required|integer|exists:students,id',
+            'hostel_room_id'  => 'required|integer|exists:hostel_rooms,id',
+            'semester_id'     => 'required|integer|exists:semesters,id',
+            'bed_number'      => 'nullable|max:10',
         ]);
-        $data['status']      = 'active';
-        $data['allocated_by']= Auth::id();
+        $data['status']       = 'allocated';
+        $data['allocated_by'] = Auth::id();
         (new HostelAllocation())->create($data);
-        Database::statement("UPDATE hostel_rooms SET status='occupied' WHERE id=?", [$data['room_id']]);
+        Database::statement("UPDATE hostel_rooms SET status='full'
+             WHERE id=? AND capacity <= (SELECT COUNT(*) FROM hostel_allocations WHERE hostel_room_id=? AND status IN ('allocated','checked_in'))",
+            [$data['hostel_room_id'], $data['hostel_room_id']]);
         $this->success('Room allocated.', '/hostel/allocations');
     }
 
@@ -72,8 +75,8 @@ final class AllocationController extends Controller
         $alloc = Database::selectOne('SELECT * FROM hostel_allocations WHERE id=?', [(int)$id]);
         if (!$alloc) { throw new HttpException(404); }
 
-        Database::statement("UPDATE hostel_allocations SET status='checked_out', check_out_date=CURDATE() WHERE id=?", [(int)$id]);
-        Database::statement("UPDATE hostel_rooms SET status='available' WHERE id=?", [$alloc['room_id']]);
+        Database::statement("UPDATE hostel_allocations SET status='checked_out', vacated_at=NOW() WHERE id=?", [(int)$id]);
+        Database::statement("UPDATE hostel_rooms SET status='available' WHERE id=?", [$alloc['hostel_room_id']]);
         $this->success('Student checked out.', '/hostel/allocations');
     }
 
@@ -82,7 +85,7 @@ final class AllocationController extends Controller
         $this->authorize('hostel.delete');
         $this->verifyCsrf($request);
         $alloc = Database::selectOne('SELECT * FROM hostel_allocations WHERE id=?', [(int)$id]);
-        if ($alloc) { Database::statement("UPDATE hostel_rooms SET status='available' WHERE id=?", [$alloc['room_id']]); }
+        if ($alloc) { Database::statement("UPDATE hostel_rooms SET status='available' WHERE id=?", [$alloc['hostel_room_id']]); }
         (new HostelAllocation())->delete((int)$id);
         $this->success('Allocation removed.', '/hostel/allocations');
     }
