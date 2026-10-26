@@ -220,6 +220,8 @@ $router->group(['prefix' => '/finance', 'middleware' => ['auth']], static functi
     $r->put('/fee-structures/{id}', 'Finance\FeeStructureController@update');
     $r->post('/fee-structures/{id}/items', 'Finance\FeeStructureController@addItem');
     $r->delete('/fee-structures/{structure}/items/{id}', 'Finance\FeeStructureController@removeItem');
+    $r->post('/fee-structures/{id}/installments', 'Finance\FeeStructureController@addInstallment');
+    $r->delete('/fee-structures/{structure}/installments/{id}', 'Finance\FeeStructureController@removeInstallment');
     $r->delete('/fee-structures/{id}', 'Finance\FeeStructureController@destroy');
 
     $r->get('/invoices', 'Finance\InvoiceController@index');

@@ -10,6 +10,7 @@ use App\Core\Exceptions\HttpException;
 use App\Core\Request;
 use App\Models\CourseRegistration;
 use App\Models\Semester;
+use App\Models\SemesterEnrollment;
 
 final class RegistrationController extends Controller
 {
@@ -48,6 +49,9 @@ final class RegistrationController extends Controller
         ]);
         $semester = (new Semester())->current();
         if (!$semester) { $this->error('No current semester.', '/registrations'); }
+
+        $block = (new SemesterEnrollment())->registrationBlock((int) $data['student_id'], (int) $semester['id']);
+        if ($block !== null) { $this->error('This student is not enrolled for the semester. ' . $block, '/registrations'); }
 
         $data['semester_id']      = $semester['id'];
         $data['registration_type']= 'normal';

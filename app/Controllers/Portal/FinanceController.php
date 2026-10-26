@@ -9,6 +9,7 @@ use App\Core\Database;
 use App\Core\Exceptions\HttpException;
 use App\Core\Request;
 use App\Models\Invoice;
+use App\Models\SemesterEnrollment;
 use App\Models\Student;
 
 final class FinanceController extends Controller
@@ -58,10 +59,14 @@ final class FinanceController extends Controller
         );
 
         return $this->view('portal.invoice', [
-            'pageTitle' => 'Invoice ' . $invoice['invoice_number'],
-            'student'   => $student,
-            'invoice'   => $invoice,
-            'items'     => $items,
+            'pageTitle'    => 'Invoice ' . $invoice['invoice_number'],
+            'student'      => $student,
+            'invoice'      => $invoice,
+            'items'        => $items,
+            'installments' => (new Invoice())->installments((int) $invoice['id']),
+            'enrollment'   => $invoice['semester_id'] !== null
+                ? (new SemesterEnrollment())->forStudent((int) $student['id'], (int) $invoice['semester_id'])
+                : null,
         ]);
     }
 

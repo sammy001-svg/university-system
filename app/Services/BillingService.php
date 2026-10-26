@@ -26,11 +26,14 @@ final class BillingService
      * Raise the semester invoice for one student.
      * @return array{ok:bool,message:string,invoice_id?:int}
      */
-    public function invoiceStudent(int $studentId, int $semesterId, ?int $issuedBy = null): array
+    public function invoiceStudent(int $studentId, int $semesterId, ?int $issuedBy = null, ?int $onlyStructureId = null): array
     {
         $student = Database::selectOne(
-            'SELECT s.*, p.name AS program_name FROM students s
-               JOIN programs p ON p.id = s.program_id WHERE s.id = ?',
+            'SELECT s.*, p.name AS program_name, p.department_id, d.faculty_id
+               FROM students s
+               JOIN programs p    ON p.id = s.program_id
+               JOIN departments d ON d.id = p.department_id
+              WHERE s.id = ?',
             [$studentId]
         );
         if ($student === null) {
@@ -55,15 +58,12 @@ final class BillingService
             return ['ok' => false, 'message' => 'This student already has an invoice for the semester.'];
         }
 
-        $structure = $this->structures->resolveFor(
-            (int) $student['program_id'],
-            (int) $semester['ay_id'],
-            (int) $student['year_of_study'],
-            (int) $semester['semester_number'],
-            (string) $student['study_mode']
-        );
+        $structure = $this->structures->resolveFor($student, $semester);
         if ($structure === null) {
             return ['ok' => false, 'message' => 'No active fee structure matches this student for the semester.'];
+        }
+        if ($onlyStructureId !== null && (int) $structure['id'] !== $onlyStructureId) {
+            return ['ok' => false, 'message' => 'A more specific fee structure applies to this student.'];
         }
 
         $items = $this->structures->items((int) $structure['id']);
@@ -71,8 +71,9 @@ final class BillingService
             return ['ok' => false, 'message' => 'The fee structure has no items.'];
         }
 
-        $invoiceId = Database::transaction(function () use ($student, $semester, $structure, $items, $issuedBy, $studentId, $semesterId) {
+        $invoiceId = Database::transaction(function () use ($semester, $structure, $items, $issuedBy, $studentId, $semesterId) {
             $total    = 0.0;
+            $tuition  = 0.0;
             $discount = $this->scholarshipDiscount($studentId, (int) $semester['ay_id'], $items);
 
             $invoiceId = $this->invoices->create([
@@ -93,6 +94,9 @@ final class BillingService
             foreach ($items as $item) {
                 $amount = (float) $item['amount'];
                 $total += $amount;
+                if ($item['category'] === 'tuition') {
+                    $tuition += $amount;
+                }
                 Database::statement(
                     'INSERT INTO invoice_items (invoice_id, fee_type_id, description, quantity, unit_amount, amount)
                      VALUES (?, ?, ?, 1, ?, ?)',
@@ -104,6 +108,24 @@ final class BillingService
                 'UPDATE invoices SET total_amount = ?, balance = ? WHERE id = ?',
                 [$total, max(0, $total - $discount), $invoiceId]
             );
+
+            $plan = $this->structures->installments((int) $structure['id']);
+            foreach (FeeStructure::splitIntoInstallments($plan, $tuition, $total - $tuition, $discount) as $installment) {
+                Database::statement(
+                    'INSERT INTO invoice_installments (invoice_id, installment_number, label, amount, due_date)
+                     VALUES (?, ?, ?, ?, ?)',
+                    [
+                        $invoiceId,
+                        $installment['installment_number'],
+                        $installment['label'],
+                        $installment['amount'],
+                        date('Y-m-d', strtotime($semester['start_date'] . ' ' . sprintf('%+d', $installment['due_days']) . ' days')),
+                    ]
+                );
+            }
+
+            // A fully discounted 1st installment clears enrolment straight away.
+            $this->refresh($invoiceId);
             return $invoiceId;
         });
 
@@ -214,7 +236,7 @@ final class BillingService
             ]);
 
             if ($invoiceId !== null) {
-                $this->invoices->recalculate($invoiceId);
+                $this->refresh($invoiceId);
             }
         });
 
@@ -258,11 +280,86 @@ final class BillingService
                 'notes'  => trim((string) $payment['notes'] . ' | Reversed: ' . $reason),
             ]);
             if ($payment['invoice_id'] !== null) {
-                $this->invoices->recalculate((int) $payment['invoice_id']);
+                $this->refresh((int) $payment['invoice_id']);
             }
         });
 
         return ['ok' => true, 'message' => 'Payment reversed.'];
+    }
+
+    /** Cancel an invoice; the student's enrolment for that semester lapses with it. */
+    public function cancelInvoice(int $invoiceId): array
+    {
+        if ($this->invoices->find($invoiceId) === null) {
+            return ['ok' => false, 'message' => 'Invoice not found.'];
+        }
+        Database::transaction(function () use ($invoiceId) {
+            $this->invoices->update($invoiceId, ['status' => 'cancelled']);
+            $this->syncEnrollment($invoiceId);
+        });
+        return ['ok' => true, 'message' => 'Invoice cancelled.'];
+    }
+
+    /** Restate an invoice and its installments from payments, then update enrolment. */
+    private function refresh(int $invoiceId): void
+    {
+        $this->invoices->recalculate($invoiceId);
+        $this->syncEnrollment($invoiceId);
+    }
+
+    /**
+     * Enrol the student for the invoice's semester once its 1st installment is
+     * paid in full (registration complete), and withdraw the enrolment if that
+     * stops being true after a reversal or cancellation.
+     */
+    private function syncEnrollment(int $invoiceId): void
+    {
+        $invoice = $this->invoices->find($invoiceId);
+        if ($invoice === null || $invoice['semester_id'] === null) {
+            return;
+        }
+        $studentId  = (int) $invoice['student_id'];
+        $semesterId = (int) $invoice['semester_id'];
+
+        $current = Database::selectOne(
+            'SELECT invoice_id, status FROM semester_enrollments WHERE student_id = ? AND semester_id = ?',
+            [$studentId, $semesterId]
+        );
+        // An enrolment that belongs to a different invoice is not this invoice's to change.
+        if ($current !== null && $current['invoice_id'] !== null && (int) $current['invoice_id'] !== $invoiceId
+            && $invoice['status'] === 'cancelled') {
+            return;
+        }
+
+        $first = Database::selectOne(
+            'SELECT status FROM invoice_installments WHERE invoice_id = ? AND installment_number = 1',
+            [$invoiceId]
+        );
+        $cleared = $invoice['status'] !== 'cancelled'
+            && ($first !== null ? $first['status'] === 'paid' : (float) $invoice['balance'] <= 0.005);
+        $status  = $cleared ? 'enrolled' : 'pending_payment';
+
+        if ($current !== null && $current['status'] === $status && (int) $current['invoice_id'] === $invoiceId) {
+            return;
+        }
+
+        Database::statement(
+            'INSERT INTO semester_enrollments (student_id, semester_id, invoice_id, status, enrolled_at)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE invoice_id = VALUES(invoice_id), status = VALUES(status), enrolled_at = VALUES(enrolled_at)',
+            [$studentId, $semesterId, $invoiceId, $status, $cleared ? date('Y-m-d H:i:s') : null]
+        );
+
+        if ($cleared && ($current === null || $current['status'] !== 'enrolled')) {
+            Notify::send(
+                (int) Database::scalar('SELECT user_id FROM students WHERE id = ?', [$studentId]),
+                'Registration complete',
+                'Your 1st installment is paid. You are enrolled for the semester and may now register for courses.',
+                '/portal/registration',
+                'success',
+                'check'
+            );
+        }
     }
 
     /** Fee-collection summary for the finance dashboard. */
@@ -309,26 +406,32 @@ final class BillingService
             return 0;
         }
 
-        // Match students by program, year, semester_number and study_mode.
-        $students = Database::select(
-            'SELECT id FROM students
-              WHERE status = "active"
-                AND program_id = ?
-                AND year_of_study = ?
-                AND current_semester = ?
-                AND study_mode = ?',
-            [
-                $structure['program_id'],
-                $structure['year_of_study'],
-                $structure['semester_number'],
-                $structure['study_mode'],
-            ]
-        );
+        // Narrow to the students inside the structure's scope; invoiceStudent() then
+        // skips anyone a more specific structure (or another student status) applies to.
+        $sql    = 'SELECT s.id FROM students s
+                     JOIN programs p    ON p.id = s.program_id
+                     JOIN departments d ON d.id = p.department_id
+                    WHERE s.status = "active"';
+        $params = [];
+        $filters = [
+            'program_id'    => 's.program_id',
+            'department_id' => 'p.department_id',
+            'faculty_id'    => 'd.faculty_id',
+            'year_of_study' => 's.year_of_study',
+            'study_mode'    => 's.study_mode',
+        ];
+        foreach ($filters as $column => $field) {
+            if ($structure[$column] !== null) {
+                $sql     .= " AND {$field} = ?";
+                $params[] = $structure[$column];
+            }
+        }
+        $students = Database::select($sql, $params);
 
         $created = 0;
         foreach ($students as $row) {
             // Override the due date on each generated invoice.
-            $result = $this->invoiceStudent((int) $row['id'], (int) $semester['id'], $issuedBy);
+            $result = $this->invoiceStudent((int) $row['id'], (int) $semester['id'], $issuedBy, $feeStructureId);
             if ($result['ok']) {
                 // Apply the custom due_date.
                 if (!empty($dueDate) && isset($result['invoice_id'])) {

@@ -9,6 +9,7 @@ use App\Core\Database;
 use App\Core\Exceptions\HttpException;
 use App\Core\Request;
 use App\Models\Payment;
+use App\Services\BillingService;
 
 final class PaymentController extends Controller
 {
@@ -51,16 +52,14 @@ final class PaymentController extends Controller
             'reference'      => 'nullable|max:80',
             'paid_at'        => 'required|date',
         ]);
-        $data['received_by']    = Auth::id();
-        $data['status']         = 'confirmed';
-        $data['receipt_number'] = 'RCP-' . date('Y') . '-' . str_pad((string)random_int(1, 99999), 5, '0', STR_PAD_LEFT);
-        $id = $this->model->create($data);
-        // Update invoice balance
-        if (!empty($data['invoice_id'])) {
-            Database::statement('UPDATE invoices SET amount_paid = amount_paid + ?, balance = balance - ?, updated_at=NOW() WHERE id=?',
-                [$data['amount'], $data['amount'], $data['invoice_id']]);
+        // Posting through the billing service restates the invoice installments and
+        // enrols the student once the 1st installment is cleared.
+        $result = (new BillingService())->recordPayment($data, (int) Auth::id());
+        if (!$result['ok']) {
+            $this->error($result['message'], '/finance/payments/create');
         }
-        $this->success('Payment recorded. Receipt: ' . $data['receipt_number'], '/finance/payments/' . $id . '/receipt');
+        $id = (int) Database::scalar('SELECT id FROM payments WHERE receipt_number = ?', [$result['receipt']]);
+        $this->success($result['message'], '/finance/payments/' . $id . '/receipt');
     }
 
     public function receipt(Request $request, string $id): string
@@ -79,7 +78,10 @@ final class PaymentController extends Controller
     {
         $this->authorize('finance.reverse');
         $this->verifyCsrf($request);
-        Database::statement("UPDATE payments SET status='reversed' WHERE id=?", [(int)$id]);
-        $this->success('Payment reversed.', '/finance/payments');
+        $result = (new BillingService())->reversePayment((int) $id, 'Reversed by ' . (Auth::user()['username'] ?? 'finance'), (int) Auth::id());
+        if (!$result['ok']) {
+            $this->error($result['message'], '/finance/payments');
+        }
+        $this->success($result['message'], '/finance/payments');
     }
 }

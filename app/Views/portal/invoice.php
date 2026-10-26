@@ -7,6 +7,8 @@
     <a class="btn btn-sm btn-light" href="<?= url('/portal/finance') ?>">&larr; Back to Fees &amp; Payments</a>
 </div>
 
+<?php partial('partials.installments', ['installments' => $installments, 'enrollment' => $enrollment]); ?>
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span><?= icon('finance') ?> Fee Item Breakdown</span>
@@ -33,6 +35,12 @@
                     <td>Total Amount</td>
                     <td class="text-end"><?= e(money($invoice['total_amount'])) ?></td>
                 </tr>
+                <?php if ((float) $invoice['discount_amount'] > 0): ?>
+                <tr>
+                    <td>Scholarship / Discount</td>
+                    <td class="text-end">-<?= e(money($invoice['discount_amount'])) ?></td>
+                </tr>
+                <?php endif; ?>
                 <tr class="text-success">
                     <td>Amount Paid</td>
                     <td class="text-end"><?= e(money($invoice['amount_paid'])) ?></td>

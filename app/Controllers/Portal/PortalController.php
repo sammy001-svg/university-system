@@ -10,6 +10,7 @@ use App\Core\Request;
 use App\Models\Announcement;
 use App\Models\Student;
 use App\Models\Semester;
+use App\Models\SemesterEnrollment;
 
 final class PortalController extends Controller
 {
@@ -42,6 +43,7 @@ final class PortalController extends Controller
             'balance'      => $this->studentModel->balance($student['id']),
             'attendance'   => $this->studentModel->attendanceRate($student['id'], $semester['id'] ?? null),
             'announcements'=> (new Announcement())->feedFor(Auth::user(), 5),
+            'enrollment'   => $semester ? (new SemesterEnrollment())->forStudent((int) $student['id'], (int) $semester['id']) : null,
         ]);
     }
 

@@ -509,48 +509,90 @@ return static function (PDO $pdo): void {
                                         WHERE student_id = st.id AND is_published = 1 AND outcome = "pass"), 0)'
     );
 
-    /* ---------------- Fee structures, invoices and payments ---------------- */
+    /* ---------------- Sample student bills: by status, department and college ---------------- */
+    // The billing service picks the most specific active structure for each student:
+    // programme > department > college > all colleges, then status-specific over "all".
+    require_once dirname(__DIR__, 2) . '/app/Core/Model.php';
+    require_once dirname(__DIR__, 2) . '/app/Models/FeeStructure.php';
+
     $feeTypeIds = $pdo->query('SELECT code, id FROM fee_types')->fetchAll(PDO::FETCH_KEY_PAIR);
+    $feeTypeCategory = $pdo->query('SELECT code, category FROM fee_types')->fetchAll(PDO::FETCH_KEY_PAIR);
+    $facultyIds    = $pdo->query('SELECT code, id FROM faculties')->fetchAll(PDO::FETCH_KEY_PAIR);
+    $departmentIds = $pdo->query('SELECT code, id FROM departments')->fetchAll(PDO::FETCH_KEY_PAIR);
+    $programIdsByCode = $pdo->query('SELECT code, id FROM programs')->fetchAll(PDO::FETCH_KEY_PAIR);
+
     $structureInsert = $pdo->prepare(
-        'INSERT IGNORE INTO fee_structures (program_id, academic_year_id, year_of_study, semester_number,
-                                            study_mode, name, total_amount, status)
-         VALUES (?, 2, ?, ?, "full_time", ?, 0, "active")'
+        'INSERT INTO fee_structures (faculty_id, department_id, program_id, academic_year_id, student_status, name, total_amount, status)
+         VALUES (?, ?, ?, 2, ?, ?, ?, "active")'
     );
     $structureItemInsert = $pdo->prepare(
-        'INSERT IGNORE INTO fee_structure_items (fee_structure_id, fee_type_id, amount, is_mandatory) VALUES (?, ?, ?, 1)'
+        'INSERT INTO fee_structure_items (fee_structure_id, fee_type_id, amount, is_mandatory) VALUES (?, ?, ?, 1)'
+    );
+    $installmentInsert = $pdo->prepare(
+        'INSERT INTO fee_structure_installments (fee_structure_id, installment_number, label, tuition_percent, due_days)
+         VALUES (?, ?, ?, ?, ?)'
     );
 
-    $feeTemplate = [
-        'TUI' => 750, 'REG' => 40, 'EXM' => 60, 'LIB' => 30,
-        'ICT' => 50, 'MED' => 45, 'ACT' => 25, 'CAU' => 30,
+    $newStudentFees  = ['ADM' => 50, 'ORI' => 25, 'IDC' => 10, 'CAU' => 30];
+    $standardPlan    = [['1st Installment', 50, 0], ['2nd Installment', 25, 42], ['3rd Installment', 25, 84]];
+    $graduatePlan    = [['1st Installment', 40, 0], ['2nd Installment', 30, 42], ['3rd Installment', 30, 84]];
+
+    // [name, scope type, scope code, student status, fees, plan]
+    $sampleBills = [
+        ['New Student Bill - All Colleges', null, null, 'new',
+            ['TUI' => 750, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'MED' => 45, 'ACT' => 25] + $newStudentFees, $standardPlan],
+        ['Continuing Student Bill - All Colleges', null, null, 'continuing',
+            ['TUI' => 750, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'MED' => 45, 'ACT' => 25], $standardPlan],
+        ['College of Science and Technology - Continuing Students', 'faculty', 'FST', 'continuing',
+            ['TUI' => 800, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'ICT' => 50, 'LAB' => 40, 'MED' => 45, 'ACT' => 25], $standardPlan],
+        ['College of Health Sciences - New Students', 'faculty', 'FHS', 'new',
+            ['TUI' => 950, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'LAB' => 60, 'MED' => 45, 'ACT' => 25] + $newStudentFees, $standardPlan],
+        ['College of Health Sciences - Continuing Students', 'faculty', 'FHS', 'continuing',
+            ['TUI' => 950, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'LAB' => 60, 'CLN' => 120, 'MED' => 45, 'ACT' => 25], $standardPlan],
+        ['Department of Computer Science - Continuing Students', 'department', 'CS', 'continuing',
+            ['TUI' => 850, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'ICT' => 75, 'LAB' => 40, 'MED' => 45, 'ACT' => 25], $standardPlan],
+        ['Department of Accounting and Finance - Continuing Students', 'department', 'ACC', 'continuing',
+            ['TUI' => 700, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'ICT' => 30, 'MED' => 45, 'ACT' => 25], $standardPlan],
+        ['MBA Programme - All Students', 'program', 'MBA', 'all',
+            ['TUI' => 1200, 'REG' => 50, 'EXM' => 75, 'LIB' => 40, 'ICT' => 40, 'MED' => 45], $graduatePlan],
     ];
 
-    foreach ($programRows as $program) {
-        for ($year = 1; $year <= 4; $year++) {
-            for ($semesterNumber = 1; $semesterNumber <= 2; $semesterNumber++) {
-                $structureInsert->execute([
-                    $program['id'], $year, $semesterNumber,
-                    sprintf('%s Year %d Semester %d Fees', $program['code'], $year, $semesterNumber),
-                ]);
-                $structureId = (int) $pdo->lastInsertId();
-                if ($structureId === 0) {
-                    continue;
-                }
-                foreach ($feeTemplate as $code => $amount) {
-                    if ($code === 'CAU' && $year > 1) {
-                        continue; // caution money is charged once
-                    }
-                    $structureItemInsert->execute([$structureId, $feeTypeIds[$code], $amount]);
-                }
-                $pdo->prepare(
-                    'UPDATE fee_structures SET total_amount =
-                        (SELECT COALESCE(SUM(amount), 0) FROM fee_structure_items WHERE fee_structure_id = ?)
-                     WHERE id = ?'
-                )->execute([$structureId, $structureId]);
-            }
+    $plans = [];
+    foreach ($sampleBills as [$name, $scopeType, $scopeCode, $studentStatus, $fees, $plan]) {
+        $structureInsert->execute([
+            $scopeType === 'faculty' ? $facultyIds[$scopeCode] : null,
+            $scopeType === 'department' ? $departmentIds[$scopeCode] : null,
+            $scopeType === 'program' ? $programIdsByCode[$scopeCode] : null,
+            $studentStatus,
+            $name,
+            array_sum($fees),
+        ]);
+        $structureId = (int) $pdo->lastInsertId();
+        foreach ($fees as $code => $amount) {
+            $structureItemInsert->execute([$structureId, $feeTypeIds[$code], $amount]);
+        }
+        foreach ($plan as $n => [$label, $percent, $dueDays]) {
+            $installmentInsert->execute([$structureId, $n + 1, $label, $percent, $dueDays]);
+            $plans[$structureId][] = ['installment_number' => $n + 1, 'label' => $label, 'tuition_percent' => $percent, 'due_days' => $dueDays];
         }
     }
+    echo '  ' . count($sampleBills) . " sample fee structures (by status, department, college and programme).\n";
 
+    $resolveStructure = $pdo->prepare(
+        'SELECT * FROM fee_structures
+          WHERE academic_year_id = 2 AND status = "active"
+            AND (program_id IS NULL OR program_id = ?)
+            AND (department_id IS NULL OR department_id = ?)
+            AND (faculty_id IS NULL OR faculty_id = ?)
+            AND student_status IN ("all", ?)
+          ORDER BY program_id IS NOT NULL DESC, department_id IS NOT NULL DESC, faculty_id IS NOT NULL DESC,
+                   student_status != "all" DESC, id DESC
+          LIMIT 1'
+    );
+    $structureItems = $pdo->prepare(
+        'SELECT i.fee_type_id, i.amount, t.name, t.category FROM fee_structure_items i
+           JOIN fee_types t ON t.id = i.fee_type_id WHERE i.fee_structure_id = ?'
+    );
     $invoiceInsert = $pdo->prepare(
         'INSERT INTO invoices (invoice_number, student_id, semester_id, fee_structure_id, title, total_amount,
                                discount_amount, amount_paid, balance, issue_date, due_date, status)
@@ -560,33 +602,59 @@ return static function (PDO $pdo): void {
         'INSERT INTO invoice_items (invoice_id, fee_type_id, description, quantity, unit_amount, amount)
          VALUES (?, ?, ?, 1, ?, ?)'
     );
+    $invoiceInstallmentInsert = $pdo->prepare(
+        'INSERT INTO invoice_installments (invoice_id, installment_number, label, amount, amount_paid, due_date, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
     $paymentInsert = $pdo->prepare(
         'INSERT INTO payments (receipt_number, student_id, invoice_id, amount, method, reference, paid_at, status)
          VALUES (?, ?, ?, ?, ?, ?, ?, "confirmed")'
     );
+    $enrollmentInsert = $pdo->prepare(
+        'INSERT INTO semester_enrollments (student_id, semester_id, invoice_id, status, enrolled_at) VALUES (?, ?, ?, ?, ?)'
+    );
 
-    $invoiceCount = 0;
-    $paymentCount = 0;
-    foreach ($studentPlan as $index => $student) {
-        $structure = $pdo->prepare(
-            'SELECT id, name, total_amount FROM fee_structures
-              WHERE program_id = ? AND year_of_study = ? AND semester_number = 1 AND status = "active" LIMIT 1'
-        );
-        $structure->execute([$student['program_id'], $student['year_of_study']]);
-        $feeStructure = $structure->fetch(PDO::FETCH_ASSOC);
+    $semesterStart = (string) $pdo->query('SELECT start_date FROM semesters WHERE id = ' . $currentSemester)->fetchColumn();
+    $studentScopes = $pdo->query(
+        'SELECT s.id, s.program_id, s.year_of_study, p.department_id, d.faculty_id
+           FROM students s JOIN programs p ON p.id = s.program_id JOIN departments d ON d.id = p.department_id'
+    )->fetchAll(PDO::FETCH_ASSOC);
+
+    $invoiceCount  = 0;
+    $paymentCount  = 0;
+    $enrolledCount = 0;
+    foreach ($studentScopes as $index => $student) {
+        $resolveStructure->execute([
+            $student['program_id'], $student['department_id'], $student['faculty_id'],
+            (int) $student['year_of_study'] === 1 ? 'new' : 'continuing',
+        ]);
+        $feeStructure = $resolveStructure->fetch(PDO::FETCH_ASSOC);
         if ($feeStructure === false) {
             continue;
         }
+        $structureItems->execute([$feeStructure['id']]);
+        $items = $structureItems->fetchAll(PDO::FETCH_ASSOC);
 
-        $total = (float) $feeStructure['total_amount'];
-        $paid  = match ($index % 4) {
-            0 => $total,
-            1 => round($total * 0.6, 2),
-            2 => round($total * 0.25, 2),
+        $total   = 0.0;
+        $tuition = 0.0;
+        foreach ($items as $item) {
+            $total += (float) $item['amount'];
+            if ($item['category'] === 'tuition') {
+                $tuition += (float) $item['amount'];
+            }
+        }
+        $installments = App\Models\FeeStructure::splitIntoInstallments($plans[$feeStructure['id']], $tuition, $total - $tuition, 0.0);
+        $firstInstallment = $installments[0]['amount'];
+
+        // Payment patterns: paid in full, exactly the 1st installment, part of the 1st, nothing.
+        $paid = match ($index % 4) {
+            0       => $total,
+            1       => $firstInstallment,
+            2       => round($firstInstallment * 0.4, 2),
             default => 0.0,
         };
         $balance = round($total - $paid, 2);
-        $status  = $balance <= 0 ? 'paid' : ($paid > 0 ? 'partial' : ($index % 7 === 0 ? 'overdue' : 'unpaid'));
+        $status  = $balance <= 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid');
 
         $invoiceCount++;
         $invoiceInsert->execute([
@@ -598,19 +666,35 @@ return static function (PDO $pdo): void {
             $total,
             $paid,
             $balance,
-            date('Y-m-d', strtotime('-40 days')),
-            date('Y-m-d', strtotime($status === 'overdue' ? '-5 days' : '+20 days')),
+            date('Y-m-d', strtotime($semesterStart . ' -14 days')),
+            date('Y-m-d', strtotime($semesterStart . ' ' . sprintf('%+d', end($installments)['due_days']) . ' days')),
             $status,
         ]);
         $invoiceId = (int) $pdo->lastInsertId();
 
-        $items = $pdo->prepare(
-            'SELECT i.fee_type_id, i.amount, t.name FROM fee_structure_items i
-               JOIN fee_types t ON t.id = i.fee_type_id WHERE i.fee_structure_id = ?'
-        );
-        $items->execute([$feeStructure['id']]);
-        foreach ($items->fetchAll(PDO::FETCH_ASSOC) as $item) {
+        foreach ($items as $item) {
             $invoiceItemInsert->execute([$invoiceId, $item['fee_type_id'], $item['name'], $item['amount'], $item['amount']]);
+        }
+
+        $remaining = $paid;
+        foreach ($installments as $installment) {
+            $applied   = round(min($installment['amount'], $remaining), 2);
+            $remaining = round($remaining - $applied, 2);
+            $dueDate   = date('Y-m-d', strtotime($semesterStart . ' ' . sprintf('%+d', $installment['due_days']) . ' days'));
+            $invoiceInstallmentInsert->execute([
+                $invoiceId,
+                $installment['installment_number'],
+                $installment['label'],
+                $installment['amount'],
+                $applied,
+                $dueDate,
+                match (true) {
+                    $applied >= $installment['amount'] - 0.005 => 'paid',
+                    $applied > 0                               => 'partial',
+                    $dueDate < date('Y-m-d')                   => 'overdue',
+                    default                                    => 'unpaid',
+                },
+            ]);
         }
 
         if ($paid > 0) {
@@ -622,11 +706,32 @@ return static function (PDO $pdo): void {
                 $paid,
                 ['mpesa', 'bank_transfer', 'cash', 'cheque'][$index % 4],
                 'REF' . strtoupper(substr(md5((string) $index), 0, 8)),
-                date('Y-m-d H:i:s', strtotime('-' . random_int(1, 35) . ' days')),
+                date('Y-m-d H:i:s', strtotime($semesterStart . ' -' . random_int(1, 10) . ' days')),
             ]);
         }
+
+        // 1st installment cleared -> enrolled for the semester, registration complete.
+        $enrolled = $paid >= $firstInstallment - 0.005;
+        $enrollmentInsert->execute([
+            $student['id'], $currentSemester, $invoiceId,
+            $enrolled ? 'enrolled' : 'pending_payment',
+            $enrolled ? date('Y-m-d H:i:s', strtotime($semesterStart . ' -1 day')) : null,
+        ]);
+        $enrolledCount += $enrolled ? 1 : 0;
     }
-    echo "  {$invoiceCount} invoices and {$paymentCount} payments.\n";
+
+    // Course registration requires enrolment, so drop the current-semester
+    // registrations seeded earlier for students who have not cleared the 1st installment.
+    $pdo->exec(
+        'DELETE cr FROM course_registrations cr
+           JOIN semester_enrollments e ON e.student_id = cr.student_id AND e.semester_id = cr.semester_id
+          WHERE cr.semester_id = ' . $currentSemester . ' AND e.status != "enrolled"'
+    );
+    $pdo->exec(
+        'UPDATE course_offerings o SET enrolled_count =
+            (SELECT COUNT(*) FROM course_registrations cr WHERE cr.offering_id = o.id AND cr.status = "registered")'
+    );
+    echo "  {$invoiceCount} invoices with installments, {$paymentCount} payments, {$enrolledCount} students enrolled (registration complete).\n";
 
     /* ---------------- Library ---------------- */
     $books = [
@@ -761,7 +866,7 @@ return static function (PDO $pdo): void {
         ['Examination timetable published', 'The end of semester examination timetable is available on the portal. Candidates must carry their student identity cards to every examination session.', 'students', 'urgent', '-3 days', '+45 days'],
         ['Staff development workshop', 'A workshop on outcome-based curriculum delivery will be held in the Business Auditorium. All teaching staff are expected to attend.', 'staff', 'normal', '-2 days', '+14 days'],
         ['Library extended opening hours', 'The main library will remain open until 22:00 on weekdays throughout the examination period.', 'all', 'normal', '-1 day', '+30 days'],
-        ['Fee payment reminder', 'Students with outstanding balances are reminded to clear at least 60 percent of their semester fees to remain eligible for examinations.', 'students', 'high', '-4 days', '+25 days'],
+        ['Fee payment reminder', 'The 1st installment of the semester bill is compulsory. Once it is paid in full you are enrolled for the semester and your registration is complete. Later installments fall due on the dates shown on your invoice.', 'students', 'high', '-4 days', '+25 days'],
     ];
     foreach ($announcements as [$title, $body, $audience, $priority, $published, $expires]) {
         $announcementInsert->execute([

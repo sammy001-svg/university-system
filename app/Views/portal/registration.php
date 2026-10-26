@@ -7,6 +7,24 @@
 <div class="alert alert-warning">Course registration is not currently open. Please check with the Registrar's office.</div>
 <?php else: ?>
 
+<?php if ($block === null): ?>
+    <div class="alert alert-success d-flex align-items-center gap-2">
+        <?= icon('check') ?>
+        <div><strong>Registration Complete.</strong> Your 1st installment is paid and you are enrolled for
+            <?= e(($semester['academic_year'] ?? '') . ' ' . $semester['name']) ?>. You may register for courses.</div>
+    </div>
+<?php else: ?>
+    <div class="alert alert-warning d-flex align-items-center gap-2">
+        <?= icon('clock') ?>
+        <div>
+            <strong>Not enrolled for this semester.</strong> <?= e($block) ?>
+            <?php if (!empty($enrollment)): ?>
+                <a href="<?= url('/portal/finance/invoice/' . $enrollment['invoice_id']) ?>">View invoice</a>
+            <?php endif; ?>
+        </div>
+    </div>
+<?php endif; ?>
+
 <div class="row g-4">
     <div class="col-lg-6">
         <div class="card">
@@ -60,7 +78,7 @@
                                 <form method="post" action="<?= url('/portal/registration') ?>">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="offering_id" value="<?= $c['offering_id'] ?>">
-                                    <button class="btn btn-sm btn-primary">Register</button>
+                                    <button class="btn btn-sm btn-primary" <?= $block !== null ? 'disabled title="Pay the 1st installment to register"' : '' ?>>Register</button>
                                 </form>
                             </td>
                         </tr>

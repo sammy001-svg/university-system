@@ -46,6 +46,14 @@ final class Invoice extends Model
         );
     }
 
+    public function installments(int $invoiceId): array
+    {
+        return Database::select(
+            'SELECT * FROM invoice_installments WHERE invoice_id = ? ORDER BY installment_number',
+            [$invoiceId]
+        );
+    }
+
     public function payments(int $invoiceId): array
     {
         return Database::select(
@@ -95,6 +103,30 @@ final class Invoice extends Model
             'UPDATE invoices SET amount_paid = ?, balance = ?, status = ? WHERE id = ?',
             [$paid, max(0, $balance), $status, $invoiceId]
         );
+
+        $this->allocateToInstallments($invoiceId, $paid);
+    }
+
+    /** Apply the amount paid to installments in order: the 1st is cleared before the 2nd, and so on. */
+    private function allocateToInstallments(int $invoiceId, float $paid): void
+    {
+        $remaining = $paid;
+        foreach ($this->installments($invoiceId) as $installment) {
+            $amount    = (float) $installment['amount'];
+            $applied   = round(min($amount, max(0.0, $remaining)), 2);
+            $remaining = round($remaining - $applied, 2);
+
+            $status = match (true) {
+                $applied >= $amount - 0.005                                                => 'paid',
+                $applied > 0                                                               => 'partial',
+                $installment['due_date'] !== null && $installment['due_date'] < date('Y-m-d') => 'overdue',
+                default                                                                    => 'unpaid',
+            };
+            Database::statement(
+                'UPDATE invoice_installments SET amount_paid = ?, status = ? WHERE id = ?',
+                [$applied, $status, $installment['id']]
+            );
+        }
     }
 
     public function outstandingTotal(): float

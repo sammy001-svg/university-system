@@ -864,20 +864,27 @@ CREATE TABLE `fee_types` (
 DROP TABLE IF EXISTS `fee_structures`;
 CREATE TABLE `fee_structures` (
   `id`               INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `program_id`       INT UNSIGNED NOT NULL,
+  -- Scope: at most one of faculty (college), department or program is set; none means institution-wide.
+  `faculty_id`       INT UNSIGNED          DEFAULT NULL,
+  `department_id`    INT UNSIGNED          DEFAULT NULL,
+  `program_id`       INT UNSIGNED          DEFAULT NULL,
   `academic_year_id` INT UNSIGNED NOT NULL,
-  `year_of_study`    TINYINT UNSIGNED NOT NULL DEFAULT 1,
-  `semester_number`  TINYINT UNSIGNED NOT NULL DEFAULT 1,
-  `study_mode`       ENUM('full_time','part_time','evening','distance') NOT NULL DEFAULT 'full_time',
+  `student_status`   ENUM('all','new','continuing') NOT NULL DEFAULT 'all',
+  -- NULL in any of the next three columns means "any".
+  `year_of_study`    TINYINT UNSIGNED      DEFAULT NULL,
+  `semester_number`  TINYINT UNSIGNED      DEFAULT NULL,
+  `study_mode`       ENUM('full_time','part_time','evening','distance') DEFAULT NULL,
   `name`             VARCHAR(150) NOT NULL,
   `total_amount`     DECIMAL(12,2) NOT NULL DEFAULT 0.00,
   `status`           ENUM('draft','active','archived') NOT NULL DEFAULT 'draft',
   `created_at`       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_fee_structure` (`program_id`,`academic_year_id`,`year_of_study`,`semester_number`,`study_mode`),
-  CONSTRAINT `fk_fs_program` FOREIGN KEY (`program_id`) REFERENCES `programs` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_fs_ay`      FOREIGN KEY (`academic_year_id`) REFERENCES `academic_years` (`id`) ON DELETE CASCADE
+  KEY `ix_fs_lookup` (`academic_year_id`,`status`),
+  CONSTRAINT `fk_fs_faculty`    FOREIGN KEY (`faculty_id`) REFERENCES `faculties` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_fs_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_fs_program`    FOREIGN KEY (`program_id`) REFERENCES `programs` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_fs_ay`         FOREIGN KEY (`academic_year_id`) REFERENCES `academic_years` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DROP TABLE IF EXISTS `fee_structure_items`;
@@ -891,6 +898,21 @@ CREATE TABLE `fee_structure_items` (
   UNIQUE KEY `uq_fsi` (`fee_structure_id`,`fee_type_id`),
   CONSTRAINT `fk_fsi_structure` FOREIGN KEY (`fee_structure_id`) REFERENCES `fee_structures` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_fsi_type`      FOREIGN KEY (`fee_type_id`) REFERENCES `fee_types` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DROP TABLE IF EXISTS `fee_structure_installments`;
+CREATE TABLE `fee_structure_installments` (
+  `id`                 INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `fee_structure_id`   INT UNSIGNED NOT NULL,
+  `installment_number` TINYINT UNSIGNED NOT NULL,
+  `label`              VARCHAR(60)  NOT NULL,
+  -- Share of tuition billed in this installment. All non-tuition fees fall in the 1st installment.
+  `tuition_percent`    DECIMAL(5,2) NOT NULL,
+  -- Due date as days after the semester start date (may be negative).
+  `due_days`           SMALLINT     NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_fs_installment` (`fee_structure_id`,`installment_number`),
+  CONSTRAINT `fk_fsinst_structure` FOREIGN KEY (`fee_structure_id`) REFERENCES `fee_structures` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DROP TABLE IF EXISTS `invoices`;
@@ -933,6 +955,40 @@ CREATE TABLE `invoice_items` (
   KEY `ix_ii_invoice` (`invoice_id`),
   CONSTRAINT `fk_ii_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_ii_feetype` FOREIGN KEY (`fee_type_id`) REFERENCES `fee_types` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DROP TABLE IF EXISTS `invoice_installments`;
+CREATE TABLE `invoice_installments` (
+  `id`                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `invoice_id`         BIGINT UNSIGNED NOT NULL,
+  `installment_number` TINYINT UNSIGNED NOT NULL,
+  `label`              VARCHAR(60)     NOT NULL,
+  `amount`             DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
+  `amount_paid`        DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
+  `due_date`           DATE                     DEFAULT NULL,
+  `status`             ENUM('unpaid','partial','paid','overdue') NOT NULL DEFAULT 'unpaid',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_invoice_installment` (`invoice_id`,`installment_number`),
+  CONSTRAINT `fk_invinst_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DROP TABLE IF EXISTS `semester_enrollments`;
+CREATE TABLE `semester_enrollments` (
+  `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `student_id`  BIGINT UNSIGNED NOT NULL,
+  `semester_id` INT UNSIGNED    NOT NULL,
+  `invoice_id`  BIGINT UNSIGNED          DEFAULT NULL,
+  -- "enrolled" means the 1st installment is cleared: registration complete.
+  `status`      ENUM('pending_payment','enrolled') NOT NULL DEFAULT 'pending_payment',
+  `enrolled_at` DATETIME                 DEFAULT NULL,
+  `created_at`  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_enrollment` (`student_id`,`semester_id`),
+  KEY `ix_enrollment_semester` (`semester_id`,`status`),
+  CONSTRAINT `fk_enr_student`  FOREIGN KEY (`student_id`)  REFERENCES `students` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_enr_semester` FOREIGN KEY (`semester_id`) REFERENCES `semesters` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_enr_invoice`  FOREIGN KEY (`invoice_id`)  REFERENCES `invoices` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DROP TABLE IF EXISTS `payments`;

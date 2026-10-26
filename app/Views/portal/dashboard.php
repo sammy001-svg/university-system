@@ -6,6 +6,24 @@
     </div>
 </div>
 
+<?php if ($semester): ?>
+    <?php if (($enrollment['status'] ?? null) === 'enrolled'): ?>
+        <div class="alert alert-success d-flex align-items-center gap-2">
+            <?= icon('check') ?>
+            <div><strong>Registration Complete</strong> &middot; Enrolled for <?= e(($semester['academic_year'] ?? '') . ' ' . $semester['name']) ?>.</div>
+        </div>
+    <?php elseif ($enrollment !== null): ?>
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <?= icon('clock') ?>
+            <div><strong>Not yet enrolled for <?= e($semester['name']) ?>.</strong>
+                Pay your compulsory 1st installment (<?= e(money($enrollment['first_outstanding'])) ?> outstanding) to enrol and register for courses.
+                <a href="<?= url('/portal/finance/invoice/' . $enrollment['invoice_id']) ?>">View invoice</a></div>
+        </div>
+    <?php else: ?>
+        <div class="alert alert-info">No fee invoice has been issued for <?= e($semester['name']) ?> yet.</div>
+    <?php endif; ?>
+<?php endif; ?>
+
 <div class="row g-3 mb-4">
     <?php $tiles = [
         ['Balance Due', money($balance), 'finance', $balance > 0 ? 'tone-red' : 'tone-green'],

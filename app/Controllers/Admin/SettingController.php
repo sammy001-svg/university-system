@@ -109,7 +109,7 @@ final class SettingController extends Controller
             ['exam_weight', '70', 'academic', 'integer', 'Exam Weight (%)'],
             ['attendance_threshold', '75', 'academic', 'integer', 'Attendance Threshold (%)'],
             ['require_registration_approval', '1', 'academic', 'boolean', 'Require Registration Approval'],
-            ['fee_threshold_percent', '60', 'finance', 'integer', 'Minimum Fee Paid (%) Before Registration'],
+            ['fee_threshold_percent', '60', 'finance', 'integer', 'Default 1st Installment (% of Tuition)'],
             ['currency_code', 'USD', 'finance', 'string', 'Currency Code'],
             ['currency_symbol', '$', 'finance', 'string', 'Currency Symbol'],
             ['invoice_due_days', '30', 'finance', 'integer', 'Invoice Due Days'],

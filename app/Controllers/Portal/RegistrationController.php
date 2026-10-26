@@ -10,6 +10,7 @@ use App\Core\Exceptions\HttpException;
 use App\Core\Request;
 use App\Models\CourseRegistration;
 use App\Models\Semester;
+use App\Models\SemesterEnrollment;
 use App\Models\Student;
 
 final class RegistrationController extends Controller
@@ -39,12 +40,16 @@ final class RegistrationController extends Controller
             [$semester['id'], $student['id']]
         ) : [];
 
+        $enrollments = new SemesterEnrollment();
+
         return $this->view('portal.registration', [
             'pageTitle'  => 'Course Registration',
             'student'    => $student,
             'semester'   => $semester,
             'registered' => $registered,
             'available'  => $available,
+            'enrollment' => $semester ? $enrollments->forStudent((int) $student['id'], (int) $semester['id']) : null,
+            'block'      => $semester ? $enrollments->registrationBlock((int) $student['id'], (int) $semester['id']) : null,
         ]);
     }
 
@@ -56,6 +61,11 @@ final class RegistrationController extends Controller
 
         if (!$semester) {
             $this->error('No active semester for registration.', '/portal/registration');
+        }
+
+        $block = (new SemesterEnrollment())->registrationBlock((int) $student['id'], (int) $semester['id']);
+        if ($block !== null) {
+            $this->error($block, '/portal/registration');
         }
 
         $data = $this->validate($request, [
