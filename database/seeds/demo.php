@@ -198,7 +198,7 @@ return static function (PDO $pdo): void {
             $program['id'],
             $year === 1 ? 2 : 1,
             $year,
-            2,
+            $year % 2 === 1 ? 1 : 2,
             $entry . '-09-01',
             $sponsors[$i % count($sponsors)],
             (string) (30000000 + $i * 3301),
@@ -218,9 +218,14 @@ return static function (PDO $pdo): void {
     }
     echo "  {$created} students enrolled across the programmes.\n";
 
-    /* ---------------- Class offerings for the current semester ---------------- */
-    $currentSemester = (int) $pdo->query('SELECT id FROM semesters WHERE is_current = 1 LIMIT 1')->fetchColumn();
-    $previousSemester = (int) $pdo->query('SELECT id FROM semesters WHERE id = ' . max(1, $currentSemester - 1))->fetchColumn();
+    /* ---------------- Class offerings, registrations and results ---------------- */
+    // Each student takes their own term's courses this semester (Freshman I -> Year 1 Semester 1 plan,
+    // Sophomore II -> Year 2 Semester 2 ...) and has published results for the term before it.
+    $currentSemester  = (int) $pdo->query('SELECT id FROM semesters WHERE is_current = 1 LIMIT 1')->fetchColumn();
+    $previousSemester = (int) $pdo->query(
+        'SELECT id FROM semesters WHERE start_date < (SELECT start_date FROM semesters WHERE id = ' . $currentSemester . ')
+          ORDER BY start_date DESC LIMIT 1'
+    )->fetchColumn();
 
     $lecturers = array_values($pdo->query(
         "SELECT s.id FROM staff s WHERE s.staff_category = 'academic'"
@@ -230,56 +235,35 @@ return static function (PDO $pdo): void {
     $offeringInsert = $pdo->prepare(
         'INSERT INTO course_offerings (course_id, semester_id, program_id, section, lecturer_id, room_id,
                                        capacity, delivery_mode, coursework_weight, exam_weight, status)
-         VALUES (?, ?, NULL, "A", ?, ?, ?, "physical", 30, 70, ?)'
+         VALUES (?, ?, NULL, "One", ?, ?, 60, "physical", 30, 70, ?)'
     );
-
+    $slotInsert = $pdo->prepare(
+        'INSERT IGNORE INTO timetable_slots (offering_id, semester_id, day_of_week, start_time, end_time, room_id, session_type)
+         VALUES (?, ?, ?, ?, ?, ?, "lecture")'
+    );
     $offerings = [];
-    foreach ([$previousSemester, $currentSemester] as $index => $semesterId) {
-        if ($semesterId === 0) {
-            continue;
-        }
-        $isCurrent = $semesterId === $currentSemester;
-        $plannedCourses = $pdo->prepare(
-            'SELECT DISTINCT pc.course_id AS id
-               FROM program_courses pc
-               JOIN students st ON st.program_id = pc.program_id AND st.year_of_study = pc.year_of_study
-               JOIN semesters sem ON sem.id = ? AND sem.semester_number = pc.semester_number
-              WHERE pc.course_id IS NOT NULL
-              ORDER BY pc.course_id'
-        );
-        $plannedCourses->execute([$semesterId]);
-        $n = 0;
-        foreach ($plannedCourses->fetchAll(PDO::FETCH_ASSOC) as $course) {
-            $n++;
+    $offeringFor = static function (int $courseId, int $semesterId) use (&$offerings, $offeringInsert, $slotInsert, $pdo, $lecturers, $roomIds, $currentSemester): int {
+        if (!isset($offerings[$semesterId][$courseId])) {
+            $n         = count($offerings[$semesterId] ?? []) + 1;
+            $isCurrent = $semesterId === $currentSemester;
             $offeringInsert->execute([
-                $course['id'],
-                $semesterId,
-                $lecturers[$n % max(1, count($lecturers))],
-                $roomIds[$n % max(1, count($roomIds))],
-                60,
+                $courseId, $semesterId,
+                $lecturers[$n % max(1, count($lecturers))], $roomIds[$n % max(1, count($roomIds))],
                 $isCurrent ? 'open' : 'completed',
             ]);
-            $offeringId = (int) $pdo->lastInsertId();
-            $offerings[$semesterId][$course['id']] = $offeringId;
-
+            $offerings[$semesterId][$courseId] = (int) $pdo->lastInsertId();
             if ($isCurrent) {
-                $pdo->prepare(
-                    'INSERT IGNORE INTO timetable_slots (offering_id, semester_id, day_of_week, start_time, end_time, room_id, session_type)
-                     VALUES (?, ?, ?, ?, ?, ?, "lecture")'
-                )->execute([
-                    $offeringId,
-                    $semesterId,
+                $slotInsert->execute([
+                    $offerings[$semesterId][$courseId], $semesterId,
                     ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'][$n % 5],
-                    sprintf('%02d:00:00', 8 + ($n % 8)),
-                    sprintf('%02d:00:00', 10 + ($n % 8)),
+                    sprintf('%02d:00:00', 8 + ($n % 8)), sprintf('%02d:00:00', 10 + ($n % 8)),
                     $roomIds[$n % max(1, count($roomIds))],
                 ]);
             }
         }
-    }
-    echo "  Class offerings and timetable slots created.\n";
+        return $offerings[$semesterId][$courseId];
+    };
 
-    /* ---------------- Registrations and results ---------------- */
     $registrationInsert = $pdo->prepare(
         'INSERT IGNORE INTO course_registrations (student_id, offering_id, semester_id, registration_type,
                                                   approval_status, status, approved_at)
@@ -302,68 +286,67 @@ return static function (PDO $pdo): void {
         };
     };
 
+    // The plan for one term; of an either/or pair, the first alternative.
+    $planned = $pdo->prepare(
+        'SELECT pc.course_id, pc.credit_hours
+           FROM program_courses pc
+          WHERE pc.program_id = ? AND pc.year_of_study = ? AND pc.semester_number = ? AND pc.course_id IS NOT NULL
+            AND (pc.choice_group IS NULL OR pc.sort_order = (
+                 SELECT MIN(x.sort_order) FROM program_courses x
+                  WHERE x.program_id = pc.program_id AND x.year_of_study = pc.year_of_study
+                    AND x.semester_number = pc.semester_number AND x.choice_group = pc.choice_group))
+          ORDER BY pc.sort_order'
+    );
+
     $studentPlan = $pdo->query(
         'SELECT s.id, s.program_id, s.year_of_study, s.current_semester FROM students s'
     )->fetchAll(PDO::FETCH_ASSOC);
 
     $registrations = 0;
-    $results = 0;
-    // One row per term in the student's year; of an either/or pair, the first alternative.
-    $planned = $pdo->prepare(
-        'SELECT pc.course_id, pc.semester_number, c.credit_hours
-           FROM program_courses pc JOIN courses c ON c.id = pc.course_id
-          WHERE pc.program_id = ? AND pc.year_of_study = ?
-            AND (pc.choice_group IS NULL OR pc.sort_order = (
-                 SELECT MIN(x.sort_order) FROM program_courses x
-                  WHERE x.program_id = pc.program_id AND x.year_of_study = pc.year_of_study
-                    AND x.semester_number = pc.semester_number AND x.choice_group = pc.choice_group))
-          ORDER BY pc.semester_number, pc.sort_order'
-    );
-    $semesterNumber = $pdo->query('SELECT id, semester_number FROM semesters')->fetchAll(PDO::FETCH_KEY_PAIR);
+    $results       = 0;
     foreach ($studentPlan as $student) {
-        $planned->execute([$student['program_id'], $student['year_of_study']]);
+        $year = (int) $student['year_of_study'];
+        $term = (int) $student['current_semester'];
 
+        // This semester: the student's own term, registered and awaiting or holding approval.
+        $planned->execute([$student['program_id'], $year, $term]);
         foreach ($planned->fetchAll(PDO::FETCH_ASSOC) as $index => $course) {
-            $courseSemester = (int) $course['semester_number'];
+            $approved = $index % 4 !== 0;
+            $registrationInsert->execute([
+                $student['id'], $offeringFor((int) $course['course_id'], $currentSemester), $currentSemester,
+                $approved ? 'approved' : 'pending', $approved ? date('Y-m-d H:i:s') : null,
+            ]);
+            $registrations++;
+        }
 
-            // Previous semester -> completed with a published result.
-            if ($previousSemester > 0 && $courseSemester === (int) $semesterNumber[$previousSemester]
-                && isset($offerings[$previousSemester][$course['course_id']])) {
-                $offeringId = $offerings[$previousSemester][$course['course_id']];
-                $registrationInsert->execute([$student['id'], $offeringId, $previousSemester, 'approved', date('Y-m-d H:i:s')]);
-                $registrations++;
+        // Last semester: the term before, completed with published results (none for new students).
+        [$pastYear, $pastTerm] = $term === 2 ? [$year, 1] : [$year - 1, 2];
+        if ($previousSemester === 0 || $pastYear < 1) {
+            continue;
+        }
+        $planned->execute([$student['program_id'], $pastYear, $pastTerm]);
+        foreach ($planned->fetchAll(PDO::FETCH_ASSOC) as $course) {
+            $offeringId = $offeringFor((int) $course['course_id'], $previousSemester);
+            $registrationInsert->execute([$student['id'], $offeringId, $previousSemester, 'approved', date('Y-m-d H:i:s')]);
+            $registrations++;
 
-                $coursework = random_int(55, 98);
-                $exam       = random_int(50, 98);
-                $total      = round(($coursework * 0.3) + ($exam * 0.7), 2);
-                [$grade, $point, $outcome] = $gradeFor($total);
-                $resultInsert->execute([
-                    $student['id'], $offeringId, $previousSemester, $course['course_id'],
-                    $coursework, $exam, $total, $grade, $point, $course['credit_hours'],
-                    round($point * (int) $course['credit_hours'], 2), $outcome,
-                ]);
-                $results++;
-            }
-
-            // Current semester -> live registrations awaiting or holding approval.
-            if ($courseSemester === (int) $semesterNumber[$currentSemester]
-                && isset($offerings[$currentSemester][$course['course_id']])) {
-                $offeringId = $offerings[$currentSemester][$course['course_id']];
-                $approved   = $index % 4 !== 0;
-                $registrationInsert->execute([
-                    $student['id'], $offeringId, $currentSemester,
-                    $approved ? 'approved' : 'pending',
-                    $approved ? date('Y-m-d H:i:s') : null,
-                ]);
-                $registrations++;
-            }
+            $coursework = random_int(55, 98);
+            $exam       = random_int(50, 98);
+            $total      = round(($coursework * 0.3) + ($exam * 0.7), 2);
+            [$grade, $point, $outcome] = $gradeFor($total);
+            $credits = (int) $course['credit_hours'];
+            $resultInsert->execute([
+                $student['id'], $offeringId, $previousSemester, $course['course_id'],
+                $coursework, $exam, $total, $grade, $point, $credits, round($point * $credits, 2), $outcome,
+            ]);
+            $results++;
         }
     }
     $pdo->exec(
         'UPDATE course_offerings o SET enrolled_count =
             (SELECT COUNT(*) FROM course_registrations cr WHERE cr.offering_id = o.id AND cr.status = "registered")'
     );
-    echo "  {$registrations} course registrations, {$results} published results.\n";
+    echo "  Class offerings, timetable slots, {$registrations} course registrations, {$results} published results.\n";
 
     /* Semester GPA rows derived from the published results. */
     $pdo->exec(
@@ -390,99 +373,57 @@ return static function (PDO $pdo): void {
                                         WHERE student_id = st.id AND is_published = 1 AND outcome = "pass"), 0)'
     );
 
-    /* ---------------- Sample student bills: by status, department and college ---------------- */
-    // The billing service picks the most specific active structure for each student:
-    // programme > department > college > all colleges, then status-specific over "all".
+    /* ---------------- Semester bills (official schedules, per-credit tuition) ---------------- */
+    // Same rules as BillingService: the registration-fee schedule for the student's term (new /
+    // every 1st semester / every 2nd semester), tuition = credit hours x the course's rate for each
+    // registered course, 1st installment = all registration fees + half the tuition.
     require_once dirname(__DIR__, 2) . '/app/Core/Model.php';
     require_once dirname(__DIR__, 2) . '/app/Models/FeeStructure.php';
 
-    $feeTypeIds = $pdo->query('SELECT code, id FROM fee_types')->fetchAll(PDO::FETCH_KEY_PAIR);
-    $feeTypeCategory = $pdo->query('SELECT code, category FROM fee_types')->fetchAll(PDO::FETCH_KEY_PAIR);
-    $facultyIds    = $pdo->query('SELECT code, id FROM faculties')->fetchAll(PDO::FETCH_KEY_PAIR);
-    $departmentIds = $pdo->query('SELECT code, id FROM departments')->fetchAll(PDO::FETCH_KEY_PAIR);
-    $programIdsByCode = $pdo->query('SELECT code, id FROM programs')->fetchAll(PDO::FETCH_KEY_PAIR);
-
-    $structureInsert = $pdo->prepare(
-        'INSERT INTO fee_structures (faculty_id, department_id, program_id, academic_year_id, student_status, name, total_amount, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, "active")'
-    );
-    $structureItemInsert = $pdo->prepare(
-        'INSERT INTO fee_structure_items (fee_structure_id, fee_type_id, amount, is_mandatory) VALUES (?, ?, ?, 1)'
-    );
-    $installmentInsert = $pdo->prepare(
-        'INSERT INTO fee_structure_installments (fee_structure_id, installment_number, label, tuition_percent, due_days)
-         VALUES (?, ?, ?, ?, ?)'
-    );
-
-    $newStudentFees  = ['ADM' => 50, 'ORI' => 25, 'IDC' => 10, 'CAU' => 30];
-    $standardPlan    = [['1st Installment', 50, 0], ['2nd Installment', 25, 42], ['3rd Installment', 25, 84]];
-    $graduatePlan    = [['1st Installment', 40, 0], ['2nd Installment', 30, 42], ['3rd Installment', 30, 84]];
-
-    // [name, scope type, scope code, student status, fees, plan]
-    $sampleBills = [
-        ['New Student Bill - All Colleges', null, null, 'new',
-            ['TUI' => 750, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'MED' => 45, 'ACT' => 25] + $newStudentFees, $standardPlan],
-        ['Continuing Student Bill - All Colleges', null, null, 'continuing',
-            ['TUI' => 750, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'MED' => 45, 'ACT' => 25], $standardPlan],
-        ['College of Information Technology - Continuing Students', 'faculty', 'CIT', 'continuing',
-            ['TUI' => 800, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'ICT' => 75, 'LAB' => 40, 'MED' => 45, 'ACT' => 25], $standardPlan],
-        ['College of Health Science - New Students', 'faculty', 'CHS', 'new',
-            ['TUI' => 950, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'LAB' => 60, 'MED' => 45, 'ACT' => 25] + $newStudentFees, $standardPlan],
-        ['College of Health Science - Continuing Students', 'faculty', 'CHS', 'continuing',
-            ['TUI' => 950, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'LAB' => 60, 'MED' => 45, 'ACT' => 25], $standardPlan],
-        ['Department of Nursing - Continuing Students', 'department', 'NURS', 'continuing',
-            ['TUI' => 950, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'LAB' => 60, 'CLN' => 120, 'MED' => 45, 'ACT' => 25], $standardPlan],
-        ['Department of Accounting - Continuing Students', 'department', 'ACCT', 'continuing',
-            ['TUI' => 700, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'ICT' => 30, 'MED' => 45, 'ACT' => 25], $standardPlan],
-        ['BSc. Nursing (Nurse-Midwifery) - All Students', 'program', 'BSNMW', 'all',
-            ['TUI' => 1100, 'REG' => 40, 'EXM' => 75, 'LIB' => 30, 'LAB' => 60, 'CLN' => 150, 'MED' => 45], $graduatePlan],
-    ];
-
-    $plans = [];
-    foreach ($sampleBills as [$name, $scopeType, $scopeCode, $studentStatus, $fees, $plan]) {
-        $structureInsert->execute([
-            $scopeType === 'faculty' ? $facultyIds[$scopeCode] : null,
-            $scopeType === 'department' ? $departmentIds[$scopeCode] : null,
-            $scopeType === 'program' ? $programIdsByCode[$scopeCode] : null,
-            $yearIds['2026'],
-            $studentStatus,
-            $name,
-            array_sum($fees),
-        ]);
-        $structureId = (int) $pdo->lastInsertId();
-        foreach ($fees as $code => $amount) {
-            $structureItemInsert->execute([$structureId, $feeTypeIds[$code], $amount]);
+    $feeYear    = (string) $pdo->query(
+        'SELECT ay.name FROM semesters s JOIN academic_years ay ON ay.id = s.academic_year_id WHERE s.id = ' . $currentSemester
+    )->fetchColumn();
+    $structures = [];
+    foreach (['new' => 'REG-NEW', 'first_term' => 'REG-S1', 'second_term' => 'REG-S2'] as $status => $code) {
+        $structure = $pdo->query('SELECT id, name FROM fee_structures WHERE code = ' . $pdo->quote($code . '-' . $feeYear))->fetch(PDO::FETCH_ASSOC);
+        if ($structure === false) {
+            echo "  No official fee schedule for {$feeYear} - skipping bills.\n";
+            return;
         }
-        foreach ($plan as $n => [$label, $percent, $dueDays]) {
-            $installmentInsert->execute([$structureId, $n + 1, $label, $percent, $dueDays]);
-            $plans[$structureId][] = ['installment_number' => $n + 1, 'label' => $label, 'tuition_percent' => $percent, 'due_days' => $dueDays];
-        }
+        $structure['items'] = $pdo->query(
+            'SELECT i.fee_type_id, i.amount, t.name FROM fee_structure_items i JOIN fee_types t ON t.id = i.fee_type_id
+              WHERE i.fee_structure_id = ' . (int) $structure['id'] . ' ORDER BY i.id'
+        )->fetchAll(PDO::FETCH_ASSOC);
+        $structure['plan'] = array_map(static fn (array $r): array => [
+            'installment_number' => (int) $r['installment_number'], 'label' => $r['label'],
+            'tuition_percent' => (float) $r['tuition_percent'], 'due_days' => (int) $r['due_days'],
+        ], $pdo->query(
+            'SELECT * FROM fee_structure_installments WHERE fee_structure_id = ' . (int) $structure['id'] . ' ORDER BY installment_number'
+        )->fetchAll(PDO::FETCH_ASSOC));
+        $structures[$status] = $structure;
     }
-    echo '  ' . count($sampleBills) . " sample fee structures (by status, department, college and programme).\n";
+    $tuitionTypeId = (int) $pdo->query('SELECT id FROM fee_types WHERE code = "TUI"')->fetchColumn();
+    $tuitionLines  = $pdo->prepare(
+        'SELECT c.id, c.code, c.title,
+                COALESCE(cr.credit_hours, (SELECT pc.credit_hours FROM program_courses pc
+                                            WHERE pc.program_id = ? AND pc.course_id = c.id ORDER BY pc.year_of_study LIMIT 1), c.credit_hours) AS credits,
+                COALESCE(tr.rate_per_credit, (SELECT rate_per_credit FROM tuition_rates WHERE code = "GENERAL"), 0) AS rate
+           FROM course_registrations cr
+           JOIN course_offerings o ON o.id = cr.offering_id
+           JOIN courses c ON c.id = o.course_id
+      LEFT JOIN tuition_rates tr ON tr.code = c.tuition_rate_code
+          WHERE cr.student_id = ? AND cr.semester_id = ? AND cr.status = "registered"
+          ORDER BY cr.id'
+    );
 
-    $resolveStructure = $pdo->prepare(
-        'SELECT * FROM fee_structures
-          WHERE academic_year_id = ? AND status = "active"
-            AND (program_id IS NULL OR program_id = ?)
-            AND (department_id IS NULL OR department_id = ?)
-            AND (faculty_id IS NULL OR faculty_id = ?)
-            AND student_status IN ("all", ?)
-          ORDER BY program_id IS NOT NULL DESC, department_id IS NOT NULL DESC, faculty_id IS NOT NULL DESC,
-                   student_status != "all" DESC, id DESC
-          LIMIT 1'
-    );
-    $structureItems = $pdo->prepare(
-        'SELECT i.fee_type_id, i.amount, t.name, t.category FROM fee_structure_items i
-           JOIN fee_types t ON t.id = i.fee_type_id WHERE i.fee_structure_id = ?'
-    );
     $invoiceInsert = $pdo->prepare(
         'INSERT INTO invoices (invoice_number, student_id, semester_id, fee_structure_id, title, total_amount,
                                discount_amount, amount_paid, balance, issue_date, due_date, status)
          VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)'
     );
     $invoiceItemInsert = $pdo->prepare(
-        'INSERT INTO invoice_items (invoice_id, fee_type_id, description, quantity, unit_amount, amount)
-         VALUES (?, ?, ?, 1, ?, ?)'
+        'INSERT INTO invoice_items (invoice_id, fee_type_id, course_id, description, quantity, unit_amount, amount)
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
     );
     $invoiceInstallmentInsert = $pdo->prepare(
         'INSERT INTO invoice_installments (invoice_id, installment_number, label, amount, amount_paid, due_date, status)
@@ -496,36 +437,26 @@ return static function (PDO $pdo): void {
         'INSERT INTO semester_enrollments (student_id, semester_id, invoice_id, status, enrolled_at) VALUES (?, ?, ?, ?, ?)'
     );
 
-    $semesterStart = (string) $pdo->query('SELECT start_date FROM semesters WHERE id = ' . $currentSemester)->fetchColumn();
-    $studentScopes = $pdo->query(
-        'SELECT s.id, s.program_id, s.year_of_study, p.department_id, d.faculty_id
-           FROM students s JOIN programs p ON p.id = s.program_id JOIN departments d ON d.id = p.department_id'
-    )->fetchAll(PDO::FETCH_ASSOC);
-
+    $semesterRow   = $pdo->query('SELECT name, start_date FROM semesters WHERE id = ' . $currentSemester)->fetch(PDO::FETCH_ASSOC);
+    $semesterStart = (string) $semesterRow['start_date'];
     $invoiceCount  = 0;
     $paymentCount  = 0;
     $enrolledCount = 0;
-    foreach ($studentScopes as $index => $student) {
-        $resolveStructure->execute([
-            $yearIds['2026'], $student['program_id'], $student['department_id'], $student['faculty_id'],
-            (int) $student['year_of_study'] === 1 ? 'new' : 'continuing',
-        ]);
-        $feeStructure = $resolveStructure->fetch(PDO::FETCH_ASSOC);
-        if ($feeStructure === false) {
-            continue;
-        }
-        $structureItems->execute([$feeStructure['id']]);
-        $items = $structureItems->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($studentPlan as $index => $student) {
+        $status = (int) $student['current_semester'] === 2 ? 'second_term'
+            : ((int) $student['year_of_study'] === 1 ? 'new' : 'first_term');
+        $structure = $structures[$status];
 
-        $total   = 0.0;
+        $tuitionLines->execute([$student['program_id'], $student['id'], $currentSemester]);
+        $courses = $tuitionLines->fetchAll(PDO::FETCH_ASSOC);
         $tuition = 0.0;
-        foreach ($items as $item) {
-            $total += (float) $item['amount'];
-            if ($item['category'] === 'tuition') {
-                $tuition += (float) $item['amount'];
-            }
+        foreach ($courses as $course) {
+            $tuition += (int) $course['credits'] * (float) $course['rate'];
         }
-        $installments = App\Models\FeeStructure::splitIntoInstallments($plans[$feeStructure['id']], $tuition, $total - $tuition, 0.0);
+        $fees  = array_sum(array_map('floatval', array_column($structure['items'], 'amount')));
+        $total = round($tuition + $fees, 2);
+
+        $installments     = App\Models\FeeStructure::splitIntoInstallments($structure['plan'], $tuition, $fees, 0.0);
         $firstInstallment = $installments[0]['amount'];
 
         // Payment patterns: paid in full, exactly the 1st installment, part of the 1st, nothing.
@@ -536,26 +467,29 @@ return static function (PDO $pdo): void {
             default => 0.0,
         };
         $balance = round($total - $paid, 2);
-        $status  = $balance <= 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid');
 
         $invoiceCount++;
         $invoiceInsert->execute([
             sprintf('INV-%s-%05d', date('Ym'), $invoiceCount),
             $student['id'],
             $currentSemester,
-            $feeStructure['id'],
-            $feeStructure['name'],
+            $structure['id'],
+            $structure['name'] . ' - ' . $feeYear . ' ' . $semesterRow['name'],
             $total,
             $paid,
             $balance,
             date('Y-m-d', strtotime($semesterStart . ' -14 days')),
             date('Y-m-d', strtotime($semesterStart . ' ' . sprintf('%+d', end($installments)['due_days']) . ' days')),
-            $status,
+            $balance <= 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid'),
         ]);
         $invoiceId = (int) $pdo->lastInsertId();
 
-        foreach ($items as $item) {
-            $invoiceItemInsert->execute([$invoiceId, $item['fee_type_id'], $item['name'], $item['amount'], $item['amount']]);
+        foreach ($courses as $course) {
+            $amount = round((int) $course['credits'] * (float) $course['rate'], 2);
+            $invoiceItemInsert->execute([$invoiceId, $tuitionTypeId, $course['id'], $course['code'] . ' ' . $course['title'], $course['credits'], $course['rate'], $amount]);
+        }
+        foreach ($structure['items'] as $item) {
+            $invoiceItemInsert->execute([$invoiceId, $item['fee_type_id'], null, $item['name'], 1, $item['amount'], $item['amount']]);
         }
 
         $remaining = $paid;
@@ -564,12 +498,7 @@ return static function (PDO $pdo): void {
             $remaining = round($remaining - $applied, 2);
             $dueDate   = date('Y-m-d', strtotime($semesterStart . ' ' . sprintf('%+d', $installment['due_days']) . ' days'));
             $invoiceInstallmentInsert->execute([
-                $invoiceId,
-                $installment['installment_number'],
-                $installment['label'],
-                $installment['amount'],
-                $applied,
-                $dueDate,
+                $invoiceId, $installment['installment_number'], $installment['label'], $installment['amount'], $applied, $dueDate,
                 match (true) {
                     $applied >= $installment['amount'] - 0.005 => 'paid',
                     $applied > 0                               => 'partial',
@@ -601,19 +530,7 @@ return static function (PDO $pdo): void {
         ]);
         $enrolledCount += $enrolled ? 1 : 0;
     }
-
-    // Course registration requires enrolment, so drop the current-semester
-    // registrations seeded earlier for students who have not cleared the 1st installment.
-    $pdo->exec(
-        'DELETE cr FROM course_registrations cr
-           JOIN semester_enrollments e ON e.student_id = cr.student_id AND e.semester_id = cr.semester_id
-          WHERE cr.semester_id = ' . $currentSemester . ' AND e.status != "enrolled"'
-    );
-    $pdo->exec(
-        'UPDATE course_offerings o SET enrolled_count =
-            (SELECT COUNT(*) FROM course_registrations cr WHERE cr.offering_id = o.id AND cr.status = "registered")'
-    );
-    echo "  {$invoiceCount} invoices with installments, {$paymentCount} payments, {$enrolledCount} students enrolled (registration complete).\n";
+    echo "  {$invoiceCount} semester bills on the official schedules, {$paymentCount} payments, {$enrolledCount} students with registration complete.\n";
 
     /* ---------------- Library ---------------- */
     $books = [

@@ -63,7 +63,9 @@ final class Program extends Model
     public function curriculum(int $programId): array
     {
         $rows = Database::select(
-            'SELECT pc.*, c.code, c.title, c.status AS course_status, d.name AS department_name
+            'SELECT pc.*, c.code, c.title, c.status AS course_status, d.name AS department_name,
+                    (SELECT GROUP_CONCAT(a.code ORDER BY a.code SEPARATOR ", ") FROM course_aliases a
+                      WHERE a.course_id = c.id AND a.code != c.code) AS billing_codes
                FROM program_courses pc
           LEFT JOIN courses c     ON c.id = pc.course_id
           LEFT JOIN departments d ON d.id = c.department_id

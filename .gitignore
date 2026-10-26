@@ -4,6 +4,8 @@
 /storage/logs/*
 /storage/cache/*
 /storage/uploads/*
+# Student records to import (personal data) never go into git.
+/storage/imports/*
 !/storage/uploads/avatars/
 !/storage/uploads/documents/
 /storage/uploads/avatars/*

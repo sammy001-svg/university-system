@@ -144,16 +144,28 @@ final class Database
         }
     }
 
-    /** Run a callback inside a transaction, rolling back on any exception. */
+    /**
+     * Run a callback inside a transaction, rolling back on any exception.
+     * Inside an enclosing transaction the callback simply joins it: only the
+     * outermost caller commits or rolls back, so an inner block can never
+     * commit work the caller may still need to undo.
+     */
     public static function transaction(callable $callback): mixed
     {
-        self::beginTransaction();
+        $outermost = !self::connection()->inTransaction();
+        if ($outermost) {
+            self::connection()->beginTransaction();
+        }
         try {
             $result = $callback();
-            self::commit();
+            if ($outermost) {
+                self::commit();
+            }
             return $result;
         } catch (\Throwable $e) {
-            self::rollBack();
+            if ($outermost) {
+                self::rollBack();
+            }
             throw $e;
         }
     }

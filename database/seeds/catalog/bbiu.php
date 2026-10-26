@@ -182,7 +182,7 @@ return [
         'NSG' => 'NURS', 'PHAM' => 'NURS', 'OBGY' => 'NURS',
         'EDUC' => 'SCED',
         'IT' => 'IT', 'ENT' => 'IT',
-        'ENGL' => 'GENS', 'FREN' => 'GENS', 'MATH' => 'GENS', 'SOSC' => 'GENS', 'PHSC' => 'GENS',
+        'ENGL' => 'GENS', 'ENG' => 'GENS', 'FREN' => 'GENS', 'MATH' => 'GENS', 'SOSC' => 'GENS', 'PHSC' => 'GENS',
         'COSC' => 'GENS', 'PHED' => 'GENS', 'PHIL' => 'GENS', 'ENTR' => 'GENS', 'LEAD' => 'GENS',
         'GSC' => 'GENS', 'PSYC' => 'GENS', 'BIOL' => 'GENS', 'CHEM' => 'GENS', 'PHYS' => 'GENS', 'GED' => 'GENS',
     ],

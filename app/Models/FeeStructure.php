@@ -66,7 +66,7 @@ final class FeeStructure extends Model
                FROM fee_structure_items i
                JOIN fee_types ft ON ft.id = i.fee_type_id
               WHERE i.fee_structure_id = ?
-              ORDER BY ft.category, ft.name',
+              ORDER BY i.id',
             [$structureId]
         );
     }

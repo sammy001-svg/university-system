@@ -29,6 +29,9 @@ $describe = static function (array $row): string {
     $html = $row['course_id'] !== null
         ? '<code>' . e($row['code']) . '</code> <span class="fw-semibold">' . e($row['title']) . '</span>'
         : '<span class="fst-italic text-muted">' . e($row['slot_label']) . '</span>';
+    if (!empty($row['billing_codes'])) {
+        $html .= ' <span class="badge text-bg-light" title="Code used on billing forms">billed as ' . e($row['billing_codes']) . '</span>';
+    }
     if (!empty($row['note'])) {
         $html .= '<div class="text-warning-emphasis small mt-1">' . icon('clock', 'ico-sm') . ' ' . e($row['note']) . '</div>';
     }
