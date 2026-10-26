@@ -252,7 +252,7 @@ CREATE TABLE `programs` (
   `code`               VARCHAR(20)  NOT NULL,
   `name`               VARCHAR(180) NOT NULL,
   `award`              VARCHAR(120)          DEFAULT NULL,
-  `level`              ENUM('certificate','diploma','bachelor','postgraduate_diploma','masters','phd') NOT NULL DEFAULT 'bachelor',
+  `level`              ENUM('certificate','diploma','associate','bachelor','postgraduate_diploma','masters','phd') NOT NULL DEFAULT 'bachelor',
   `duration_years`     DECIMAL(3,1) NOT NULL DEFAULT 4.0,
   `semesters_per_year` TINYINT UNSIGNED NOT NULL DEFAULT 2,
   `total_credit_hours` SMALLINT UNSIGNED     DEFAULT NULL,
@@ -296,17 +296,45 @@ DROP TABLE IF EXISTS `program_courses`;
 CREATE TABLE `program_courses` (
   `id`              INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `program_id`      INT UNSIGNED NOT NULL,
-  `course_id`       INT UNSIGNED NOT NULL,
+  -- NULL for a placeholder slot such as a minor, elective or content-area course.
+  `course_id`       INT UNSIGNED          DEFAULT NULL,
+  `slot_label`      VARCHAR(120)          DEFAULT NULL,
   `year_of_study`   TINYINT UNSIGNED NOT NULL DEFAULT 1,
   `semester_number` TINYINT UNSIGNED NOT NULL DEFAULT 1,
-  `course_type`     ENUM('core','elective','common','audit') NOT NULL DEFAULT 'core',
+  -- Credit hours as this programme counts them (the same course can differ between programmes).
+  `credit_hours`    TINYINT UNSIGNED NOT NULL DEFAULT 3,
+  `course_type`     ENUM('core','elective','common','audit','minor','concentration') NOT NULL DEFAULT 'core',
+  -- Rows in the same term sharing a choice_group are alternatives: the student takes one.
+  `choice_group`    TINYINT UNSIGNED      DEFAULT NULL,
+  `sort_order`      SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  `note`            VARCHAR(255)          DEFAULT NULL,
   `created_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_program_course` (`program_id`,`course_id`),
+  UNIQUE KEY `uq_program_course` (`program_id`,`year_of_study`,`semester_number`,`course_id`),
   KEY `ix_pc_course` (`course_id`),
-  KEY `ix_pc_plan` (`program_id`,`year_of_study`,`semester_number`),
+  KEY `ix_pc_plan` (`program_id`,`year_of_study`,`semester_number`,`sort_order`),
   CONSTRAINT `fk_pc_program` FOREIGN KEY (`program_id`) REFERENCES `programs` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_pc_course`  FOREIGN KEY (`course_id`)  REFERENCES `courses` (`id`)  ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DROP TABLE IF EXISTS `program_course_options`;
+CREATE TABLE `program_course_options` (
+  `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `program_id`   INT UNSIGNED NOT NULL,
+  -- elective: courses that fill the plan's elective slots; minor: what non-majors take to
+  -- minor in this programme; concentration: a content-area track (group_label names it).
+  `list_type`    ENUM('elective','minor','concentration') NOT NULL,
+  `group_label`  VARCHAR(120)          DEFAULT NULL,
+  `course_id`    INT UNSIGNED          DEFAULT NULL,
+  `slot_label`   VARCHAR(120)          DEFAULT NULL,
+  `credit_hours` TINYINT UNSIGNED NOT NULL DEFAULT 3,
+  `choice_group` TINYINT UNSIGNED      DEFAULT NULL,
+  `sort_order`   SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  `note`         VARCHAR(255)          DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ix_pco_program` (`program_id`,`list_type`,`sort_order`),
+  CONSTRAINT `fk_pco_program` FOREIGN KEY (`program_id`) REFERENCES `programs` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pco_course`  FOREIGN KEY (`course_id`)  REFERENCES `courses` (`id`)  ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DROP TABLE IF EXISTS `course_prerequisites`;

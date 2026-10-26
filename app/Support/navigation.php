@@ -36,7 +36,7 @@ return [
     [
         'title' => 'Academics',
         'items' => [
-            ['label' => 'Faculties',     'url' => '/academics/faculties',    'icon' => 'building', 'permission' => 'academics.view'],
+            ['label' => 'Colleges',      'url' => '/academics/faculties',    'icon' => 'building', 'permission' => 'academics.view'],
             ['label' => 'Departments',   'url' => '/academics/departments',  'icon' => 'building', 'permission' => 'academics.view'],
             ['label' => 'Programmes',    'url' => '/academics/programs',     'icon' => 'book',     'permission' => 'academics.view'],
             ['label' => 'Courses',       'url' => '/academics/courses',      'icon' => 'book',     'permission' => 'academics.view'],

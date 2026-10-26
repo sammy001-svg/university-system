@@ -53,7 +53,7 @@ final class DepartmentController extends ResourceController
         return [
             ['key' => 'code', 'label' => 'Code', 'type' => 'code'],
             ['key' => 'name', 'label' => 'Department', 'type' => 'strong'],
-            ['key' => 'faculty_name', 'label' => 'Faculty'],
+            ['key' => 'faculty_name', 'label' => 'College'],
             ['key' => 'hod_name', 'label' => 'Head of department'],
             ['key' => 'programs_count', 'label' => 'Programmes', 'type' => 'number', 'align' => 'center', 'sortable' => false],
             ['key' => 'courses_count', 'label' => 'Courses', 'type' => 'number', 'align' => 'center', 'sortable' => false],
@@ -64,7 +64,7 @@ final class DepartmentController extends ResourceController
     protected function filters(): array
     {
         return [
-            ['name' => 'faculty_id', 'label' => 'Faculty', 'options' => (new Faculty())->options('name'), 'width' => 3],
+            ['name' => 'faculty_id', 'label' => 'College', 'options' => (new Faculty())->options('name'), 'width' => 3],
             ['name' => 'status', 'label' => 'Status', 'options' => ['active' => 'Active', 'inactive' => 'Inactive'], 'width' => 3],
         ];
     }
@@ -74,7 +74,7 @@ final class DepartmentController extends ResourceController
         return [
             ['name' => 'code', 'label' => 'Department code', 'width' => 4, 'required' => true, 'placeholder' => 'e.g. CS'],
             ['name' => 'name', 'label' => 'Department name', 'width' => 8, 'required' => true],
-            ['name' => 'faculty_id', 'label' => 'Faculty', 'type' => 'select', 'width' => 6, 'required' => true,
+            ['name' => 'faculty_id', 'label' => 'College', 'type' => 'select', 'width' => 6, 'required' => true,
              'options' => (new Faculty())->options('name')],
             ['name' => 'hod_id', 'label' => 'Head of department', 'type' => 'select', 'width' => 6,
              'options' => $this->hodOptions()],

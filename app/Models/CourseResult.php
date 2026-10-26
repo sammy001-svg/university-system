@@ -55,7 +55,7 @@ final class CourseResult extends Model
                 ];
             }
         }
-        return ['grade' => 'E', 'grade_point' => 0.0, 'is_pass' => false, 'remarks' => 'Fail'];
+        return ['grade' => 'F', 'grade_point' => 0.0, 'is_pass' => false, 'remarks' => 'Fail'];
     }
 
     /**

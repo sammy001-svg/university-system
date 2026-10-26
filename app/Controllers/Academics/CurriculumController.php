@@ -7,36 +7,26 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Exceptions\HttpException;
 use App\Core\Request;
+use App\Models\Program;
 
 final class CurriculumController extends Controller
 {
     public function show(Request $request, string $id): string
     {
         $this->authorize('academics.view');
-        $program = Database::selectOne('SELECT * FROM programs WHERE id=?', [(int)$id]);
+        $programs = new Program();
+        $program  = $programs->withDepartment((int) $id);
         if (!$program) { throw new HttpException(404); }
 
-        $curriculum = Database::select(
-            'SELECT pc.*, c.code, c.title, c.credit_hours, c.level, c.semester_number
-               FROM program_courses pc
-               JOIN courses c ON c.id = pc.course_id
-              WHERE pc.program_id = ?
-              ORDER BY pc.year_of_study, c.semester_number, c.code',
-            [(int)$id]
-        );
-
-        $available = Database::select(
-            "SELECT id, code, title, credit_hours FROM courses WHERE status='active'
-              AND id NOT IN (SELECT course_id FROM program_courses WHERE program_id=?)
-              ORDER BY code",
-            [(int)$id]
-        );
+        $curriculum = $programs->curriculum((int) $id);
 
         return $this->view('academics.curriculum.show', [
-            'pageTitle'  => $program['name'] . ' – Curriculum',
-            'program'    => $program,
-            'curriculum' => $curriculum,
-            'available'  => $available,
+            'pageTitle'   => $program['name'] . ' – Curriculum',
+            'program'     => $program,
+            'curriculum'  => $curriculum,
+            'planCredits' => $programs->totalCredits((int) $id),
+            'options'     => $programs->courseOptions((int) $id),
+            'courses'     => Database::select("SELECT id, CONCAT(code, ' – ', title) AS label FROM courses WHERE status='active' ORDER BY code"),
         ]);
     }
 
@@ -44,28 +34,49 @@ final class CurriculumController extends Controller
     {
         $this->authorize('academics.create');
         $this->verifyCsrf($request);
+        $back = '/academics/programs/' . $id . '/curriculum';
         $data = $this->validate($request, [
-            'course_id'   => 'required|integer|exists:courses,id',
-            'year_of_study' => 'required|integer',
-            'is_elective' => 'nullable|boolean',
+            'course_id'       => 'nullable|integer|exists:courses,id',
+            'slot_label'      => 'nullable|max:120',
+            'year_of_study'   => 'required|integer|between:1,6',
+            'semester_number' => 'required|integer|between:1,3',
+            'credit_hours'    => 'required|integer|between:0,12',
+            'course_type'     => 'required|in:core,common,elective,minor,concentration,audit',
+            'note'            => 'nullable|max:255',
         ]);
+        if (empty($data['course_id']) && trim((string) ($data['slot_label'] ?? '')) === '') {
+            $this->error('Choose a course, or name the slot (for example "Minor course").', $back);
+        }
+        if (!empty($data['course_id'])) {
+            $data['slot_label'] = null;
+            $exists = Database::scalar(
+                'SELECT id FROM program_courses WHERE program_id=? AND course_id=? AND year_of_study=? AND semester_number=?',
+                [(int) $id, $data['course_id'], $data['year_of_study'], $data['semester_number']]
+            );
+            if ($exists) { $this->error('That course is already in this term of the curriculum.', $back); }
+        }
 
-        $exists = Database::scalar('SELECT id FROM program_courses WHERE program_id=? AND course_id=?', [(int)$id, $data['course_id']]);
-        if ($exists) { $this->error('Course already in curriculum.', '/programs/' . $id . '/curriculum'); }
-
-        Database::statement(
-            'INSERT INTO program_courses (program_id, course_id, year_of_study, is_elective) VALUES (?,?,?,?)',
-            [(int)$id, $data['course_id'], $data['year_of_study'], !empty($data['is_elective']) ? 1 : 0]
+        $sort = (int) Database::scalar(
+            'SELECT COALESCE(MAX(sort_order), 0) + 1 FROM program_courses WHERE program_id=? AND year_of_study=? AND semester_number=?',
+            [(int) $id, $data['year_of_study'], $data['semester_number']]
         );
-        $this->success('Course added to curriculum.', '/programs/' . $id . '/curriculum');
+        Database::statement(
+            'INSERT INTO program_courses (program_id, course_id, slot_label, year_of_study, semester_number, credit_hours, course_type, sort_order, note)
+             VALUES (?,?,?,?,?,?,?,?,?)',
+            [
+                (int) $id, $data['course_id'] ?: null, $data['slot_label'] ?: null, $data['year_of_study'],
+                $data['semester_number'], $data['credit_hours'], $data['course_type'], $sort, $data['note'] ?: null,
+            ]
+        );
+        $this->success('Added to the curriculum.', $back);
     }
 
-    public function remove(Request $request, string $id, string $courseId): never
+    public function remove(Request $request, string $program, string $id): never
     {
         $this->authorize('academics.delete');
         $this->verifyCsrf($request);
-        Database::statement('DELETE FROM program_courses WHERE program_id=? AND course_id=?', [(int)$id, (int)$courseId]);
-        $this->success('Course removed from curriculum.', '/programs/' . $id . '/curriculum');
+        Database::statement('DELETE FROM program_courses WHERE id=? AND program_id=?', [(int) $id, (int) $program]);
+        $this->success('Removed from the curriculum.', '/academics/programs/' . $program . '/curriculum');
     }
 
     public function addPrerequisite(Request $request, string $id): never
@@ -74,17 +85,17 @@ final class CurriculumController extends Controller
         $this->verifyCsrf($request);
         $data = $this->validate($request, ['prerequisite_id' => 'required|integer|exists:courses,id']);
         Database::statement(
-            'INSERT IGNORE INTO course_prerequisites (course_id, prerequisite_id) VALUES (?,?)',
+            'INSERT IGNORE INTO course_prerequisites (course_id, prerequisite_course_id) VALUES (?,?)',
             [(int)$id, $data['prerequisite_id']]
         );
-        $this->success('Prerequisite added.', '/courses/' . $id);
+        $this->success('Prerequisite added.', '/academics/courses/' . $id);
     }
 
-    public function removePrerequisite(Request $request, string $id, string $prereqId): never
+    public function removePrerequisite(Request $request, string $course, string $id): never
     {
         $this->authorize('academics.delete');
         $this->verifyCsrf($request);
-        Database::statement('DELETE FROM course_prerequisites WHERE course_id=? AND prerequisite_id=?', [(int)$id, (int)$prereqId]);
-        $this->success('Prerequisite removed.', '/courses/' . $id);
+        Database::statement('DELETE FROM course_prerequisites WHERE course_id=? AND prerequisite_course_id=?', [(int)$course, (int)$id]);
+        $this->success('Prerequisite removed.', '/academics/courses/' . $course);
     }
 }

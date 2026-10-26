@@ -50,169 +50,28 @@ return static function (PDO $pdo): void {
         $roomInsert->execute($room);
     }
 
-    /* ---------------- Faculties and departments ---------------- */
-    $pdo->exec(
-        "INSERT INTO faculties (campus_id, code, name, email, established_year, status) VALUES
-           (1, 'FST', 'Faculty of Science and Technology', 'fst@bestbrain.edu.lr', 1998, 'active'),
-           (1, 'FBE', 'Faculty of Business and Economics', 'fbe@bestbrain.edu.lr', 2001, 'active'),
-           (1, 'FED', 'Faculty of Education and Arts', 'fed@bestbrain.edu.lr', 2003, 'active'),
-           (1, 'FHS', 'Faculty of Health Sciences', 'fhs@bestbrain.edu.lr', 2010, 'active')"
-    );
-    $pdo->exec(
-        "INSERT INTO departments (faculty_id, code, name, email, status) VALUES
-           (1, 'CS',  'Department of Computer Science', 'cs@bestbrain.edu.lr', 'active'),
-           (1, 'MTH', 'Department of Mathematics', 'maths@bestbrain.edu.lr', 'active'),
-           (1, 'PHY', 'Department of Physical Sciences', 'physics@bestbrain.edu.lr', 'active'),
-           (2, 'ACC', 'Department of Accounting and Finance', 'accounting@bestbrain.edu.lr', 'active'),
-           (2, 'MGT', 'Department of Management', 'management@bestbrain.edu.lr', 'active'),
-           (3, 'EDU', 'Department of Educational Studies', 'education@bestbrain.edu.lr', 'active'),
-           (4, 'NUR', 'Department of Nursing', 'nursing@bestbrain.edu.lr', 'active')"
-    );
-
-    /* ---------------- Programmes ---------------- */
-    $pdo->exec(
-        "INSERT INTO programs (department_id, code, name, award, level, duration_years, semesters_per_year,
-                               total_credit_hours, study_mode, min_entry_grade, application_fee, status) VALUES
-           (1, 'BCS', 'Bachelor of Science in Computer Science', 'BSc (Computer Science)', 'bachelor', 4.0, 2, 144, 'full_time', 'C6', 25, 'active'),
-           (1, 'BIT', 'Bachelor of Science in Information Technology', 'BSc (IT)', 'bachelor', 4.0, 2, 144, 'full_time', 'C6', 25, 'active'),
-           (2, 'BMA', 'Bachelor of Science in Applied Mathematics', 'BSc (Applied Mathematics)', 'bachelor', 4.0, 2, 138, 'full_time', 'C6', 25, 'active'),
-           (4, 'BCM', 'Bachelor of Commerce', 'BCom', 'bachelor', 4.0, 2, 140, 'full_time', 'C6', 25, 'active'),
-           (5, 'MBA', 'Master of Business Administration', 'MBA', 'masters', 2.0, 2, 60, 'evening', 'Second Class', 40, 'active'),
-           (6, 'BED', 'Bachelor of Education (Arts)', 'BEd (Arts)', 'bachelor', 4.0, 2, 140, 'full_time', 'C6', 25, 'active'),
-           (7, 'BSN', 'Bachelor of Science in Nursing', 'BScN', 'bachelor', 4.0, 2, 160, 'full_time', 'C4', 30, 'active'),
-           (1, 'DCS', 'Diploma in Computer Science', 'Diploma', 'diploma', 2.0, 2, 72, 'full_time', 'D7', 20, 'active')"
-    );
-    echo "  Campus structure, 4 faculties, 7 departments, 8 programmes.\n";
-
-    /* ---------------- Courses ---------------- */
-    $courses = [
-        // [department_id, code, title, credits, year]
-        [1, 'CS 101', 'Introduction to Computer Science', 3, 1],
-        [1, 'CS 102', 'Programming Fundamentals', 3, 1],
-        [1, 'CS 201', 'Data Structures and Algorithms', 3, 2],
-        [1, 'CS 202', 'Object Oriented Programming', 3, 2],
-        [1, 'CS 203', 'Database Systems', 3, 2],
-        [1, 'CS 301', 'Operating Systems', 3, 3],
-        [1, 'CS 302', 'Computer Networks', 3, 3],
-        [1, 'CS 303', 'Software Engineering', 3, 3],
-        [1, 'CS 304', 'Web Application Development', 3, 3],
-        [1, 'CS 401', 'Artificial Intelligence', 3, 4],
-        [1, 'CS 402', 'Information Security', 3, 4],
-        [1, 'CS 403', 'Final Year Project', 6, 4],
-        [2, 'MTH 101', 'Calculus I', 3, 1],
-        [2, 'MTH 102', 'Discrete Mathematics', 3, 1],
-        [2, 'MTH 201', 'Linear Algebra', 3, 2],
-        [2, 'MTH 202', 'Probability and Statistics', 3, 2],
-        [3, 'PHY 101', 'Physics for Computing', 3, 1],
-        [4, 'ACC 101', 'Principles of Accounting', 3, 1],
-        [4, 'ACC 201', 'Financial Accounting', 3, 2],
-        [4, 'ACC 301', 'Management Accounting', 3, 3],
-        [5, 'MGT 101', 'Principles of Management', 3, 1],
-        [5, 'MGT 201', 'Organisational Behaviour', 3, 2],
-        [5, 'MGT 501', 'Strategic Management', 3, 1],
-        [5, 'MGT 502', 'Managerial Economics', 3, 1],
-        [6, 'EDU 101', 'Foundations of Education', 3, 1],
-        [6, 'EDU 201', 'Educational Psychology', 3, 2],
-        [7, 'NUR 101', 'Anatomy and Physiology', 4, 1],
-        [7, 'NUR 201', 'Fundamentals of Nursing', 4, 2],
-        [1, 'GEN 101', 'Communication Skills', 2, 1],
-        [1, 'GEN 102', 'Critical Thinking and Ethics', 2, 1],
-    ];
-    $courseInsert = $pdo->prepare(
-        'INSERT INTO courses (department_id, code, title, credit_hours, lecture_hours, tutorial_hours,
-                              practical_hours, level, status)
-         VALUES (?, ?, ?, ?, 30, 15, ?, ?, "active")'
-    );
-    foreach ($courses as [$dept, $code, $title, $credits, $year]) {
-        $practical = str_contains($code, 'CS ') || str_contains($code, 'NUR') ? 30 : 0;
-        $courseInsert->execute([$dept, $code, $title, $credits, $practical, $year]);
+    /* ---------------- Academic structure and calendar ---------------- */
+    // Colleges, departments, programmes, courses, curricula, academic years and
+    // semesters come from the academic catalogue (database/seeds/academic.php),
+    // which the installer loads before this seed.
+    $departmentIds = $pdo->query('SELECT code, id FROM departments')->fetchAll(PDO::FETCH_KEY_PAIR);
+    $facultyIds    = $pdo->query('SELECT code, id FROM faculties')->fetchAll(PDO::FETCH_KEY_PAIR);
+    if (!isset($departmentIds['IT'], $facultyIds['CIT'])) {
+        echo "  Academic catalogue not loaded - skipping demo data.\n";
+        return;
     }
+    $pdo->exec('UPDATE faculties SET campus_id = 1 WHERE campus_id IS NULL');
 
-    /* Curriculum: map courses into the BCS and BIT programmes. */
-    $courseIds = $pdo->query('SELECT id, code, level FROM courses')->fetchAll(PDO::FETCH_ASSOC);
-    $byCode    = [];
-    foreach ($courseIds as $row) {
-        $byCode[$row['code']] = $row;
-    }
-    $curriculum = [
-        'BCS' => [
-            1 => [1 => ['CS 101', 'MTH 101', 'GEN 101', 'PHY 101'], 2 => ['CS 102', 'MTH 102', 'GEN 102']],
-            2 => [1 => ['CS 201', 'CS 203', 'MTH 201'], 2 => ['CS 202', 'MTH 202']],
-            3 => [1 => ['CS 301', 'CS 303'], 2 => ['CS 302', 'CS 304']],
-            4 => [1 => ['CS 401', 'CS 402'], 2 => ['CS 403']],
-        ],
-        'BIT' => [
-            1 => [1 => ['CS 101', 'GEN 101'], 2 => ['CS 102', 'GEN 102']],
-            2 => [1 => ['CS 203', 'MTH 202'], 2 => ['CS 202']],
-            3 => [1 => ['CS 302'], 2 => ['CS 304']],
-        ],
-        'BCM' => [
-            1 => [1 => ['ACC 101', 'MGT 101', 'GEN 101'], 2 => ['GEN 102']],
-            2 => [1 => ['ACC 201'], 2 => ['MGT 201']],
-            3 => [1 => ['ACC 301'], 2 => []],
-        ],
-        'MBA' => [
-            1 => [1 => ['MGT 501'], 2 => ['MGT 502']],
-        ],
-    ];
-    $programIds = $pdo->query('SELECT id, code FROM programs')->fetchAll(PDO::FETCH_KEY_PAIR);
-    $programIds = array_flip($programIds);
-
-    $pcInsert = $pdo->prepare(
-        'INSERT IGNORE INTO program_courses (program_id, course_id, year_of_study, semester_number, course_type)
-         VALUES (?, ?, ?, ?, ?)'
-    );
-    foreach ($curriculum as $programCode => $years) {
-        $programId = $programIds[$programCode] ?? null;
-        if ($programId === null) {
-            continue;
-        }
-        foreach ($years as $year => $semesters) {
-            foreach ($semesters as $semesterNumber => $codes) {
-                foreach ($codes as $code) {
-                    if (!isset($byCode[$code])) {
-                        continue;
-                    }
-                    $type = str_starts_with($code, 'GEN') ? 'common' : 'core';
-                    $pcInsert->execute([$programId, $byCode[$code]['id'], $year, $semesterNumber, $type]);
-                }
-            }
-        }
-    }
-
-    /* Prerequisites */
-    $prereqs = [['CS 201', 'CS 102'], ['CS 202', 'CS 102'], ['CS 302', 'CS 301'], ['ACC 201', 'ACC 101']];
-    $prereqInsert = $pdo->prepare(
-        'INSERT IGNORE INTO course_prerequisites (course_id, prerequisite_course_id) VALUES (?, ?)'
-    );
-    foreach ($prereqs as [$course, $prerequisite]) {
-        if (isset($byCode[$course], $byCode[$prerequisite])) {
-            $prereqInsert->execute([$byCode[$course]['id'], $byCode[$prerequisite]['id']]);
-        }
-    }
-    echo "  " . count($courses) . " courses with curriculum mapping and prerequisites.\n";
-
-    /* ---------------- Calendar ---------------- */
-    $pdo->exec(
-        "INSERT INTO academic_years (name, start_date, end_date, is_current, status) VALUES
-           ('2024/2025', '2024-09-01', '2025-08-31', 0, 'closed'),
-           ('2025/2026', '2025-09-01', '2026-08-31', 1, 'active')"
-    );
-    $pdo->exec(
-        "INSERT INTO semesters (academic_year_id, name, semester_number, start_date, end_date,
-                                registration_start, registration_end, exam_start, exam_end,
-                                is_current, results_published, status) VALUES
-           (1, 'Semester One', 1, '2024-09-02', '2024-12-13', '2024-08-19', '2024-09-20', '2024-12-02', '2024-12-13', 0, 1, 'closed'),
-           (1, 'Semester Two', 2, '2025-01-13', '2025-04-25', '2024-12-30', '2025-01-31', '2025-04-14', '2025-04-25', 0, 1, 'closed'),
-           (2, 'Semester One', 1, '2025-09-01', '2025-12-12', '2025-08-18', '2025-09-19', '2025-12-01', '2025-12-12', 0, 1, 'closed'),
-           (2, 'Semester Two', 2, '2026-01-12', '2026-04-24', '2025-12-29', '2026-02-13', '2026-04-13', '2026-04-24', 1, 0, 'active')"
-    );
-    $pdo->exec(
+    // A planned 2027 year so the admissions pipeline has an open intake.
+    $pdo->exec("INSERT IGNORE INTO academic_years (name, start_date, end_date, is_current, status)
+                VALUES ('2027', '2027-01-01', '2027-12-31', 0, 'planned')");
+    $yearIds = $pdo->query('SELECT name, id FROM academic_years')->fetchAll(PDO::FETCH_KEY_PAIR);
+    $pdo->prepare(
         "INSERT INTO intakes (academic_year_id, name, code, start_date, application_open, application_close, status) VALUES
-           (2, 'September 2025 Intake', 'SEP2025', '2025-09-01', '2025-04-01', '2025-08-15', 'closed'),
-           (2, 'January 2026 Intake', 'JAN2026', '2026-01-12', '2025-09-01', '2025-12-20', 'closed'),
-           (2, 'May 2026 Intake', 'MAY2026', '2026-05-04', '2026-01-05', '2026-04-20', 'open')"
-    );
+           (?, 'February 2026 Intake', 'FEB2026', '2026-02-02', '2025-10-01', '2026-01-23', 'closed'),
+           (?, 'August 2026 Intake', 'AUG2026', '2026-08-03', '2026-04-01', '2026-07-24', 'closed'),
+           (?, 'February 2027 Intake', 'FEB2027', '2027-02-01', '2026-09-01', '2027-01-22', 'open')"
+    )->execute([$yearIds['2026'], $yearIds['2026'], $yearIds['2027']]);
 
     /* ---------------- Staff ---------------- */
     $userInsert = $pdo->prepare(
@@ -229,19 +88,19 @@ return static function (PDO $pdo): void {
     $assignRole = $pdo->prepare('INSERT IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)');
 
     $staffSeed = [
-        // username, first, last, title, gender, dept, designation, category, qualification, salary, role
-        ['registrar', 'Korto', 'Wesseh', 'Dr', 'female', 1, 'University Registrar', 'administrative', 'PhD Education Management', 1900, 'registrar'],
-        ['bursar', 'Emmanuel', 'Kollie', 'CPA', 'male', 4, 'Finance Officer', 'administrative', 'CPA, MBA Finance', 1750, 'finance-officer'],
-        ['vtubman', 'Varney', 'Tubman', 'Dr', 'male', 1, 'Senior Lecturer', 'academic', 'PhD Computer Science', 1500, 'lecturer'],
-        ['mfreeman', 'Massa', 'Freeman', 'Prof', 'female', 1, 'Professor', 'academic', 'PhD Software Engineering', 2200, 'hod'],
-        ['agaye', 'Alfred', 'Gaye', 'Mr', 'male', 2, 'Lecturer', 'academic', 'MSc Applied Mathematics', 1100, 'lecturer'],
-        ['hnyanti', 'Hawa', 'Nyanti', 'Dr', 'female', 4, 'Senior Lecturer', 'academic', 'PhD Accounting', 1520, 'lecturer'],
+        // username, first, last, title, gender, department code, designation, category, qualification, salary, role
+        ['registrar', 'Korto', 'Wesseh', 'Dr', 'female', null, 'University Registrar', 'administrative', 'PhD Education Management', 1900, 'registrar'],
+        ['bursar', 'Emmanuel', 'Kollie', 'CPA', 'male', 'ACCT', 'Finance Officer', 'administrative', 'CPA, MBA Finance', 1750, 'finance-officer'],
+        ['vtubman', 'Varney', 'Tubman', 'Dr', 'male', 'IT', 'Senior Lecturer', 'academic', 'PhD Computer Science', 1500, 'lecturer'],
+        ['mfreeman', 'Massa', 'Freeman', 'Prof', 'female', 'IT', 'Professor', 'academic', 'PhD Software Engineering', 2200, 'hod'],
+        ['agaye', 'Alfred', 'Gaye', 'Mr', 'male', 'GENS', 'Lecturer', 'academic', 'MSc Applied Mathematics', 1100, 'lecturer'],
+        ['hnyanti', 'Hawa', 'Nyanti', 'Dr', 'female', 'ACCT', 'Senior Lecturer', 'academic', 'PhD Accounting', 1520, 'lecturer'],
         ['bdahn', 'Bendu', 'Dahn', 'Ms', 'female', null, 'University Librarian', 'administrative', 'MSc Information Science', 1050, 'librarian'],
         ['ptoe', 'Prince', 'Toe', 'Mr', 'male', null, 'Hostel Warden', 'support', 'BA Social Work', 700, 'warden'],
         ['mbrownell', 'Miatta', 'Brownell', 'Ms', 'female', null, 'HR Officer', 'administrative', 'BCom Human Resources', 950, 'hr-officer'],
         ['fkamara', 'Fatu', 'Kamara', 'Ms', 'female', null, 'Admissions Officer', 'administrative', 'BA Communication', 850, 'admissions-officer'],
-        ['sjohnson', 'Saah', 'Johnson', 'Dr', 'male', 7, 'Medical Officer', 'support', 'MBChB', 1800, 'medical-officer'],
-        ['tnagbe', 'Tarnue', 'Nagbe', 'Mr', 'male', 1, 'ICT Support Officer', 'technical', 'BSc Information Technology', 800, 'support-desk'],
+        ['sjohnson', 'Saah', 'Johnson', 'Dr', 'male', 'NURS', 'Medical Officer', 'support', 'MBChB', 1800, 'medical-officer'],
+        ['tnagbe', 'Tarnue', 'Nagbe', 'Mr', 'male', 'IT', 'ICT Support Officer', 'technical', 'BSc Information Technology', 800, 'support-desk'],
     ];
 
     $staffIdByUsername = [];
@@ -258,7 +117,7 @@ return static function (PDO $pdo): void {
         $staffInsert->execute([
             $userId,
             sprintf('BBU/STF/%04d/2020', $i + 1),
-            $dept,
+            $dept === null ? null : $departmentIds[$dept],
             $designation,
             $category,
             'permanent',
@@ -277,8 +136,8 @@ return static function (PDO $pdo): void {
     echo "  " . count($staffSeed) . " staff accounts.\n";
 
     /* Heads of department and deans */
-    $pdo->exec("UPDATE departments SET hod_id = (SELECT user_id FROM staff WHERE staff_number = 'BBU/STF/0004/2020') WHERE code = 'CS'");
-    $pdo->exec("UPDATE faculties SET dean_id = (SELECT user_id FROM staff WHERE staff_number = 'BBU/STF/0004/2020') WHERE code = 'FST'");
+    $pdo->exec("UPDATE departments SET hod_id = (SELECT user_id FROM staff WHERE staff_number = 'BBU/STF/0004/2020') WHERE code = 'IT'");
+    $pdo->exec("UPDATE faculties SET dean_id = (SELECT user_id FROM staff WHERE staff_number = 'BBU/STF/0004/2020') WHERE code = 'CIT'");
 
     /* ---------------- Students ---------------- */
     $studentInsert = $pdo->prepare(
@@ -300,7 +159,11 @@ return static function (PDO $pdo): void {
     $grades     = ['A1', 'B2', 'B3', 'C4', 'C5', 'C6'];
     $sponsors   = ['self', 'parent', 'government', 'scholarship'];
 
-    $programRows = $pdo->query("SELECT id, code FROM programs WHERE status = 'active'")->fetchAll(PDO::FETCH_ASSOC);
+    $programRows = $pdo->query(
+        "SELECT p.id, p.code FROM programs p
+          WHERE p.status = 'active' AND EXISTS (SELECT 1 FROM program_courses pc WHERE pc.program_id = p.id)
+          ORDER BY p.code"
+    )->fetchAll(PDO::FETCH_ASSOC);
     $studentRole = $roleIds['student'] ?? null;
 
     $studentIds = [];
@@ -335,7 +198,7 @@ return static function (PDO $pdo): void {
             $program['id'],
             $year === 1 ? 2 : 1,
             $year,
-            $year === 4 ? 2 : (($i % 2) + 1),
+            2,
             $entry . '-09-01',
             $sponsors[$i % count($sponsors)],
             (string) (30000000 + $i * 3301),
@@ -376,8 +239,17 @@ return static function (PDO $pdo): void {
             continue;
         }
         $isCurrent = $semesterId === $currentSemester;
+        $plannedCourses = $pdo->prepare(
+            'SELECT DISTINCT pc.course_id AS id
+               FROM program_courses pc
+               JOIN students st ON st.program_id = pc.program_id AND st.year_of_study = pc.year_of_study
+               JOIN semesters sem ON sem.id = ? AND sem.semester_number = pc.semester_number
+              WHERE pc.course_id IS NOT NULL
+              ORDER BY pc.course_id'
+        );
+        $plannedCourses->execute([$semesterId]);
         $n = 0;
-        foreach ($byCode as $code => $course) {
+        foreach ($plannedCourses->fetchAll(PDO::FETCH_ASSOC) as $course) {
             $n++;
             $offeringInsert->execute([
                 $course['id'],
@@ -422,11 +294,11 @@ return static function (PDO $pdo): void {
 
     $gradeFor = static function (float $score): array {
         return match (true) {
-            $score >= 70 => ['A', 4.0, 'pass'],
-            $score >= 60 => ['B', 3.0, 'pass'],
-            $score >= 50 => ['C', 2.0, 'pass'],
-            $score >= 40 => ['D', 1.0, 'pass'],
-            default      => ['E', 0.0, 'fail'],
+            $score >= 90 => ['A', 4.0, 'pass'],
+            $score >= 80 => ['B', 3.0, 'pass'],
+            $score >= 70 => ['C', 2.0, 'pass'],
+            $score >= 60 => ['D', 1.0, 'pass'],
+            default      => ['F', 0.0, 'fail'],
         };
     };
 
@@ -436,25 +308,33 @@ return static function (PDO $pdo): void {
 
     $registrations = 0;
     $results = 0;
+    // One row per term in the student's year; of an either/or pair, the first alternative.
+    $planned = $pdo->prepare(
+        'SELECT pc.course_id, pc.semester_number, c.credit_hours
+           FROM program_courses pc JOIN courses c ON c.id = pc.course_id
+          WHERE pc.program_id = ? AND pc.year_of_study = ?
+            AND (pc.choice_group IS NULL OR pc.sort_order = (
+                 SELECT MIN(x.sort_order) FROM program_courses x
+                  WHERE x.program_id = pc.program_id AND x.year_of_study = pc.year_of_study
+                    AND x.semester_number = pc.semester_number AND x.choice_group = pc.choice_group))
+          ORDER BY pc.semester_number, pc.sort_order'
+    );
+    $semesterNumber = $pdo->query('SELECT id, semester_number FROM semesters')->fetchAll(PDO::FETCH_KEY_PAIR);
     foreach ($studentPlan as $student) {
-        $planned = $pdo->prepare(
-            'SELECT pc.course_id, c.credit_hours
-               FROM program_courses pc JOIN courses c ON c.id = pc.course_id
-              WHERE pc.program_id = ? AND pc.year_of_study <= ?
-              ORDER BY pc.year_of_study, pc.semester_number LIMIT 12'
-        );
         $planned->execute([$student['program_id'], $student['year_of_study']]);
-        $plannedCourses = $planned->fetchAll(PDO::FETCH_ASSOC);
 
-        foreach ($plannedCourses as $index => $course) {
-            // Past semester -> completed with a published result.
-            if ($previousSemester > 0 && isset($offerings[$previousSemester][$course['course_id']]) && $index < 5) {
+        foreach ($planned->fetchAll(PDO::FETCH_ASSOC) as $index => $course) {
+            $courseSemester = (int) $course['semester_number'];
+
+            // Previous semester -> completed with a published result.
+            if ($previousSemester > 0 && $courseSemester === (int) $semesterNumber[$previousSemester]
+                && isset($offerings[$previousSemester][$course['course_id']])) {
                 $offeringId = $offerings[$previousSemester][$course['course_id']];
                 $registrationInsert->execute([$student['id'], $offeringId, $previousSemester, 'approved', date('Y-m-d H:i:s')]);
                 $registrations++;
 
-                $coursework = random_int(45, 95);
-                $exam       = random_int(35, 95);
+                $coursework = random_int(55, 98);
+                $exam       = random_int(50, 98);
                 $total      = round(($coursework * 0.3) + ($exam * 0.7), 2);
                 [$grade, $point, $outcome] = $gradeFor($total);
                 $resultInsert->execute([
@@ -466,7 +346,8 @@ return static function (PDO $pdo): void {
             }
 
             // Current semester -> live registrations awaiting or holding approval.
-            if (isset($offerings[$currentSemester][$course['course_id']]) && $index < 6) {
+            if ($courseSemester === (int) $semesterNumber[$currentSemester]
+                && isset($offerings[$currentSemester][$course['course_id']])) {
                 $offeringId = $offerings[$currentSemester][$course['course_id']];
                 $approved   = $index % 4 !== 0;
                 $registrationInsert->execute([
@@ -523,7 +404,7 @@ return static function (PDO $pdo): void {
 
     $structureInsert = $pdo->prepare(
         'INSERT INTO fee_structures (faculty_id, department_id, program_id, academic_year_id, student_status, name, total_amount, status)
-         VALUES (?, ?, ?, 2, ?, ?, ?, "active")'
+         VALUES (?, ?, ?, ?, ?, ?, ?, "active")'
     );
     $structureItemInsert = $pdo->prepare(
         'INSERT INTO fee_structure_items (fee_structure_id, fee_type_id, amount, is_mandatory) VALUES (?, ?, ?, 1)'
@@ -543,18 +424,18 @@ return static function (PDO $pdo): void {
             ['TUI' => 750, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'MED' => 45, 'ACT' => 25] + $newStudentFees, $standardPlan],
         ['Continuing Student Bill - All Colleges', null, null, 'continuing',
             ['TUI' => 750, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'MED' => 45, 'ACT' => 25], $standardPlan],
-        ['College of Science and Technology - Continuing Students', 'faculty', 'FST', 'continuing',
-            ['TUI' => 800, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'ICT' => 50, 'LAB' => 40, 'MED' => 45, 'ACT' => 25], $standardPlan],
-        ['College of Health Sciences - New Students', 'faculty', 'FHS', 'new',
+        ['College of Information Technology - Continuing Students', 'faculty', 'CIT', 'continuing',
+            ['TUI' => 800, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'ICT' => 75, 'LAB' => 40, 'MED' => 45, 'ACT' => 25], $standardPlan],
+        ['College of Health Science - New Students', 'faculty', 'CHS', 'new',
             ['TUI' => 950, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'LAB' => 60, 'MED' => 45, 'ACT' => 25] + $newStudentFees, $standardPlan],
-        ['College of Health Sciences - Continuing Students', 'faculty', 'FHS', 'continuing',
+        ['College of Health Science - Continuing Students', 'faculty', 'CHS', 'continuing',
+            ['TUI' => 950, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'LAB' => 60, 'MED' => 45, 'ACT' => 25], $standardPlan],
+        ['Department of Nursing - Continuing Students', 'department', 'NURS', 'continuing',
             ['TUI' => 950, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'LAB' => 60, 'CLN' => 120, 'MED' => 45, 'ACT' => 25], $standardPlan],
-        ['Department of Computer Science - Continuing Students', 'department', 'CS', 'continuing',
-            ['TUI' => 850, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'ICT' => 75, 'LAB' => 40, 'MED' => 45, 'ACT' => 25], $standardPlan],
-        ['Department of Accounting and Finance - Continuing Students', 'department', 'ACC', 'continuing',
+        ['Department of Accounting - Continuing Students', 'department', 'ACCT', 'continuing',
             ['TUI' => 700, 'REG' => 40, 'EXM' => 60, 'LIB' => 30, 'ICT' => 30, 'MED' => 45, 'ACT' => 25], $standardPlan],
-        ['MBA Programme - All Students', 'program', 'MBA', 'all',
-            ['TUI' => 1200, 'REG' => 50, 'EXM' => 75, 'LIB' => 40, 'ICT' => 40, 'MED' => 45], $graduatePlan],
+        ['BSc. Nursing (Nurse-Midwifery) - All Students', 'program', 'BSNMW', 'all',
+            ['TUI' => 1100, 'REG' => 40, 'EXM' => 75, 'LIB' => 30, 'LAB' => 60, 'CLN' => 150, 'MED' => 45], $graduatePlan],
     ];
 
     $plans = [];
@@ -563,6 +444,7 @@ return static function (PDO $pdo): void {
             $scopeType === 'faculty' ? $facultyIds[$scopeCode] : null,
             $scopeType === 'department' ? $departmentIds[$scopeCode] : null,
             $scopeType === 'program' ? $programIdsByCode[$scopeCode] : null,
+            $yearIds['2026'],
             $studentStatus,
             $name,
             array_sum($fees),
@@ -580,7 +462,7 @@ return static function (PDO $pdo): void {
 
     $resolveStructure = $pdo->prepare(
         'SELECT * FROM fee_structures
-          WHERE academic_year_id = 2 AND status = "active"
+          WHERE academic_year_id = ? AND status = "active"
             AND (program_id IS NULL OR program_id = ?)
             AND (department_id IS NULL OR department_id = ?)
             AND (faculty_id IS NULL OR faculty_id = ?)
@@ -625,7 +507,7 @@ return static function (PDO $pdo): void {
     $enrolledCount = 0;
     foreach ($studentScopes as $index => $student) {
         $resolveStructure->execute([
-            $student['program_id'], $student['department_id'], $student['faculty_id'],
+            $yearIds['2026'], $student['program_id'], $student['department_id'], $student['faculty_id'],
             (int) $student['year_of_study'] === 1 ? 'new' : 'continuing',
         ]);
         $feeStructure = $resolveStructure->fetch(PDO::FETCH_ASSOC);

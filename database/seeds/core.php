@@ -170,12 +170,13 @@ return static function (PDO $pdo): void {
     }
 
     /* ---------------- Grading scale ---------------- */
+    // Matches database/seeds/catalog/bbiu.php; the academic seed re-applies it.
     $scale = [
-        ['A',  70.00, 100.00, 4.00, 'Excellent',     1],
-        ['B',  60.00,  69.99, 3.00, 'Good',          1],
-        ['C',  50.00,  59.99, 2.00, 'Satisfactory',  1],
-        ['D',  40.00,  49.99, 1.00, 'Pass',          1],
-        ['E',   0.00,  39.99, 0.00, 'Fail',          0],
+        ['A',  90.00, 100.00, 4.00, 'Excellent', 1],
+        ['B',  80.00,  89.99, 3.00, 'Very Good', 1],
+        ['C',  70.00,  79.99, 2.00, 'Good',      1],
+        ['D',  60.00,  69.99, 1.00, 'Pass',      1],
+        ['F',   0.00,  59.99, 0.00, 'Fail',      0],
     ];
     $insertGrade = $pdo->prepare(
         'INSERT INTO grade_scales (grade, min_score, max_score, grade_point, remarks, is_pass)
@@ -190,8 +191,8 @@ return static function (PDO $pdo): void {
 
     /* ---------------- Settings ---------------- */
     $settings = [
-        ['institution_name', 'Best Brain University', 'general', 'string', 'Institution name'],
-        ['institution_short_name', 'BBU', 'general', 'string', 'Short name / abbreviation'],
+        ['institution_name', 'Best Brains International University', 'general', 'string', 'Institution name'],
+        ['institution_short_name', 'BBIU', 'general', 'string', 'Short name / abbreviation'],
         ['institution_motto', 'Excellence in Education & Innovation', 'general', 'string', 'Motto'],
         ['institution_email', 'info@bestbrain.edu.lr', 'general', 'string', 'Official email'],
         ['institution_phone', '+231 77 000 000', 'general', 'string', 'Telephone'],
@@ -203,7 +204,7 @@ return static function (PDO $pdo): void {
         ['academic_year_label', '2025/2026', 'academic', 'string', 'Current academic year label'],
         ['min_credits_per_semester', '12', 'academic', 'integer', 'Minimum credit hours per semester'],
         ['max_credits_per_semester', '21', 'academic', 'integer', 'Maximum credit hours per semester'],
-        ['pass_mark', '40', 'academic', 'integer', 'Overall pass mark (percent)'],
+        ['pass_mark', '60', 'academic', 'integer', 'Overall pass mark (percent)'],
         ['coursework_weight', '30', 'academic', 'integer', 'Default coursework weighting (percent)'],
         ['exam_weight', '70', 'academic', 'integer', 'Default examination weighting (percent)'],
         ['attendance_threshold', '75', 'academic', 'integer', 'Minimum attendance to sit exams (percent)'],

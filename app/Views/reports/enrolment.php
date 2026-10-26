@@ -13,7 +13,7 @@
         <table class="table table-hover align-middle mb-0">
             <thead>
                 <tr>
-                    <th>Faculty</th>
+                    <th>College</th>
                     <th>Programme</th>
                     <th class="text-center">Active Students</th>
                     <th class="text-center">Male</th>

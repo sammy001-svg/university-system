@@ -34,7 +34,7 @@
                     <dt class="col-sm-4">Email</dt><dd class="col-sm-8"><?= e($staff['email']) ?></dd>
                     <dt class="col-sm-4">Phone</dt><dd class="col-sm-8"><?= e($staff['phone'] ?? '—') ?></dd>
                     <dt class="col-sm-4">Department</dt><dd class="col-sm-8"><?= e($staff['department_name'] ?? '—') ?></dd>
-                    <dt class="col-sm-4">Faculty</dt><dd class="col-sm-8"><?= e($staff['faculty_name'] ?? '—') ?></dd>
+                    <dt class="col-sm-4">College</dt><dd class="col-sm-8"><?= e($staff['faculty_name'] ?? '—') ?></dd>
                     <dt class="col-sm-4">Category</dt><dd class="col-sm-8"><?= status_badge($staff['staff_category'] ?? '') ?></dd>
                     <dt class="col-sm-4">Employment Type</dt><dd class="col-sm-8"><?= e(humanize($staff['employment_type'] ?? '')) ?></dd>
                     <dt class="col-sm-4">Date Joined</dt><dd class="col-sm-8"><?= date_fmt($staff['date_joined'] ?? '') ?></dd>

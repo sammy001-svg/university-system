@@ -64,7 +64,7 @@ $paidPercent = $billed > 0 ? min(100, ($paid / $billed) * 100) : 0;
                     <li><strong>Registration no</strong><div><?= e($student['registration_number'] ?? '-') ?></div></li>
                     <li><strong>Programme</strong><div><?= e($student['program_name']) ?></div></li>
                     <li><strong>Department</strong><div><?= e($student['department_name']) ?></div></li>
-                    <li><strong>Faculty</strong><div><?= e($student['faculty_name']) ?></div></li>
+                    <li><strong>College</strong><div><?= e($student['faculty_name']) ?></div></li>
                     <li><strong>Year / semester</strong><div>Year <?= (int) $student['year_of_study'] ?>, Semester <?= (int) $student['current_semester'] ?></div></li>
                     <li><strong>Study mode</strong><div><?= e(humanize($student['study_mode'])) ?></div></li>
                     <li><strong>Admitted</strong><div><?= fdate($student['admission_date']) ?></div></li>

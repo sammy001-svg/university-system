@@ -22,7 +22,7 @@ final class ResultController extends Controller
                     sem.name AS semester_name, ay.name AS academic_year
                FROM course_results cr
                JOIN course_offerings o ON o.id = cr.offering_id
-               JOIN courses c          ON c.id = cr.offering_id
+               JOIN courses c          ON c.id = cr.course_id
                JOIN semesters sem      ON sem.id = cr.semester_id
                JOIN academic_years ay  ON ay.id = sem.academic_year_id
               WHERE cr.student_id = ? AND cr.is_published = 1
@@ -46,7 +46,7 @@ final class ResultController extends Controller
                     sem.name AS semester_name, ay.name AS academic_year, sem.semester_number
                FROM course_results cr
                JOIN course_offerings o ON o.id = cr.offering_id
-               JOIN courses c          ON c.id = cr.offering_id
+               JOIN courses c          ON c.id = cr.course_id
                JOIN semesters sem      ON sem.id = cr.semester_id
                JOIN academic_years ay  ON ay.id = sem.academic_year_id
               WHERE cr.student_id = ? AND cr.is_published = 1

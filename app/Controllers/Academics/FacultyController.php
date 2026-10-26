@@ -13,8 +13,8 @@ use App\Models\User;
 
 final class FacultyController extends ResourceController
 {
-    protected string $title = 'Faculties';
-    protected string $entity = 'Faculty';
+    protected string $title = 'Colleges';
+    protected string $entity = 'College';
     protected string $routeBase = '/academics/faculties';
     protected string $permission = 'academics';
     protected string $icon = 'building';
@@ -51,7 +51,7 @@ final class FacultyController extends ResourceController
     {
         return [
             ['key' => 'code', 'label' => 'Code', 'type' => 'code'],
-            ['key' => 'name', 'label' => 'Faculty', 'type' => 'strong'],
+            ['key' => 'name', 'label' => 'College', 'type' => 'strong'],
             ['key' => 'campus_name', 'label' => 'Campus'],
             ['key' => 'dean_name', 'label' => 'Dean'],
             ['key' => 'departments_count', 'label' => 'Departments', 'type' => 'number', 'align' => 'center', 'sortable' => false],
@@ -75,8 +75,8 @@ final class FacultyController extends ResourceController
     protected function fields(): array
     {
         return [
-            ['name' => 'code', 'label' => 'Faculty code', 'width' => 4, 'required' => true, 'placeholder' => 'e.g. FST'],
-            ['name' => 'name', 'label' => 'Faculty name', 'width' => 8, 'required' => true],
+            ['name' => 'code', 'label' => 'College code', 'width' => 4, 'required' => true, 'placeholder' => 'e.g. CHS'],
+            ['name' => 'name', 'label' => 'College name', 'width' => 8, 'required' => true],
             ['name' => 'campus_id', 'label' => 'Campus', 'type' => 'select', 'width' => 6,
              'options' => (new Campus())->options('name')],
             ['name' => 'dean_id', 'label' => 'Dean', 'type' => 'select', 'width' => 6,

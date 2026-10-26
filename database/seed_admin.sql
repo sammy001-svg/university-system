@@ -174,8 +174,8 @@ INSERT IGNORE INTO `user_roles` (`user_id`, `role_id`) VALUES (1, 1);
 
 -- 6. Insert Default System Settings
 INSERT INTO `settings` (`setting_key`, `setting_value`, `setting_group`, `data_type`, `label`) VALUES
-('institution_name', 'Best Brain University', 'general', 'string', 'Institution name'),
-('institution_short_name', 'BBU', 'general', 'string', 'Short name / abbreviation'),
+('institution_name', 'Best Brains International University', 'general', 'string', 'Institution name'),
+('institution_short_name', 'BBIU', 'general', 'string', 'Short name / abbreviation'),
 ('institution_motto', 'Excellence in Education & Innovation', 'general', 'string', 'Motto'),
 ('institution_email', 'info@bestbrain.edu.lr', 'general', 'string', 'Official email'),
 ('institution_phone', '+231 77 000 000', 'general', 'string', 'Telephone'),
@@ -187,7 +187,7 @@ INSERT INTO `settings` (`setting_key`, `setting_value`, `setting_group`, `data_t
 ('academic_year_label', '2025/2026', 'academic', 'string', 'Current academic year label'),
 ('min_credits_per_semester', '12', 'academic', 'integer', 'Minimum credit hours per semester'),
 ('max_credits_per_semester', '21', 'academic', 'integer', 'Maximum credit hours per semester'),
-('pass_mark', '40', 'academic', 'integer', 'Overall pass mark (percent)'),
+('pass_mark', '60', 'academic', 'integer', 'Overall pass mark (percent)'),
 ('coursework_weight', '30', 'academic', 'integer', 'Default coursework weighting (percent)'),
 ('exam_weight', '70', 'academic', 'integer', 'Default examination weighting (percent)'),
 ('attendance_threshold', '75', 'academic', 'integer', 'Minimum attendance to sit exams (percent)'),

@@ -17,7 +17,7 @@ final class Program extends Model
     ];
     protected array $searchable = ['code', 'name', 'award'];
 
-    public const LEVELS = ['certificate', 'diploma', 'bachelor', 'postgraduate_diploma', 'masters', 'phd'];
+    public const LEVELS = ['certificate', 'diploma', 'associate', 'bachelor', 'postgraduate_diploma', 'masters', 'phd'];
     public const MODES  = ['full_time', 'part_time', 'evening', 'distance'];
 
     public function listing(): QueryBuilder
@@ -56,16 +56,19 @@ final class Program extends Model
         return $out;
     }
 
-    /** The curriculum grouped by year and semester. */
+    /**
+     * The curriculum grouped by year and semester. Placeholder slots (minor,
+     * elective, content area) have no course; credit_hours is the programme's own count.
+     */
     public function curriculum(int $programId): array
     {
         $rows = Database::select(
-            'SELECT pc.*, c.code, c.title, c.credit_hours, c.status AS course_status, d.name AS department_name
+            'SELECT pc.*, c.code, c.title, c.status AS course_status, d.name AS department_name
                FROM program_courses pc
-               JOIN courses c    ON c.id = pc.course_id
-               JOIN departments d ON d.id = c.department_id
+          LEFT JOIN courses c     ON c.id = pc.course_id
+          LEFT JOIN departments d ON d.id = c.department_id
               WHERE pc.program_id = ?
-              ORDER BY pc.year_of_study, pc.semester_number, c.code',
+              ORDER BY pc.year_of_study, pc.semester_number, pc.sort_order, c.code',
             [$programId]
         );
         $grouped = [];
@@ -75,13 +78,47 @@ final class Program extends Model
         return $grouped;
     }
 
+    /** Credits for a list of plan rows, counting one alternative per either/or group. */
+    public static function termCredits(array $rows): int
+    {
+        $total  = 0;
+        $groups = [];
+        foreach ($rows as $row) {
+            if ($row['choice_group'] === null) {
+                $total += (int) $row['credit_hours'];
+            } else {
+                $groups[$row['choice_group']] = min($groups[$row['choice_group']] ?? PHP_INT_MAX, (int) $row['credit_hours']);
+            }
+        }
+        return $total + array_sum($groups);
+    }
+
     public function totalCredits(int $programId): int
     {
-        return (int) Database::scalar(
-            'SELECT COALESCE(SUM(c.credit_hours), 0)
-               FROM program_courses pc JOIN courses c ON c.id = pc.course_id
-              WHERE pc.program_id = ?',
+        $total = 0;
+        foreach ($this->curriculum($programId) as $semesters) {
+            foreach ($semesters as $rows) {
+                $total += self::termCredits($rows);
+            }
+        }
+        return $total;
+    }
+
+    /** Electives, minor requirements and concentrations, grouped by list then heading. */
+    public function courseOptions(int $programId): array
+    {
+        $rows = Database::select(
+            'SELECT o.*, c.code, c.title
+               FROM program_course_options o
+          LEFT JOIN courses c ON c.id = o.course_id
+              WHERE o.program_id = ?
+              ORDER BY FIELD(o.list_type, "elective", "concentration", "minor"), o.group_label, o.sort_order',
             [$programId]
         );
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[$row['list_type']][(string) $row['group_label']][] = $row;
+        }
+        return $grouped;
     }
 }

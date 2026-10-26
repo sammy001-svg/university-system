@@ -97,6 +97,12 @@ echo "Seeding core data (roles, permissions, settings, grading scale)...\n";
 $core = require $base . '/database/seeds/core.php';
 $core($pdo);
 
+echo "Loading the academic catalogue (colleges, departments, programmes, curricula, calendar)...\n";
+$academic = require $base . '/database/seeds/academic.php';
+$loaded   = $academic($pdo, ['set_current' => true]);
+echo "  {$loaded['colleges']} colleges, {$loaded['departments']} departments, {$loaded['programs']} programmes, "
+   . "{$loaded['courses']} courses, {$loaded['plan_rows']} curriculum rows.\n";
+
 if (!isset($options['no-demo'])) {
     echo "Seeding demonstration data...\n";
     $demo = require $base . '/database/seeds/demo.php';

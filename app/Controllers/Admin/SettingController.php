@@ -104,7 +104,7 @@ final class SettingController extends Controller
             ['academic_year_label', '2025/2026', 'academic', 'string', 'Current Academic Year Label'],
             ['min_credits_per_semester', '12', 'academic', 'integer', 'Minimum Credits / Semester'],
             ['max_credits_per_semester', '21', 'academic', 'integer', 'Maximum Credits / Semester'],
-            ['pass_mark', '40', 'academic', 'integer', 'Pass Mark (%)'],
+            ['pass_mark', '60', 'academic', 'integer', 'Pass Mark (%)'],
             ['coursework_weight', '30', 'academic', 'integer', 'Coursework Weight (%)'],
             ['exam_weight', '70', 'academic', 'integer', 'Exam Weight (%)'],
             ['attendance_threshold', '75', 'academic', 'integer', 'Attendance Threshold (%)'],

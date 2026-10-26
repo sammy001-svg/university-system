@@ -23,9 +23,10 @@ final class ReportController extends Controller
             'SELECT p.name AS program, p.level, f.name AS faculty,
                     COUNT(s.id) AS total,
                     SUM(CASE WHEN s.status="active" THEN 1 ELSE 0 END) AS active,
-                    SUM(CASE WHEN s.gender="male"   THEN 1 ELSE 0 END) AS male,
-                    SUM(CASE WHEN s.gender="female" THEN 1 ELSE 0 END) AS female
+                    SUM(CASE WHEN u.gender="male"   THEN 1 ELSE 0 END) AS male,
+                    SUM(CASE WHEN u.gender="female" THEN 1 ELSE 0 END) AS female
                FROM students s
+               JOIN users u       ON u.id = s.user_id
                JOIN programs p    ON p.id = s.program_id
                JOIN departments d ON d.id = p.department_id
                JOIN faculties f   ON f.id = d.faculty_id
