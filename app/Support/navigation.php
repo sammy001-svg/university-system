@@ -61,6 +61,7 @@ return [
         'title' => 'Finance',
         'items' => [
             ['label' => 'Fee Types',      'url' => '/finance/fee-types',      'icon' => 'money', 'permission' => 'finance.manage'],
+            ['label' => 'Tuition Rates',  'url' => '/finance/tuition-rates',  'icon' => 'money', 'permission' => 'finance.manage'],
             ['label' => 'Fee Structures', 'url' => '/finance/fee-structures', 'icon' => 'money', 'permission' => 'finance.manage'],
             ['label' => 'Invoices',       'url' => '/finance/invoices',       'icon' => 'file',  'permission' => 'finance.view'],
             ['label' => 'Payments',       'url' => '/finance/payments',       'icon' => 'money', 'permission' => 'finance.view'],

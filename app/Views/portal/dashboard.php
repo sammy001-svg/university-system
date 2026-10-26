@@ -16,7 +16,7 @@
         <div class="alert alert-warning d-flex align-items-center gap-2">
             <?= icon('clock') ?>
             <div><strong>Not yet enrolled for <?= e($semester['name']) ?>.</strong>
-                Pay your compulsory 1st installment (<?= e(money($enrollment['first_outstanding'])) ?> outstanding) to enrol and register for courses.
+                Pay your compulsory 1st installment (<?= e(money($enrollment['first_outstanding'])) ?> outstanding) to complete your registration.
                 <a href="<?= url('/portal/finance/invoice/' . $enrollment['invoice_id']) ?>">View invoice</a></div>
         </div>
     <?php else: ?>

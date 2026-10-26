@@ -9,6 +9,7 @@ use App\Core\Request;
 use App\Core\ResourceController;
 use App\Models\Course;
 use App\Models\Department;
+use App\Models\TuitionRate;
 
 final class CourseController extends ResourceController
 {
@@ -74,6 +75,8 @@ final class CourseController extends ResourceController
              'required' => true, 'min' => 1, 'max' => 12, 'default' => 3],
             ['name' => 'level', 'label' => 'Year of study', 'type' => 'number', 'width' => 3,
              'required' => true, 'min' => 1, 'max' => 6, 'default' => 1],
+            ['name' => 'tuition_rate_code', 'label' => 'Tuition band (charged per credit hour)', 'type' => 'select', 'width' => 6,
+             'options' => (new TuitionRate())->choices()],
             ['name' => 'lecture_hours', 'label' => 'Lecture hours', 'type' => 'number', 'width' => 4, 'min' => 0, 'default' => 30,
              'group' => 'Contact hours per semester'],
             ['name' => 'tutorial_hours', 'label' => 'Tutorial hours', 'type' => 'number', 'width' => 4, 'min' => 0, 'default' => 15],
@@ -94,6 +97,7 @@ final class CourseController extends ResourceController
             'department_id'   => 'required|integer|exists:departments,id',
             'credit_hours'    => 'required|integer|between:1,12',
             'level'           => 'required|integer|between:1,6',
+            'tuition_rate_code' => 'nullable|exists:tuition_rates,code',
             'lecture_hours'   => 'nullable|integer|between:0,255',
             'tutorial_hours'  => 'nullable|integer|between:0,255',
             'practical_hours' => 'nullable|integer|between:0,255',

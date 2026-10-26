@@ -53,8 +53,8 @@ final class FinanceController extends Controller
 
         $items = Database::select(
             'SELECT ii.*, ft.name AS fee_type_name FROM invoice_items ii
-              JOIN fee_types ft ON ft.id = ii.fee_type_id
-             WHERE ii.invoice_id = ?',
+         LEFT JOIN fee_types ft ON ft.id = ii.fee_type_id
+             WHERE ii.invoice_id = ? ORDER BY ii.id',
             [$invoice['id']]
         );
 
@@ -67,6 +67,19 @@ final class FinanceController extends Controller
             'enrollment'   => $invoice['semester_id'] !== null
                 ? (new SemesterEnrollment())->forStudent((int) $student['id'], (int) $invoice['semester_id'])
                 : null,
+        ]);
+    }
+
+    /** The student's own billing form for one of their invoices. */
+    public function billingForm(Request $request, string $id): string
+    {
+        $student = $this->student();
+        $owned   = Database::scalar('SELECT id FROM invoices WHERE id = ? AND student_id = ?', [(int) $id, $student['id']]);
+        if (!$owned) { throw new HttpException(404); }
+        return $this->view('finance.billing-form', [
+            'pageTitle' => "Student's Billing Form",
+            'form'      => (new Invoice())->billingForm((int) $id),
+            'backUrl'   => '/portal/finance/invoice/' . (int) $id,
         ]);
     }
 

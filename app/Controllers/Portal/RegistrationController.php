@@ -12,6 +12,7 @@ use App\Models\CourseRegistration;
 use App\Models\Semester;
 use App\Models\SemesterEnrollment;
 use App\Models\Student;
+use App\Services\BillingService;
 
 final class RegistrationController extends Controller
 {
@@ -49,7 +50,7 @@ final class RegistrationController extends Controller
             'registered' => $registered,
             'available'  => $available,
             'enrollment' => $semester ? $enrollments->forStudent((int) $student['id'], (int) $semester['id']) : null,
-            'block'      => $semester ? $enrollments->registrationBlock((int) $student['id'], (int) $semester['id']) : null,
+            'locked'     => $semester ? $enrollments->changesLocked((int) $student['id'], (int) $semester['id']) : null,
         ]);
     }
 
@@ -63,33 +64,40 @@ final class RegistrationController extends Controller
             $this->error('No active semester for registration.', '/portal/registration');
         }
 
-        $block = (new SemesterEnrollment())->registrationBlock((int) $student['id'], (int) $semester['id']);
-        if ($block !== null) {
-            $this->error($block, '/portal/registration');
+        $locked = (new SemesterEnrollment())->changesLocked((int) $student['id'], (int) $semester['id']);
+        if ($locked !== null) {
+            $this->error($locked, '/portal/registration');
         }
 
         $data = $this->validate($request, [
             'offering_id' => 'required|integer|exists:course_offerings,id',
         ]);
 
-        $existing = Database::scalar(
-            'SELECT id FROM course_registrations WHERE student_id = ? AND offering_id = ? AND status != "dropped"',
+        $existing = Database::selectOne(
+            'SELECT id, status FROM course_registrations WHERE student_id = ? AND offering_id = ?',
             [$student['id'], $data['offering_id']]
         );
-        if ($existing) {
+        if ($existing && $existing['status'] !== 'dropped') {
             $this->error('You are already registered for this course.', '/portal/registration');
         }
 
-        (new CourseRegistration())->create([
-            'student_id'        => $student['id'],
-            'offering_id'       => $data['offering_id'],
-            'semester_id'       => $semester['id'],
-            'registration_type' => 'normal',
-            'approval_status'   => 'pending',
-            'status'            => 'registered',
-        ]);
+        $registrations = new CourseRegistration();
+        if ($existing) {
+            $registrations->update((int) $existing['id'], ['status' => 'registered', 'approval_status' => 'pending']);
+        } else {
+            $registrations->create([
+                'student_id'        => $student['id'],
+                'offering_id'       => $data['offering_id'],
+                'semester_id'       => $semester['id'],
+                'registration_type' => 'normal',
+                'approval_status'   => 'pending',
+                'status'            => 'registered',
+            ]);
+        }
 
-        $this->success('Course registered successfully. Awaiting approval.', '/portal/registration');
+        // The semester bill follows the courses: tuition is charged per credit hour.
+        (new BillingService())->refreshSemesterBill((int) $student['id'], (int) $semester['id']);
+        $this->success('Course added and your bill updated. Pay the 1st installment to complete registration.', '/portal/registration');
     }
 
     public function drop(Request $request, string $id): never
@@ -104,9 +112,14 @@ final class RegistrationController extends Controller
         if (!$reg) {
             throw new HttpException(404);
         }
+        $locked = (new SemesterEnrollment())->changesLocked((int) $student['id'], (int) $reg['semester_id']);
+        if ($locked !== null) {
+            $this->error($locked, '/portal/registration');
+        }
 
         (new CourseRegistration())->update((int) $id, ['status' => 'dropped']);
-        $this->success('Course dropped.', '/portal/registration');
+        (new BillingService())->refreshSemesterBill((int) $student['id'], (int) $reg['semester_id']);
+        $this->success('Course dropped and your bill updated.', '/portal/registration');
     }
 
     private function student(): array

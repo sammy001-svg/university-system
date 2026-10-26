@@ -52,6 +52,9 @@ return static function (PDO $pdo, array $options = []): array {
             }
         }
     }
+    foreach ($catalog['additional_courses'] ?? [] as $row) {
+        $visit($row, 1);
+    }
 
     $problems = [];
     foreach ($occurrences as $code => $uses) {
@@ -85,6 +88,29 @@ return static function (PDO $pdo, array $options = []): array {
                     $problems[] = "{$programCode}: {$duplicate} appears twice in Year {$year} Semester {$semester}";
                 }
             }
+        }
+    }
+    foreach ($catalog['course_aliases'] ?? [] as [$alias, $target]) {
+        if (!isset($occurrences[$target])) {
+            $problems[] = "alias {$alias} points at {$target}, which is not in the catalogue";
+        }
+        if (isset($occurrences[$alias])) {
+            $problems[] = "alias {$alias} is also a catalogue course code";
+        }
+    }
+    foreach (array_keys($catalog['billing_titles'] ?? []) as $code) {
+        if (!isset($occurrences[$code])) {
+            $problems[] = "billing title for {$code}, which is not in the catalogue";
+        }
+    }
+    foreach ($catalog['fee_schedules']['structures'] ?? [] as $code => [$name, , $items, $statedTotal]) {
+        foreach (array_keys($items) as $feeCode) {
+            if (!isset($catalog['fee_types'][$feeCode])) {
+                $problems[] = "{$code}: unknown fee type {$feeCode}";
+            }
+        }
+        if (abs(array_sum($items) - $statedTotal) > 0.001) {
+            $problems[] = "{$code}: items add up to " . array_sum($items) . ", schedule states {$statedTotal}";
         }
     }
     if ($problems !== []) {
@@ -136,6 +162,41 @@ return static function (PDO $pdo, array $options = []): array {
         ]);
     }
     $courseIds = $pdo->query('SELECT code, id FROM courses')->fetchAll(PDO::FETCH_KEY_PAIR);
+
+    /* Tuition bands, and each catalogue course's band. */
+    $upsertRate = $pdo->prepare(
+        'INSERT INTO tuition_rates (code, name, rate_per_credit, description, status) VALUES (?, ?, ?, ?, "active")
+         ON DUPLICATE KEY UPDATE name = VALUES(name), rate_per_credit = VALUES(rate_per_credit),
+                                 description = VALUES(description), status = "active"'
+    );
+    foreach ($catalog['tuition_rates'] ?? [] as $code => [$name, $rate, $description]) {
+        $upsertRate->execute([$code, $name, $rate, $description]);
+    }
+    if (isset($catalog['tuition_rates'])) {
+        $setRate = $pdo->prepare('UPDATE courses SET tuition_rate_code = ? WHERE code = ?');
+        foreach (array_keys($occurrences) as $code) {
+            $prefix     = strtok($code, ' ');
+            $department = $catalog['course_departments'][$code] ?? $catalog['subject_departments'][$prefix];
+            $setRate->execute([
+                $catalog['tuition_rate_prefixes'][$prefix] ?? $catalog['tuition_rate_departments'][$department] ?? 'GENERAL',
+                $code,
+            ]);
+        }
+    }
+
+    /* Codes and wording the billing forms use for catalogue courses. */
+    $upsertAlias = $pdo->prepare(
+        'INSERT INTO course_aliases (code, course_id, title, credit_hours, source, note) VALUES (?, ?, ?, ?, "Billing forms 2026", ?)
+         ON DUPLICATE KEY UPDATE course_id = VALUES(course_id), title = VALUES(title), credit_hours = VALUES(credit_hours),
+                                 source = VALUES(source), note = VALUES(note)'
+    );
+    foreach ($catalog['course_aliases'] ?? [] as [$alias, $target, $title, $credits, $note]) {
+        $upsertAlias->execute([$alias, $courseIds[$target], $title, $credits, $note]);
+    }
+    foreach ($catalog['billing_titles'] ?? [] as $code => $title) {
+        $upsertAlias->execute([$code, $courseIds[$code], $title, null, 'Same code; wording used on the billing forms.']);
+    }
+
     $commonCourse = static fn (string $code): bool =>
         ($catalog['course_departments'][$code] ?? $catalog['subject_departments'][strtok($code, ' ')] ?? null) === 'GENS';
 
@@ -244,6 +305,58 @@ return static function (PDO $pdo, array $options = []): array {
                     $stats['notes'] += $item['note'] !== null ? 1 : 0;
                 }
             }
+        }
+    }
+
+    /* ---------------- Fee types and the official registration-fee schedules ---------------- */
+    $upsertFeeType = $pdo->prepare(
+        'INSERT INTO fee_types (code, name, category, is_recurring, is_mandatory, status) VALUES (?, ?, ?, ?, 1, "active")
+         ON DUPLICATE KEY UPDATE name = VALUES(name), category = VALUES(category), is_recurring = VALUES(is_recurring),
+                                 is_mandatory = 1, status = "active"'
+    );
+    foreach ($catalog['fee_types'] ?? [] as $code => [$name, $category, $recurring]) {
+        $upsertFeeType->execute([$code, $name, $category, $recurring]);
+    }
+    $feeTypeIds = $pdo->query('SELECT code, id FROM fee_types')->fetchAll(PDO::FETCH_KEY_PAIR);
+    $stats['fee_structures'] = 0;
+    if (isset($catalog['fee_schedules'])) {
+        // The fee year must exist before its structures; section 6 below fills in its dates and status.
+        $feeYear = $catalog['fee_schedules']['academic_year'];
+        $pdo->prepare(
+            'INSERT IGNORE INTO academic_years (name, start_date, end_date, is_current, status) VALUES (?, ?, ?, 0, "planned")'
+        )->execute([$feeYear, $feeYear . '-01-01', $feeYear . '-12-31']);
+        $feeYearId = (int) $pdo->query('SELECT id FROM academic_years WHERE name = ' . $pdo->quote($feeYear))->fetchColumn();
+
+        $upsertStructure = $pdo->prepare(
+            'INSERT INTO fee_structures (code, faculty_id, department_id, program_id, academic_year_id, student_status, tuition_basis,
+                                         year_of_study, semester_number, study_mode, name, total_amount, status)
+             VALUES (?, NULL, NULL, NULL, ?, ?, "per_credit", NULL, NULL, NULL, ?, ?, "active")
+             ON DUPLICATE KEY UPDATE academic_year_id = VALUES(academic_year_id), student_status = VALUES(student_status),
+                                     tuition_basis = "per_credit", faculty_id = NULL, department_id = NULL, program_id = NULL,
+                                     year_of_study = NULL, semester_number = NULL, study_mode = NULL,
+                                     name = VALUES(name), total_amount = VALUES(total_amount), status = "active"'
+        );
+        $insertItem = $pdo->prepare(
+            'INSERT INTO fee_structure_items (fee_structure_id, fee_type_id, amount, is_mandatory) VALUES (?, ?, ?, 1)'
+        );
+        $insertInstallment = $pdo->prepare(
+            'INSERT INTO fee_structure_installments (fee_structure_id, installment_number, label, tuition_percent, due_days)
+             VALUES (?, ?, ?, ?, ?)'
+        );
+        foreach ($catalog['fee_schedules']['structures'] as $code => [$name, $studentStatus, $items]) {
+            $structureCode = $code . '-' . $feeYear;
+            $upsertStructure->execute([$structureCode, $feeYearId, $studentStatus, $name, array_sum($items)]);
+            $structureId = (int) $pdo->query('SELECT id FROM fee_structures WHERE code = ' . $pdo->quote($structureCode))->fetchColumn();
+
+            $pdo->prepare('DELETE FROM fee_structure_items WHERE fee_structure_id = ?')->execute([$structureId]);
+            foreach ($items as $feeCode => $amount) {
+                $insertItem->execute([$structureId, $feeTypeIds[$feeCode], $amount]);
+            }
+            $pdo->prepare('DELETE FROM fee_structure_installments WHERE fee_structure_id = ?')->execute([$structureId]);
+            foreach ($catalog['fee_schedules']['installments'] as $n => [$label, $percent, $dueDays]) {
+                $insertInstallment->execute([$structureId, $n + 1, $label, $percent, $dueDays]);
+            }
+            $stats['fee_structures']++;
         }
     }
 

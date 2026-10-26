@@ -5,6 +5,7 @@
         <p class="lede">Student: <?= e($invoice['first_name'] . ' ' . $invoice['last_name']) ?> (<?= e($invoice['admission_number']) ?>)</p>
     </div>
     <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-outline-primary" href="<?= url('/finance/invoices/' . $invoice['id'] . '/billing-form') ?>"><?= icon('print', 'ico-sm') ?> Billing Form</a>
         <a class="btn btn-sm btn-light" href="<?= url('/finance/invoices') ?>">&larr; Back to Invoices</a>
         <?php if ($invoice['status'] !== 'cancelled' && can('finance.edit')): ?>
             <form method="post" action="<?= url('/finance/invoices/' . $invoice['id'] . '/cancel') ?>" onsubmit="return confirm('Cancel this invoice?')">
@@ -33,7 +34,7 @@
             <tbody>
             <?php foreach ($items as $item): ?>
                 <tr>
-                    <td><?= e($item['fee_type_name']) ?></td>
+                    <td><?= e($item['description'] ?: $item['fee_type_name']) ?><?php if (!empty($item['course_id'])): ?> <span class="text-muted small">(<?= (int) $item['quantity'] ?> cr × <?= e(money($item['unit_amount'])) ?>)</span><?php endif; ?></td>
                     <td class="text-end"><?= e(money($item['amount'])) ?></td>
                 </tr>
             <?php endforeach; ?>

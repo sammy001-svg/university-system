@@ -884,10 +884,11 @@ return [
                     1 => [$c('IT 201', 'Computer Hardware and Software Maintenance', 3), $c('IT 203', 'Network Administration (CCNA, R&S)', 3),
                           $c('IT 205', 'Data Communication', 3), $c('IT 207', 'Introduction to Web Development', 3), $engl201,
                           $c('IT 213', 'Database Management System (MySQL)', 3),
-                          $c('IT 212B', 'Organizational Behavior', 3, 'Provisional code: source also prints IT 212 for Introduction to Machine Learning & AI.')],
+                          $c('IT 212', 'Organizational Behavior', 3, 'Code confirmed by the 2026 billing forms ("IT 212 Organization Behavior").')],
                     2 => [$c('IT 202', 'Cyber Security Concepts', 3), $c('IT 206', 'Management Information System', 3),
                           $c('IT 208', 'Introduction to Software Engineering', 3), $c('IT 210', 'Network Security', 3),
-                          $c('IT 212', 'Introduction to Machine Learning & AI', 3), $c('IT 214', 'Fundamentals of Data Analysis', 3),
+                          $c('IT 212B', 'Introduction to Machine Learning & AI', 3, 'Provisional code: the academic PDF also prints IT 212 for this course, and the billing forms use IT 212 for Organizational Behavior.'),
+                          $c('IT 214', 'Fundamentals of Data Analysis', 3),
                           $c('ENT 216', 'Leadership & Entrepreneurship I', 1)],
                 ],
                 3 => [
@@ -908,6 +909,87 @@ return [
                           $c('IT 406', 'Virtualization (VMware, Citrix, Hyper-V)', 3), $c('IT 408', 'Project (Interim Thesis)', 6)],
                 ],
             ],
+        ],
+    ],
+
+    /* ------------------------------------------------------------------ */
+    /*  Courses outside the programme plans                                */
+    /* ------------------------------------------------------------------ */
+    'additional_courses' => [
+        $c('ENG 033', 'English Skills', 3, 'Developmental English. On the 2026 billing forms; not in the academic PDF.'),
+    ],
+
+    /*
+     * Codes the 2026 billing forms use for catalogue courses. The PDF codes stay
+     * official; these resolve to the same course. [billing code, catalogue code,
+     * title on the form, credits on the form, note]
+     */
+    'course_aliases' => [
+        ['NURS 101', 'NSG 101', 'Fundamentals of Nursing', 3, 'Billing form bills 3 credits; the academic PDF lists NSG 101 at 4.'],
+        ['CISC 201', 'IT 201', 'Computer Troubleshooting & Software Maintenance', 3, 'PDF title: Computer Hardware and Software Maintenance.'],
+        ['CISC 205', 'IT 205', 'Data Communication', 3, null],
+        ['CISC 207', 'IT 207', 'Introduction to Web Development', 3, null],
+        ['CISC 213', 'IT 213', 'Database Management System (MySQL)', 3, null],
+    ],
+    // Same code, different wording on the billing forms (recorded for reference).
+    'billing_titles' => [
+        'COSC 101' => 'General Computer Literacy',
+        'COSC 102' => 'General Computer Literacy 2',
+        'IT 212'   => 'Organization Behavior',
+    ],
+
+    /* ------------------------------------------------------------------ */
+    /*  Tuition: charged per credit hour of every registered course        */
+    /*  Rates from the 2026 billing forms: ENGL/MATH/SOSC/COSC/PHED/ACCT   */
+    /*  at $10, BIOL/CHEM/NURS at $18, IT courses at $25.                  */
+    /* ------------------------------------------------------------------ */
+    'tuition_rates' => [
+        'GENERAL' => ['General courses', 10.00, 'General education, business, education and liberal arts courses.'],
+        'SCIENCE' => ['Health & laboratory science courses', 18.00, 'Biology, chemistry, physics and College of Health Science courses.'],
+        'IT'      => ['Information technology courses', 25.00, 'College of Information Technology courses.'],
+    ],
+    // Band per course: by subject prefix first, then by the owning department; otherwise GENERAL.
+    'tuition_rate_prefixes'    => ['BIOL' => 'SCIENCE', 'CHEM' => 'SCIENCE', 'PHYS' => 'SCIENCE'],
+    'tuition_rate_departments' => ['NURS' => 'SCIENCE', 'PUBH' => 'SCIENCE', 'ENVS' => 'SCIENCE', 'MLT' => 'SCIENCE', 'IT' => 'IT'],
+
+    /* ------------------------------------------------------------------ */
+    /*  Registration fees (Business & Finance Office schedule)             */
+    /* ------------------------------------------------------------------ */
+    // code => [name, category, charged every semester]
+    'fee_types' => [
+        'TUI'  => ['Tuition Fee', 'tuition', 1],
+        'REG'  => ['Registration', 'registration', 1],
+        'LIB'  => ['Library Fee (Both)', 'library', 1],
+        'MNT'  => ['Maintenance Fee', 'other', 1],
+        'UTL'  => ['Utilities', 'other', 1],
+        'ACT'  => ['Activities Fee', 'activity', 1],
+        'BRK'  => ['Breakage Fee', 'other', 1],
+        'MED'  => ['Medical (First Aid)', 'medical', 1],
+        'ICT'  => ['ICT Fees', 'other', 1],
+        'IDC'  => ['ID Card', 'other', 0],
+        'HBK'  => ['Handbook', 'other', 0],
+        'RTS'  => ['ROTC T-Shirt', 'other', 0],
+        'MAT'  => ['Matriculation Fee', 'registration', 0],
+        'SMS'  => ['Student Management System', 'other', 1],
+        'SCF'  => ['Student Council Fee', 'activity', 1],
+    ],
+    'fee_schedules' => [
+        'academic_year' => '2026',
+        // 1st installment = every registration fee + half the tuition; 2nd = the other half.
+        'installments'  => [['1st Installment', 50, 0], ['2nd Installment', 50, 56]],
+        'structures'    => [
+            'REG-NEW' => ['Registration Fees - New Students', 'new', [
+                'REG' => 25, 'LIB' => 10, 'MNT' => 10, 'UTL' => 5, 'ACT' => 20, 'BRK' => 13, 'MED' => 10, 'ICT' => 35,
+                'IDC' => 10, 'HBK' => 2, 'RTS' => 10, 'MAT' => 15, 'SMS' => 10, 'SCF' => 5,
+            ], 180],
+            'REG-S1' => ['Registration Fees - Every 1st Semester', 'first_term', [
+                'REG' => 25, 'LIB' => 10, 'MNT' => 10, 'UTL' => 5, 'ACT' => 20, 'BRK' => 13, 'MED' => 10, 'ICT' => 35,
+                'IDC' => 10, 'SMS' => 10, 'SCF' => 5,
+            ], 153],
+            'REG-S2' => ['Registration Fees - Every 2nd Semester', 'second_term', [
+                'REG' => 25, 'LIB' => 10, 'MNT' => 10, 'UTL' => 5, 'ACT' => 20, 'BRK' => 13, 'MED' => 10, 'ICT' => 35,
+                'SMS' => 10, 'SCF' => 5,
+            ], 143],
         ],
     ],
 

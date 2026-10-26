@@ -76,6 +76,19 @@ final class InvoiceController extends Controller
         ]);
     }
 
+    /** The Student's Billing Form for an invoice (printable). */
+    public function billingForm(Request $request, string $id): string
+    {
+        $this->authorize('finance.view');
+        $form = $this->model->billingForm((int) $id);
+        if ($form === null) { throw new HttpException(404); }
+        return $this->view('finance.billing-form', [
+            'pageTitle' => "Student's Billing Form",
+            'form'      => $form,
+            'backUrl'   => '/finance/invoices/' . (int) $id,
+        ]);
+    }
+
     public function cancel(Request $request, string $id): never
     {
         $this->authorize('finance.edit');

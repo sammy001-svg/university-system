@@ -11,7 +11,7 @@ final class CourseRegistration extends Model
 {
     protected string $table = 'course_registrations';
     protected array $fillable = [
-        'student_id', 'offering_id', 'semester_id', 'registration_type',
+        'student_id', 'offering_id', 'semester_id', 'registration_type', 'credit_hours',
         'approval_status', 'approved_by', 'approved_at', 'status', 'remarks',
     ];
 

@@ -4,7 +4,10 @@
         <h1>Invoice: <?= e($invoice['invoice_number']) ?></h1>
         <p class="lede">Student Fee Invoice</p>
     </div>
-    <a class="btn btn-sm btn-light" href="<?= url('/portal/finance') ?>">&larr; Back to Fees &amp; Payments</a>
+    <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-outline-primary" href="<?= url('/portal/finance/invoice/' . $invoice['id'] . '/billing-form') ?>"><?= icon('print', 'ico-sm') ?> Billing Form</a>
+        <a class="btn btn-sm btn-light" href="<?= url('/portal/finance') ?>">&larr; Back to Fees &amp; Payments</a>
+    </div>
 </div>
 
 <?php partial('partials.installments', ['installments' => $installments, 'enrollment' => $enrollment]); ?>
@@ -25,7 +28,7 @@
             <tbody>
             <?php foreach ($items as $item): ?>
                 <tr>
-                    <td><?= e($item['fee_type_name']) ?></td>
+                    <td><?= e($item['description'] ?: $item['fee_type_name']) ?><?php if (!empty($item['course_id'])): ?> <span class="text-muted small">(<?= (int) $item['quantity'] ?> cr × <?= e(money($item['unit_amount'])) ?>)</span><?php endif; ?></td>
                     <td class="text-end"><?= e(money($item['amount'])) ?></td>
                 </tr>
             <?php endforeach; ?>

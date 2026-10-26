@@ -46,6 +46,67 @@ final class Invoice extends Model
         );
     }
 
+    /**
+     * Everything the Student's Billing Form shows: the student and their
+     * programme, the courses billed (credits x rate), the registration fees and
+     * the installment totals. Null when the invoice does not exist.
+     */
+    public function billingForm(int $invoiceId): ?array
+    {
+        $header = Database::selectOne(
+            'SELECT i.*, s.admission_number, s.year_of_study, s.current_semester, s.nationality,
+                    u.first_name, u.last_name, u.other_name, u.gender, u.phone, u.email,
+                    p.name AS program_name, d.name AS department_name, f.name AS college_name,
+                    sem.name AS semester_name, ay.name AS academic_year
+               FROM invoices i
+               JOIN students s        ON s.id = i.student_id
+               JOIN users u           ON u.id = s.user_id
+               JOIN programs p        ON p.id = s.program_id
+               JOIN departments d     ON d.id = p.department_id
+               JOIN faculties f       ON f.id = d.faculty_id
+          LEFT JOIN semesters sem     ON sem.id = i.semester_id
+          LEFT JOIN academic_years ay ON ay.id = sem.academic_year_id
+              WHERE i.id = ?',
+            [$invoiceId]
+        );
+        if ($header === null) {
+            return null;
+        }
+
+        $courses = Database::select(
+            'SELECT ii.*, c.code, c.title, o.section, CONCAT(lu.first_name, " ", lu.last_name) AS instructor,
+                    (SELECT GROUP_CONCAT(a.code ORDER BY a.code SEPARATOR ", ") FROM course_aliases a
+                      WHERE a.course_id = c.id AND a.code != c.code) AS billing_codes
+               FROM invoice_items ii
+               JOIN invoices i           ON i.id = ii.invoice_id
+               JOIN courses c            ON c.id = ii.course_id
+          LEFT JOIN course_offerings o   ON o.course_id = c.id AND o.semester_id = i.semester_id
+                                        AND o.id IN (SELECT cr.offering_id FROM course_registrations cr
+                                                      WHERE cr.student_id = i.student_id AND cr.semester_id = i.semester_id
+                                                        AND cr.status = "registered")
+          LEFT JOIN staff ls             ON ls.id = o.lecturer_id
+          LEFT JOIN users lu             ON lu.id = ls.user_id
+              WHERE ii.invoice_id = ? AND ii.course_id IS NOT NULL
+              ORDER BY ii.id',
+            [$invoiceId]
+        );
+        $fees = Database::select(
+            'SELECT ii.* FROM invoice_items ii WHERE ii.invoice_id = ? AND ii.course_id IS NULL ORDER BY ii.id',
+            [$invoiceId]
+        );
+
+        return [
+            'invoice'      => $header,
+            'standing'     => FeeStructure::classStanding($header),
+            'courses'      => $courses,
+            'fees'         => $fees,
+            'credits'      => array_sum(array_column($courses, 'quantity')),
+            'tuition'      => round(array_sum(array_column($courses, 'amount')), 2),
+            'feesTotal'    => round(array_sum(array_column($fees, 'amount')), 2),
+            'installments' => $this->installments($invoiceId),
+        ];
+    }
+
     public function installments(int $invoiceId): array
     {
         return Database::select(

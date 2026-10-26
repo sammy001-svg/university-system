@@ -7,9 +7,10 @@ use App\Core\Database;
 use App\Core\Model;
 
 /**
- * A student's enrolment for a semester. It becomes "enrolled" (registration
- * complete) once the 1st installment of the semester invoice is fully paid,
- * and only then may the student register for courses.
+ * A student's enrolment for a semester. Students first choose their courses
+ * (the semester bill is built from them); once the 1st installment of that
+ * bill is fully paid they are "enrolled" - registration complete - and the
+ * course list is final.
  */
 final class SemesterEnrollment extends Model
 {
@@ -50,20 +51,15 @@ final class SemesterEnrollment extends Model
         ) > 0;
     }
 
-    /** Message explaining why a student may not register yet, or null when they may. */
-    public function registrationBlock(int $studentId, int $semesterId): ?string
+    /**
+     * Students choose their courses, the bill follows, and paying the 1st
+     * installment completes registration. After that the course list is
+     * final: returns the message to show, or null while changes are allowed.
+     */
+    public function changesLocked(int $studentId, int $semesterId): ?string
     {
-        if ($this->isEnrolled($studentId, $semesterId)) {
-            return null;
-        }
-        $status = $this->forStudent($studentId, $semesterId);
-        if ($status === null) {
-            return 'No fee invoice has been issued for this semester yet. Please contact the Finance office.';
-        }
-        return sprintf(
-            'Course registration opens once the 1st installment is paid in full. Outstanding on %s: %s.',
-            $status['invoice_number'],
-            money($status['first_outstanding'])
-        );
+        return $this->isEnrolled($studentId, $semesterId)
+            ? 'Your registration for this semester is complete. To add or drop a course, please see the Office of Admission and Records.'
+            : null;
     }
 }

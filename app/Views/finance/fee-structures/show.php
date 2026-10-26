@@ -12,6 +12,8 @@ $nextNumber = $hasSavedPlan ? max(array_column($plan, 'installment_number')) + 1
         <p class="lede">
             <?= e(\App\Models\FeeStructure::scopeLabel($structure)) ?>
             &middot; <?= e(\App\Models\FeeStructure::STATUSES[$structure['student_status']] ?? '') ?>
+            &middot; <?= ($structure['tuition_basis'] ?? 'flat') === 'per_credit' ? 'Tuition per credit hour' : 'Flat tuition' ?>
+            <?= !empty($structure['code']) ? '&middot; <span class="badge text-bg-light">Official schedule ' . e($structure['code']) . '</span>' : '' ?>
             &middot; <?= e($structure['academic_year']) ?>
             &middot; <?= $structure['year_of_study'] !== null ? 'Year ' . (int) $structure['year_of_study'] : 'Any year' ?>
             &middot; <?= e($structure['study_mode'] !== null ? humanize($structure['study_mode']) : 'Any mode') ?>
@@ -117,6 +119,9 @@ $nextNumber = $hasSavedPlan ? max(array_column($plan, 'installment_number')) + 1
                 </table>
             </div>
             <div class="card-footer text-muted-sm">
+                <?php if (($structure['tuition_basis'] ?? 'flat') === 'per_credit'): ?>
+                    Tuition is added per credit hour of each course the student registers for (see Finance › Tuition Rates), so sample amounts above show the registration fees only.
+                <?php endif; ?>
                 The 1st installment carries every non-tuition fee plus its share of tuition. It is compulsory: once it is paid in full the student is enrolled for the semester and registration is complete. Sample amounts are before any scholarship.
             </div>
         </div>

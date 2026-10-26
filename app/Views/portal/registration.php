@@ -7,19 +7,26 @@
 <div class="alert alert-warning">Course registration is not currently open. Please check with the Registrar's office.</div>
 <?php else: ?>
 
-<?php if ($block === null): ?>
+<?php if ($locked !== null): ?>
     <div class="alert alert-success d-flex align-items-center gap-2">
         <?= icon('check') ?>
         <div><strong>Registration Complete.</strong> Your 1st installment is paid and you are enrolled for
-            <?= e(($semester['academic_year'] ?? '') . ' ' . $semester['name']) ?>. You may register for courses.</div>
+            <?= e(($semester['academic_year'] ?? '') . ' ' . $semester['name']) ?>. <?= e($locked) ?>
+            <?php if (!empty($enrollment)): ?>
+                <a href="<?= url('/portal/finance/invoice/' . $enrollment['invoice_id'] . '/billing-form') ?>">Billing form</a>
+            <?php endif; ?>
+        </div>
     </div>
 <?php else: ?>
-    <div class="alert alert-warning d-flex align-items-center gap-2">
+    <div class="alert alert-info d-flex align-items-center gap-2">
         <?= icon('clock') ?>
         <div>
-            <strong>Not enrolled for this semester.</strong> <?= e($block) ?>
+            <strong>Choose your courses for the semester.</strong> Your bill is updated each time you add or drop a course
+            (tuition is charged per credit hour).
             <?php if (!empty($enrollment)): ?>
-                <a href="<?= url('/portal/finance/invoice/' . $enrollment['invoice_id']) ?>">View invoice</a>
+                Pay the <strong>1st installment of <?= e(money($enrollment['first_amount'])) ?></strong>
+                (<?= e(money($enrollment['first_outstanding'])) ?> outstanding) to complete your registration.
+                <a href="<?= url('/portal/finance/invoice/' . $enrollment['invoice_id'] . '/billing-form') ?>">View billing form</a>
             <?php endif; ?>
         </div>
     </div>
@@ -43,10 +50,12 @@
                             <td class="text-center"><?= (int)$r['credit_hours'] ?></td>
                             <td><?= status_badge($r['approval_status'] ?? '') ?></td>
                             <td class="text-end">
-                                <form method="post" action="<?= url('/portal/registration/' . $r['id'] . '/drop') ?>" onsubmit="return confirm('Drop this course?')">
-                                    <?= csrf_field() ?>
+                                <?php if ($locked === null): ?>
+                                <form method="post" action="<?= url('/portal/registration/' . $r['id']) ?>" onsubmit="return confirm('Drop this course?')">
+                                    <?= csrf_field() ?><?= method_field('DELETE') ?>
                                     <button class="btn btn-sm btn-outline-danger">Drop</button>
                                 </form>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -78,7 +87,7 @@
                                 <form method="post" action="<?= url('/portal/registration') ?>">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="offering_id" value="<?= $c['offering_id'] ?>">
-                                    <button class="btn btn-sm btn-primary" <?= $block !== null ? 'disabled title="Pay the 1st installment to register"' : '' ?>>Register</button>
+                                    <button class="btn btn-sm btn-primary" <?= $locked !== null ? 'disabled title="Registration is complete"' : '' ?>>Add</button>
                                 </form>
                             </td>
                         </tr>

@@ -182,6 +182,75 @@ final class AcademicCatalogSync
                CONSTRAINT fk_pco_course  FOREIGN KEY (course_id)  REFERENCES courses (id)  ON DELETE CASCADE
              ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
+
+        // Installment billing and semester enrolment (database/migrations/2026_10_26_billing_installments.sql).
+        if (!$hasColumn('fee_structures', 'student_status')) {
+            $sql = (string) file_get_contents($this->basePath . '/database/migrations/2026_10_26_billing_installments.sql');
+            foreach (explode(";\n", str_replace("\r\n", "\n", $sql)) as $chunk) {
+                $statement = trim((string) preg_replace('/^\s*--.*$/m', '', $chunk));
+                if ($statement !== '') {
+                    $pdo->exec($statement);
+                }
+            }
+        }
+
+        $columnType = static fn (string $table, string $column): string => (string) $pdo->query(
+            "SELECT CONCAT(column_type, '|', is_nullable) FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = '{$table}' AND column_name = '{$column}'"
+        )->fetchColumn();
+
+        // Students on paper billing forms have no e-mail address.
+        if (str_ends_with($columnType('users', 'email'), '|NO')) {
+            $pdo->exec('ALTER TABLE users MODIFY email VARCHAR(150) DEFAULT NULL');
+        }
+
+        // Per-credit tuition, billing-form course codes, and the official fee schedules.
+        if (!$hasColumn('courses', 'tuition_rate_code')) {
+            $pdo->exec('ALTER TABLE courses ADD COLUMN tuition_rate_code VARCHAR(20) DEFAULT NULL AFTER level');
+        }
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS tuition_rates (
+               id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
+               code            VARCHAR(20)  NOT NULL,
+               name            VARCHAR(120) NOT NULL,
+               rate_per_credit DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+               description     VARCHAR(255)          DEFAULT NULL,
+               status          ENUM('active','inactive') NOT NULL DEFAULT 'active',
+               PRIMARY KEY (id),
+               UNIQUE KEY uq_tuition_rate_code (code)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS course_aliases (
+               id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+               code         VARCHAR(25)  NOT NULL,
+               course_id    INT UNSIGNED NOT NULL,
+               title        VARCHAR(200)          DEFAULT NULL,
+               credit_hours TINYINT UNSIGNED      DEFAULT NULL,
+               source       VARCHAR(80)           DEFAULT NULL,
+               note         VARCHAR(255)          DEFAULT NULL,
+               PRIMARY KEY (id),
+               UNIQUE KEY uq_course_alias (code),
+               KEY ix_alias_course (course_id),
+               CONSTRAINT fk_alias_course FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        if (!$hasColumn('fee_structures', 'code')) {
+            $pdo->exec('ALTER TABLE fee_structures ADD COLUMN code VARCHAR(40) DEFAULT NULL AFTER id, ADD UNIQUE KEY uq_fs_code (code)');
+        }
+        if (!$hasColumn('fee_structures', 'tuition_basis')) {
+            $pdo->exec("ALTER TABLE fee_structures ADD COLUMN tuition_basis ENUM('flat','per_credit') NOT NULL DEFAULT 'flat' AFTER student_status");
+        }
+        if (!str_contains($columnType('fee_structures', 'student_status'), 'first_term')) {
+            $pdo->exec("ALTER TABLE fee_structures MODIFY student_status
+                        ENUM('all','new','continuing','first_term','second_term') NOT NULL DEFAULT 'all'");
+        }
+        if (!$hasColumn('course_registrations', 'credit_hours')) {
+            $pdo->exec('ALTER TABLE course_registrations ADD COLUMN credit_hours TINYINT UNSIGNED DEFAULT NULL AFTER registration_type');
+        }
+        if (!$hasColumn('invoice_items', 'course_id')) {
+            $pdo->exec('ALTER TABLE invoice_items ADD COLUMN course_id INT UNSIGNED DEFAULT NULL AFTER fee_type_id');
+        }
     }
 
     private function recordedVersion(PDO $pdo): ?string

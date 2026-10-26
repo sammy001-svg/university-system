@@ -209,6 +209,7 @@ $router->group(['middleware' => ['auth']], static function ($r) use ($resource):
 /* ------------------------------------------------------------------ */
 $router->group(['prefix' => '/finance', 'middleware' => ['auth']], static function ($r) use ($resource): void {
     $resource($r, '/fee-types', 'Finance\FeeTypeController');
+    $resource($r, '/tuition-rates', 'Finance\TuitionRateController');
     $resource($r, '/scholarships', 'Finance\ScholarshipController');
     $resource($r, '/expenses', 'Finance\ExpenseController');
 
@@ -228,6 +229,7 @@ $router->group(['prefix' => '/finance', 'middleware' => ['auth']], static functi
     $r->get('/invoices/generate', 'Finance\InvoiceController@generateForm');
     $r->post('/invoices/generate', 'Finance\InvoiceController@generate');
     $r->get('/invoices/{id}', 'Finance\InvoiceController@show');
+    $r->get('/invoices/{id}/billing-form', 'Finance\InvoiceController@billingForm');
     $r->post('/invoices/{id}/cancel', 'Finance\InvoiceController@cancel');
 
     $r->get('/payments', 'Finance\PaymentController@index');
@@ -300,6 +302,7 @@ $router->group(['prefix' => '/portal', 'middleware' => ['auth', 'permission:port
     $r->get('/transcript', 'Portal\ResultController@transcript');
     $r->get('/finance', 'Portal\FinanceController@index');
     $r->get('/finance/invoice/{id}', 'Portal\FinanceController@invoice');
+    $r->get('/finance/invoice/{id}/billing-form', 'Portal\FinanceController@billingForm');
     $r->get('/timetable', 'Portal\PortalController@timetable');
     $r->get('/attendance', 'Portal\PortalController@attendance');
     $r->get('/library', 'Portal\PortalController@library');

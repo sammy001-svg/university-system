@@ -12,7 +12,7 @@ final class Course extends Model
     protected string $table = 'courses';
     protected array $fillable = [
         'department_id', 'code', 'title', 'credit_hours', 'lecture_hours', 'tutorial_hours',
-        'practical_hours', 'level', 'description', 'objectives', 'status',
+        'practical_hours', 'level', 'tuition_rate_code', 'description', 'objectives', 'status',
     ];
     protected array $searchable = ['code', 'title'];
 

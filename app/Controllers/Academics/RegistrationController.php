@@ -10,7 +10,7 @@ use App\Core\Exceptions\HttpException;
 use App\Core\Request;
 use App\Models\CourseRegistration;
 use App\Models\Semester;
-use App\Models\SemesterEnrollment;
+use App\Services\BillingService;
 
 final class RegistrationController extends Controller
 {
@@ -50,15 +50,24 @@ final class RegistrationController extends Controller
         $semester = (new Semester())->current();
         if (!$semester) { $this->error('No current semester.', '/registrations'); }
 
-        $block = (new SemesterEnrollment())->registrationBlock((int) $data['student_id'], (int) $semester['id']);
-        if ($block !== null) { $this->error('This student is not enrolled for the semester. ' . $block, '/registrations'); }
+        $existing = Database::selectOne(
+            'SELECT id, status FROM course_registrations WHERE student_id = ? AND offering_id = ?',
+            [$data['student_id'], $data['offering_id']]
+        );
+        if ($existing && $existing['status'] !== 'dropped') { $this->error('The student is already registered for this class.', '/registrations'); }
 
-        $data['semester_id']      = $semester['id'];
-        $data['registration_type']= 'normal';
-        $data['approval_status']  = 'approved';
-        $data['status']           = 'registered';
-        (new CourseRegistration())->create($data);
-        $this->success('Registration created.', '/registrations');
+        // Staff may add courses after registration is complete; the extra tuition falls on the later installments.
+        if ($existing) {
+            (new CourseRegistration())->update((int) $existing['id'], ['status' => 'registered', 'approval_status' => 'approved']);
+        } else {
+            $data['semester_id']      = $semester['id'];
+            $data['registration_type']= 'normal';
+            $data['approval_status']  = 'approved';
+            $data['status']           = 'registered';
+            (new CourseRegistration())->create($data);
+        }
+        (new BillingService())->refreshSemesterBill((int) $data['student_id'], (int) $semester['id'], (int) Auth::id());
+        $this->success("Registration created and the student's bill updated.", '/registrations');
     }
 
     public function approve(Request $request, string $id): never
@@ -87,7 +96,10 @@ final class RegistrationController extends Controller
     {
         $this->authorize('registrations.delete');
         $this->verifyCsrf($request);
+        $reg = Database::selectOne('SELECT student_id, semester_id FROM course_registrations WHERE id=?', [(int)$id]);
+        if (!$reg) { throw new HttpException(404); }
         Database::statement("UPDATE course_registrations SET status='dropped' WHERE id=?", [(int)$id]);
-        $this->success('Registration dropped.', '/registrations');
+        (new BillingService())->refreshSemesterBill((int) $reg['student_id'], (int) $reg['semester_id'], (int) Auth::id());
+        $this->success("Registration dropped and the student's bill updated.", '/registrations');
     }
 }

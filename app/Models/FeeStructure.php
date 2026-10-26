@@ -11,17 +11,25 @@ use App\Core\Setting;
 /**
  * A fee structure is a bill template. It can target the whole institution, a
  * college (faculty), a department or a single programme, and optionally only
- * new or only continuing students. When several match a student, the most
- * specific scope wins (programme > department > college > institution); within
- * the same scope a status-specific bill beats an "all students" bill.
+ * students by status: new (first semester ever), or continuing in the 1st or 2nd
+ * semester of their class year. When several match a student, the most specific
+ * scope wins (programme > department > college > institution); within the same
+ * scope, first_term/second_term beats continuing, which beats "all students".
  */
 final class FeeStructure extends Model
 {
-    public const STATUSES = ['all' => 'All Students', 'new' => 'New Students', 'continuing' => 'Continuing Students'];
+    public const STATUSES = [
+        'all'         => 'All Students',
+        'new'         => 'New Students',
+        'continuing'  => 'Continuing Students (either semester)',
+        'first_term'  => 'Continuing – 1st Semester of the Year',
+        'second_term' => 'Continuing – 2nd Semester of the Year',
+    ];
+    public const CLASS_YEARS = [1 => 'Freshman', 2 => 'Sophomore', 3 => 'Junior', 4 => 'Senior', 5 => 'Fifth Year', 6 => 'Sixth Year'];
 
     protected string $table = 'fee_structures';
     protected array $fillable = [
-        'faculty_id', 'department_id', 'program_id', 'academic_year_id', 'student_status', 'year_of_study',
+        'faculty_id', 'department_id', 'program_id', 'academic_year_id', 'student_status', 'tuition_basis', 'year_of_study',
         'semester_number', 'study_mode', 'name', 'total_amount', 'status',
     ];
     protected array $searchable = ['fs.name'];
@@ -132,11 +140,16 @@ final class FeeStructure extends Model
         return $result;
     }
 
-    /** New = in Year 1 and never billed for an earlier semester. */
+    /**
+     * The student's billing status: "new" in their first semester (Freshman I,
+     * never billed for an earlier semester); otherwise "first_term" or
+     * "second_term" for the semester of their class year they are in.
+     */
     public function studentStatus(array $student, int $semesterId): string
     {
-        if ((int) $student['year_of_study'] !== 1) {
-            return 'continuing';
+        $term = (int) ($student['current_semester'] ?? 1) >= 2 ? 'second_term' : 'first_term';
+        if ((int) $student['year_of_study'] !== 1 || $term !== 'first_term') {
+            return $term;
         }
         $earlier = Database::scalar(
             'SELECT COUNT(*) FROM invoices i
@@ -145,7 +158,14 @@ final class FeeStructure extends Model
               WHERE i.student_id = ? AND i.status != "cancelled" AND billed.start_date < target.start_date',
             [$semesterId, (int) $student['id']]
         );
-        return (int) $earlier > 0 ? 'continuing' : 'new';
+        return (int) $earlier > 0 ? 'first_term' : 'new';
+    }
+
+    /** "Freshman I", "Sophomore II", ... as printed on the billing form. */
+    public static function classStanding(array $student): string
+    {
+        $year = (int) $student['year_of_study'];
+        return (self::CLASS_YEARS[$year] ?? 'Year ' . $year) . ' ' . ((int) ($student['current_semester'] ?? 1) >= 2 ? 'II' : 'I');
     }
 
     /**
@@ -160,12 +180,12 @@ final class FeeStructure extends Model
                 AND (program_id IS NULL OR program_id = ?)
                 AND (department_id IS NULL OR department_id = ?)
                 AND (faculty_id IS NULL OR faculty_id = ?)
-                AND student_status IN ("all", ?)
+                AND student_status IN ("all", ?, ?)
                 AND (year_of_study IS NULL OR year_of_study = ?)
                 AND (semester_number IS NULL OR semester_number = ?)
                 AND (study_mode IS NULL OR study_mode = ?)
               ORDER BY program_id IS NOT NULL DESC, department_id IS NOT NULL DESC, faculty_id IS NOT NULL DESC,
-                       student_status != "all" DESC, year_of_study IS NOT NULL DESC,
+                       FIELD(student_status, "continuing", "all") ASC, year_of_study IS NOT NULL DESC,
                        semester_number IS NOT NULL DESC, study_mode IS NOT NULL DESC, id DESC
               LIMIT 1',
             [
@@ -173,7 +193,8 @@ final class FeeStructure extends Model
                 (int) $student['program_id'],
                 (int) $student['department_id'],
                 (int) $student['faculty_id'],
-                $this->studentStatus($student, (int) $semester['id']),
+                $status = $this->studentStatus($student, (int) $semester['id']),
+                $status === 'new' ? 'new' : 'continuing',
                 (int) $student['year_of_study'],
                 (int) $semester['semester_number'],
                 (string) $student['study_mode'],

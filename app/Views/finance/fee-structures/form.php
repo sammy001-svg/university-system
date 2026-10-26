@@ -67,7 +67,14 @@ $scope = old('scope', match (true) {
                     <select name="student_status" class="form-select" required>
                         <?= options(\App\Models\FeeStructure::STATUSES, old('student_status', $record['student_status'] ?? 'all')) ?>
                     </select>
-                    <div class="form-text">New = first semester billed in Year 1.</div>
+                    <div class="form-text">New = first semester (Freshman I). 1st/2nd semester = the student's term in their class year (e.g. Sophomore I / II).</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Tuition <span class="text-danger">*</span></label>
+                    <select name="tuition_basis" class="form-select" required>
+                        <?= options(['per_credit' => 'Per credit hour of registered courses', 'flat' => 'Flat amount (a Tuition item below)'], old('tuition_basis', $record['tuition_basis'] ?? 'per_credit')) ?>
+                    </select>
+                    <div class="form-text">Per-credit rates are set under Finance › Tuition Rates.</div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Year of Study</label>

@@ -18,7 +18,7 @@ CREATE TABLE `users` (
   `id`                   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `uuid`                 CHAR(36)        NOT NULL,
   `username`             VARCHAR(60)     NOT NULL,
-  `email`                VARCHAR(150)    NOT NULL,
+  `email`                VARCHAR(150)             DEFAULT NULL,
   `password_hash`        VARCHAR(255)    NOT NULL,
   `title`                VARCHAR(20)              DEFAULT NULL,
   `first_name`           VARCHAR(80)     NOT NULL,
@@ -281,6 +281,8 @@ CREATE TABLE `courses` (
   `tutorial_hours` TINYINT UNSIGNED NOT NULL DEFAULT 0,
   `practical_hours` TINYINT UNSIGNED NOT NULL DEFAULT 0,
   `level`          TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  -- Tuition band (tuition_rates.code) charged per credit hour; NULL uses the "general" band.
+  `tuition_rate_code` VARCHAR(20)        DEFAULT NULL,
   `description`    TEXT                  DEFAULT NULL,
   `objectives`     TEXT                  DEFAULT NULL,
   `status`         ENUM('active','inactive') NOT NULL DEFAULT 'active',
@@ -290,6 +292,34 @@ CREATE TABLE `courses` (
   UNIQUE KEY `uq_course_code` (`code`),
   KEY `ix_course_dept` (`department_id`),
   CONSTRAINT `fk_course_dept` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DROP TABLE IF EXISTS `tuition_rates`;
+CREATE TABLE `tuition_rates` (
+  `id`              INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `code`            VARCHAR(20)  NOT NULL,
+  `name`            VARCHAR(120) NOT NULL,
+  `rate_per_credit` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `description`     VARCHAR(255)          DEFAULT NULL,
+  `status`          ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_tuition_rate_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DROP TABLE IF EXISTS `course_aliases`;
+CREATE TABLE `course_aliases` (
+  `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  -- A code (or title) a course is known by outside the official catalogue, e.g. on billing forms.
+  `code`         VARCHAR(25)  NOT NULL,
+  `course_id`    INT UNSIGNED NOT NULL,
+  `title`        VARCHAR(200)          DEFAULT NULL,
+  `credit_hours` TINYINT UNSIGNED      DEFAULT NULL,
+  `source`       VARCHAR(80)           DEFAULT NULL,
+  `note`         VARCHAR(255)          DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_course_alias` (`code`),
+  KEY `ix_alias_course` (`course_id`),
+  CONSTRAINT `fk_alias_course` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DROP TABLE IF EXISTS `program_courses`;
@@ -653,6 +683,8 @@ CREATE TABLE `course_registrations` (
   `offering_id`     BIGINT UNSIGNED NOT NULL,
   `semester_id`     INT UNSIGNED    NOT NULL,
   `registration_type` ENUM('normal','retake','audit','supplementary') NOT NULL DEFAULT 'normal',
+  -- Credit hours registered and billed, when they differ from the curriculum (NULL = curriculum/catalogue credits).
+  `credit_hours`    TINYINT UNSIGNED         DEFAULT NULL,
   `approval_status` ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
   `approved_by`     BIGINT UNSIGNED          DEFAULT NULL,
   `approved_at`     DATETIME                 DEFAULT NULL,
@@ -892,12 +924,19 @@ CREATE TABLE `fee_types` (
 DROP TABLE IF EXISTS `fee_structures`;
 CREATE TABLE `fee_structures` (
   `id`               INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  -- Set on structures managed by the academic catalogue (database/seeds/catalog/bbiu.php).
+  `code`             VARCHAR(40)           DEFAULT NULL,
   -- Scope: at most one of faculty (college), department or program is set; none means institution-wide.
   `faculty_id`       INT UNSIGNED          DEFAULT NULL,
   `department_id`    INT UNSIGNED          DEFAULT NULL,
   `program_id`       INT UNSIGNED          DEFAULT NULL,
   `academic_year_id` INT UNSIGNED NOT NULL,
-  `student_status`   ENUM('all','new','continuing') NOT NULL DEFAULT 'all',
+  -- new: first semester ever; first_term / second_term: a continuing student's 1st or 2nd
+  -- semester of their class year (Freshman I, Sophomore II...); continuing: either term.
+  `student_status`   ENUM('all','new','continuing','first_term','second_term') NOT NULL DEFAULT 'all',
+  -- flat: tuition is an item of the structure; per_credit: each registered course's credit
+  -- hours times its tuition rate.
+  `tuition_basis`    ENUM('flat','per_credit') NOT NULL DEFAULT 'flat',
   -- NULL in any of the next three columns means "any".
   `year_of_study`    TINYINT UNSIGNED      DEFAULT NULL,
   `semester_number`  TINYINT UNSIGNED      DEFAULT NULL,
@@ -908,6 +947,7 @@ CREATE TABLE `fee_structures` (
   `created_at`       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_fs_code` (`code`),
   KEY `ix_fs_lookup` (`academic_year_id`,`status`),
   CONSTRAINT `fk_fs_faculty`    FOREIGN KEY (`faculty_id`) REFERENCES `faculties` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_fs_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE CASCADE,
@@ -975,6 +1015,8 @@ CREATE TABLE `invoice_items` (
   `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `invoice_id`  BIGINT UNSIGNED NOT NULL,
   `fee_type_id` INT UNSIGNED             DEFAULT NULL,
+  -- Tuition lines: the course billed; quantity is its credit hours, unit_amount the rate.
+  `course_id`   INT UNSIGNED             DEFAULT NULL,
   `description` VARCHAR(200)    NOT NULL,
   `quantity`    SMALLINT UNSIGNED NOT NULL DEFAULT 1,
   `unit_amount` DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
