@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Core;
 
 use App\Core\Exceptions\HttpException;
+use App\Services\AcademicCatalogSync;
 use Throwable;
 
 final class App
@@ -75,6 +76,9 @@ final class App
     public function run(): void
     {
         try {
+            if (Config::get('app.catalog_auto_sync', true)) {
+                (new AcademicCatalogSync($this->basePath))->syncIfChanged(static fn () => Database::connection());
+            }
             $this->shareViewGlobals();
             $output = $this->router->dispatch($this->request);
             if (is_string($output)) {

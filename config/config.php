@@ -101,6 +101,8 @@ return [
         'timezone'   => env('APP_TIMEZONE', 'Africa/Monrovia'),
         'key'        => env('APP_KEY', 'insecure-development-key'),
         'version'    => '1.0.0',
+        // Reload database/seeds/catalog/bbiu.php automatically on the first request after it changes.
+        'catalog_auto_sync' => filter_var(env('CATALOG_AUTO_SYNC', 'true'), FILTER_VALIDATE_BOOLEAN),
     ],
     'database' => [
         'host'    => env('DB_HOST', '127.0.0.1'),

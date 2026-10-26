@@ -68,9 +68,22 @@ return static function (PDO $pdo, array $options = []): array {
         if (!isset($catalog['departments'][$program['department']])) {
             $problems[] = "{$programCode}: unknown department {$program['department']}";
         }
-        foreach (array_keys($program['plan']) as $year) {
+        foreach ($program['plan'] as $year => $semesters) {
             if ($year < 1 || $year > $program['years']) {
                 $problems[] = "{$programCode}: plan year {$year} outside its {$program['years']}-year duration";
+            }
+            foreach ($semesters as $semester => $rows) {
+                $codes = [];
+                foreach ($rows as $row) {
+                    foreach (isset($row['either']) ? $row['either'] : [$row] as $item) {
+                        if (isset($item['code'])) {
+                            $codes[] = $item['code'];
+                        }
+                    }
+                }
+                foreach (array_unique(array_diff_assoc($codes, array_unique($codes))) as $duplicate) {
+                    $problems[] = "{$programCode}: {$duplicate} appears twice in Year {$year} Semester {$semester}";
+                }
             }
         }
     }
