@@ -142,20 +142,20 @@ ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`descrip
 
 -- 3. Grant All Permissions to Super Administrator Role (Role ID = 1)
 INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
-SELECT 1, `id` FROM `permissions`;
+SELECT r.`id`, p.`id` FROM `roles` r CROSS JOIN `permissions` p WHERE r.`slug` = 'super-admin';
 
--- 4. Create Super Administrator Account
+-- 4. Create Super Administrator Account (same as database/seed_admin_login.sql)
 -- Username: admin
--- Password: Admin2026!
+-- Password: Admin@2026  (must be changed at first sign-in)
+-- Matched by username, so re-running resets this account only.
 INSERT INTO `users` (
-  `id`, `uuid`, `username`, `email`, `password_hash`, `title`, `first_name`, `last_name`,
-  `gender`, `phone`, `user_type`, `status`, `email_verified_at`
+  `uuid`, `username`, `email`, `password_hash`, `title`, `first_name`, `last_name`,
+  `gender`, `phone`, `user_type`, `status`, `must_change_password`, `email_verified_at`
 ) VALUES (
-  1,
-  'a0000000-0000-4000-8000-000000000001',
+  UUID(),
   'admin',
   'admin@bestbrain.edu.lr',
-  '$2y$10$Sjt761clz/pXBqVUc21l.OIcOxoCq1agS84JzTZsrEsUWqYcr7DAO',
+  '$2y$12$DkXmJkIcqCdI45YZ7SuPX.tj7XnFUNE5OWM.pjsGt.9qLAqJ8.gcK',
   'Mr',
   'System',
   'Administrator',
@@ -163,14 +163,21 @@ INSERT INTO `users` (
   '+231770000000',
   'admin',
   'active',
+  1,
   NOW()
 )
 ON DUPLICATE KEY UPDATE
-  `password_hash` = VALUES(`password_hash`),
-  `status` = 'active';
+  `password_hash`        = VALUES(`password_hash`),
+  `user_type`            = 'admin',
+  `status`               = 'active',
+  `must_change_password` = 1,
+  `failed_attempts`      = 0,
+  `locked_until`         = NULL,
+  `deleted_at`           = NULL;
 
 -- 5. Link Admin User to Super Administrator Role
-INSERT IGNORE INTO `user_roles` (`user_id`, `role_id`) VALUES (1, 1);
+INSERT IGNORE INTO `user_roles` (`user_id`, `role_id`)
+SELECT u.`id`, r.`id` FROM `users` u JOIN `roles` r ON r.`slug` = 'super-admin' WHERE u.`username` = 'admin';
 
 -- 6. Insert Default System Settings
 INSERT INTO `settings` (`setting_key`, `setting_value`, `setting_group`, `data_type`, `label`) VALUES

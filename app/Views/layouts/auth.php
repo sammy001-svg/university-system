@@ -13,7 +13,7 @@ $pageTitle = $pageTitle ?? 'Sign in';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="<?= asset('css/app.css') ?>" rel="stylesheet">
 </head>
-<body>
+<body class="auth-body">
 <div class="auth-wrap">
     <aside class="auth-aside">
         <div>
@@ -23,7 +23,7 @@ $pageTitle = $pageTitle ?? 'Sign in';
                 </div>
                 <div>
                     <div style="color:#fff;font-weight:600"><?= e($appName) ?></div>
-                    <div style="font-size:11px;color:#94a3b8;letter-spacing:.5px;text-transform:uppercase">Management System</div>
+                    <div style="font-size:11px;color:var(--sidebar-dim);letter-spacing:.5px;text-transform:uppercase">Management System</div>
                 </div>
             </div>
             <h2>One system for the whole institution.</h2>
@@ -33,7 +33,7 @@ $pageTitle = $pageTitle ?? 'Sign in';
             <div class="feature"><?= icon('clipboard') ?><div><strong>Lecturer workspace</strong><span>Class lists, attendance, coursework and marks.</span></div></div>
             <div class="feature"><?= icon('shield') ?><div><strong>Role-based access</strong><span>Granular permissions and a full audit trail.</span></div></div>
         </div>
-        <div style="font-size:12px;color:#8ba0ba">&copy; <?= date('Y') ?> <?= e($appName) ?></div>
+        <div style="font-size:12px;color:var(--sidebar-dim)">&copy; <?= date('Y') ?> <?= e($appName) ?></div>
     </aside>
 
     <section class="auth-panel">

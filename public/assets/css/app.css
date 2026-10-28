@@ -252,6 +252,49 @@ h1, h2, h3, h4, h5, h6 { font-weight: 600; color: var(--ink); }
 .auth-aside .feature strong { color: #fff; display: block; font-size: 13.5px; }
 .auth-aside .feature span { font-size: 12.5px; color: #93a5bb; }
 
+/* Sign-in screens use the sidebar's purple instead of the blue brand and
+   Bootstrap's default blue. Scoped to .auth-wrap so the rest of the system
+   keeps its own palette. */
+.auth-wrap {
+  --brand-900: #4a1d50;
+  --brand-800: #5c2462;
+  --brand-700: var(--sidebar-bottom);
+  --brand-600: var(--sidebar-top);
+  --brand-500: #a24ea9;
+  --brand-100: #f3e6f4;
+  --muted:     #6e6371;
+  --line:      #ece2ed;
+  --bs-primary: #914098;
+  --bs-primary-rgb: 145, 64, 152;
+  --bs-link-color: #914098;
+  --bs-link-color-rgb: 145, 64, 152;
+  --bs-link-hover-color: #6f2f76;
+  --bs-link-hover-color-rgb: 111, 47, 118;
+  --bs-focus-ring-color: rgba(145, 64, 152, .25);
+}
+.auth-body { background: var(--surface); }
+.auth-wrap .auth-aside { background: linear-gradient(155deg, var(--sidebar-top), var(--sidebar-bottom)); color: var(--sidebar-text); }
+.auth-wrap .auth-aside p,
+.auth-wrap .auth-aside .feature span { color: var(--sidebar-dim); }
+.auth-wrap .btn-primary {
+  --bs-btn-bg: var(--brand-600); --bs-btn-border-color: var(--brand-600);
+  --bs-btn-hover-bg: var(--brand-700); --bs-btn-hover-border-color: var(--brand-700);
+  --bs-btn-active-bg: var(--brand-800); --bs-btn-active-border-color: var(--brand-800);
+  --bs-btn-disabled-bg: var(--brand-500); --bs-btn-disabled-border-color: var(--brand-500);
+  --bs-btn-focus-shadow-rgb: 145, 64, 152;
+}
+.auth-wrap .form-control, .auth-wrap .form-select { border-color: #d9cfdb; }
+.auth-wrap .form-control::placeholder { color: #a39aa6; }
+.auth-wrap .form-control:focus, .auth-wrap .form-select:focus,
+.auth-wrap .form-check-input:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(145, 64, 152, .15);
+}
+.auth-wrap .form-check-input:checked { background-color: var(--brand-600); border-color: var(--brand-600); }
+.auth-wrap .alert-info {
+  --bs-alert-color: #5c2462; --bs-alert-bg: #f6edf7; --bs-alert-border-color: #e6cfe8; --bs-alert-link-color: #4a1d50;
+}
+
 .auth-panel { display: grid; place-items: center; padding: 40px 24px; background: var(--surface); }
 .auth-card { width: 100%; max-width: 396px; }
 .auth-card h1 { font-size: 22px; margin-bottom: 4px; }
