@@ -27,12 +27,18 @@ final class AcademicCatalogSync
     {
     }
 
-    /** Fingerprint of the catalogue data and the loader that applies it. */
+    /**
+     * Fingerprint of everything a sync applies: the catalogue data, the loader,
+     * and this class (its schema upgrades). Deploying a new schema upgrade
+     * therefore changes the fingerprint and the next request applies it, even
+     * when the catalogue itself is unchanged.
+     */
     public function fingerprint(): string
     {
         return sha1(
             (string) sha1_file($this->basePath . '/database/seeds/catalog/bbiu.php')
             . (string) sha1_file($this->basePath . '/database/seeds/academic.php')
+            . (string) sha1_file(__FILE__)
         );
     }
 
@@ -256,6 +262,17 @@ final class AcademicCatalogSync
                    ADD CONSTRAINT fk_staff_faculty FOREIGN KEY (faculty_id) REFERENCES faculties (id) ON DELETE SET NULL'
             );
             $pdo->exec('UPDATE staff s JOIN departments d ON d.id = s.department_id SET s.faculty_id = d.faculty_id');
+        }
+        // Student minors and the registrar's per-semester registration stage.
+        if (!$hasColumn('students', 'minor_program_id')) {
+            $pdo->exec(
+                'ALTER TABLE students ADD COLUMN minor_program_id INT UNSIGNED DEFAULT NULL AFTER program_id,
+                   ADD CONSTRAINT fk_student_minor FOREIGN KEY (minor_program_id) REFERENCES programs (id) ON DELETE SET NULL'
+            );
+        }
+        if (!$hasColumn('semester_enrollments', 'registration_stage')) {
+            $pdo->exec("ALTER TABLE semester_enrollments ADD COLUMN registration_stage
+                        ENUM('planned','committed','not_committed') DEFAULT NULL AFTER status");
         }
         if (!$hasColumn('invoice_items', 'course_id')) {
             $pdo->exec('ALTER TABLE invoice_items ADD COLUMN course_id INT UNSIGNED DEFAULT NULL AFTER fee_type_id');

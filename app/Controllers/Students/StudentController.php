@@ -53,6 +53,9 @@ final class StudentController extends Controller
         if ($request->filled('study_mode')) {
             $query->where('s.study_mode', $request->query('study_mode'));
         }
+        if ($request->filled('stage')) {
+            $query->where('se.registration_stage', $request->query('stage'));
+        }
         return $query;
     }
 

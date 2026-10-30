@@ -44,12 +44,12 @@ $rows = $result['data'];
 
 <form class="filter-bar" method="get">
     <div class="row g-2 align-items-end">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label class="form-label">Search</label>
             <input type="search" name="q" class="form-control form-control-sm" value="<?= e($_GET['q'] ?? '') ?>"
                    placeholder="Admission no, name or email">
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label class="form-label">Programme</label>
             <select name="program_id" class="form-select form-select-sm" data-auto-submit>
                 <?= options($programs, $_GET['program_id'] ?? '', 'All programmes') ?>
@@ -65,6 +65,12 @@ $rows = $result['data'];
             <label class="form-label">Status</label>
             <select name="status" class="form-select form-select-sm" data-auto-submit>
                 <?= enum_options(['active', 'deferred', 'suspended', 'graduated', 'withdrawn', 'expelled', 'alumni'], $_GET['status'] ?? '', 'Any status') ?>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">This semester</label>
+            <select name="stage" class="form-select form-select-sm" data-auto-submit>
+                <?= options(\App\Models\SemesterEnrollment::STAGES, $_GET['stage'] ?? '', 'Any stage') ?>
             </select>
         </div>
         <div class="col-md-2">
@@ -88,7 +94,7 @@ $rows = $result['data'];
             <thead>
             <tr>
                 <th>Admission no</th><th>Student</th><th>Programme</th>
-                <th class="text-center">Year</th><th class="text-center">CGPA</th>
+                <th class="text-center">Standing</th><th class="text-center">CGPA</th>
                 <th>Status</th><th class="text-end">Actions</th>
             </tr>
             </thead>
@@ -115,11 +121,12 @@ $rows = $result['data'];
                     </td>
                     <td>
                         <div><?= e(str_limit($row['program_name'], 38)) ?></div>
-                        <div class="text-muted-sm"><?= e($row['program_code']) ?> &middot; <?= e(humanize($row['study_mode'])) ?></div>
+                        <div class="text-muted-sm"><?= e($row['program_code']) ?> &middot; <?= e(humanize($row['study_mode'])) ?><?= !empty($row['minor_program_code']) ? ' &middot; minor ' . e($row['minor_program_code']) : '' ?></div>
                     </td>
-                    <td class="text-center"><?= (int) $row['year_of_study'] ?></td>
+                    <td class="text-center text-nowrap"><?= e(\App\Models\FeeStructure::classStanding($row)) ?></td>
                     <td class="text-center fw-semibold"><?= number_format((float) $row['cgpa'], 2) ?></td>
-                    <td><?= status_badge($row['status']) ?></td>
+                    <td><?= status_badge($row['status']) ?>
+                        <?php if (!empty($row['registration_stage'])): ?><div class="text-muted-sm"><?= e(\App\Models\SemesterEnrollment::STAGES[$row['registration_stage']] ?? '') ?></div><?php endif; ?></td>
                     <td class="text-end text-nowrap">
                         <a class="btn btn-sm btn-light" title="Profile" href="<?= url('/students/' . $row['id']) ?>"><?= icon('eye', 'ico-sm') ?></a>
                         <?php if (can('results.view')): ?>

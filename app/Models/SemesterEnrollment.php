@@ -18,6 +18,13 @@ final class SemesterEnrollment extends Model
     protected array $fillable = ['student_id', 'semester_id', 'invoice_id', 'status', 'enrolled_at'];
     protected array $searchable = [];
 
+    /** The registrar's per-semester list: where a student stands before paying. */
+    public const STAGES = [
+        'planned'       => 'Planned',
+        'committed'     => 'Made commitment',
+        'not_committed' => 'Not enrolled / no commitment',
+    ];
+
     /**
      * Enrolment status for a student/semester together with the 1st installment
      * that clears it. Returns null when the student has not been billed yet.

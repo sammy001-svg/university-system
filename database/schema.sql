@@ -510,6 +510,8 @@ CREATE TABLE `students` (
   `admission_number`       VARCHAR(40)     NOT NULL,
   `registration_number`    VARCHAR(40)              DEFAULT NULL,
   `program_id`             INT UNSIGNED    NOT NULL,
+  -- The programme whose minor requirements the student follows (e.g. a Management major minoring in PADM).
+  `minor_program_id`       INT UNSIGNED             DEFAULT NULL,
   `intake_id`              INT UNSIGNED             DEFAULT NULL,
   `campus_id`              INT UNSIGNED             DEFAULT NULL,
   `year_of_study`          TINYINT UNSIGNED NOT NULL DEFAULT 1,
@@ -550,6 +552,7 @@ CREATE TABLE `students` (
   KEY `ix_student_status` (`status`),
   CONSTRAINT `fk_student_user`    FOREIGN KEY (`user_id`)    REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_student_program` FOREIGN KEY (`program_id`) REFERENCES `programs` (`id`),
+  CONSTRAINT `fk_student_minor`   FOREIGN KEY (`minor_program_id`) REFERENCES `programs` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_student_intake`  FOREIGN KEY (`intake_id`)  REFERENCES `intakes` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_student_campus`  FOREIGN KEY (`campus_id`)  REFERENCES `campuses` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1054,6 +1057,9 @@ CREATE TABLE `semester_enrollments` (
   `invoice_id`  BIGINT UNSIGNED          DEFAULT NULL,
   -- "enrolled" means the 1st installment is cleared: registration complete.
   `status`      ENUM('pending_payment','enrolled') NOT NULL DEFAULT 'pending_payment',
+  -- Where the student stands for the semester on the registrar's list, before payment:
+  -- planned, committed (made a commitment), or not_committed (not enrolled, no commitment).
+  `registration_stage` ENUM('planned','committed','not_committed') DEFAULT NULL,
   `enrolled_at` DATETIME                 DEFAULT NULL,
   `created_at`  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

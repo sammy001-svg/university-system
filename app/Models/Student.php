@@ -11,7 +11,7 @@ final class Student extends Model
 {
     protected string $table = 'students';
     protected array $fillable = [
-        'user_id', 'admission_number', 'registration_number', 'program_id', 'intake_id', 'campus_id',
+        'user_id', 'admission_number', 'registration_number', 'program_id', 'minor_program_id', 'intake_id', 'campus_id',
         'year_of_study', 'current_semester', 'study_mode', 'admission_date', 'expected_completion',
         'completion_date', 'sponsor_type', 'sponsor_name', 'nationality', 'national_id', 'passport_number',
         'religion', 'marital_status', 'blood_group', 'disability', 'postal_address', 'physical_address',
@@ -31,12 +31,16 @@ final class Student extends Model
                 'u.first_name', 'u.last_name', 'u.other_name', 'u.email', 'u.phone', 'u.gender',
                 'u.avatar', 'u.status AS account_status', 'u.date_of_birth',
                 'p.name AS program_name', 'p.code AS program_code', 'p.level AS program_level',
-                'd.name AS department_name', 'f.name AS faculty_name'
+                'd.name AS department_name', 'f.name AS faculty_name',
+                'mp.name AS minor_program_name', 'mp.code AS minor_program_code',
+                'se.registration_stage', 'se.status AS semester_enrolment'
             )
             ->join('users u', 'u.id = s.user_id')
             ->join('programs p', 'p.id = s.program_id')
             ->join('departments d', 'd.id = p.department_id')
             ->join('faculties f', 'f.id = d.faculty_id')
+            ->leftJoin('programs mp', 'mp.id = s.minor_program_id')
+            ->leftJoin('semester_enrollments se', 'se.student_id = s.id AND se.semester_id = (SELECT cs.id FROM semesters cs WHERE cs.is_current = 1 LIMIT 1)')
             ->whereNull('u.deleted_at');
     }
 

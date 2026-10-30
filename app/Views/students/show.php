@@ -63,9 +63,11 @@ $paidPercent = $billed > 0 ? min(100, ($paid / $billed) * 100) : 0;
                 <ul class="list-clean text-muted-sm">
                     <li><strong>Registration no</strong><div><?= e($student['registration_number'] ?? '-') ?></div></li>
                     <li><strong>Programme</strong><div><?= e($student['program_name']) ?></div></li>
+                    <li><strong>Minor</strong><div><?= e($student['minor_program_name'] ?? '-') ?></div></li>
                     <li><strong>Department</strong><div><?= e($student['department_name']) ?></div></li>
                     <li><strong>College</strong><div><?= e($student['faculty_name']) ?></div></li>
-                    <li><strong>Year / semester</strong><div>Year <?= (int) $student['year_of_study'] ?>, Semester <?= (int) $student['current_semester'] ?></div></li>
+                    <li><strong>Year / semester</strong><div><?= e(\App\Models\FeeStructure::classStanding($student)) ?> (Year <?= (int) $student['year_of_study'] ?>, Semester <?= (int) $student['current_semester'] ?>)</div></li>
+                    <li><strong>This semester</strong><div><?= e(\App\Models\SemesterEnrollment::STAGES[$student['registration_stage'] ?? ''] ?? '-') ?><?= ($student['semester_enrolment'] ?? '') === 'enrolled' ? ' &middot; registration complete' : '' ?></div></li>
                     <li><strong>Study mode</strong><div><?= e(humanize($student['study_mode'])) ?></div></li>
                     <li><strong>Admitted</strong><div><?= fdate($student['admission_date']) ?></div></li>
                     <li><strong>Sponsor</strong><div><?= e(humanize($student['sponsor_type'])) ?><?= $student['sponsor_name'] ? ' - ' . e($student['sponsor_name']) : '' ?></div></li>
