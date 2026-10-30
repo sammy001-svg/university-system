@@ -35,20 +35,35 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
                 return can($item['permission']);
             });
             if ($visible === []) { continue; }
+
+            // A group opens by itself when it holds the current page; the others open on click.
+            $links = [];
+            foreach ($visible as $item) {
+                $href    = $item['url'];
+                $links[] = $item + ['active' => $href === '/dashboard'
+                    ? str_ends_with($currentPath, '/dashboard')
+                    : str_contains($currentPath, rtrim($href, '/'))];
+            }
+            $current = in_array(true, array_column($links, 'active'), true);
+            $groupId = 'nav-' . strtolower((string) preg_replace('/[^A-Za-z0-9]+/', '-', $group['title']));
             ?>
-            <div class="nav-group-title"><?= e($group['title']) ?></div>
-            <?php foreach ($visible as $item): ?>
-                <?php
-                $href   = $item['url'];
-                $active = $href === '/dashboard'
-                    ? (str_ends_with($currentPath, '/dashboard') ? 'active' : '')
-                    : (str_contains($currentPath, rtrim($href, '/')) ? 'active' : '');
-                ?>
-                <a class="nav-link <?= $active ?>" href="<?= url($href) ?>">
-                    <?= icon($item['icon'] ?? 'dashboard') ?>
-                    <span><?= e($item['label']) ?></span>
-                </a>
-            <?php endforeach; ?>
+            <div class="nav-group <?= $current ? 'open current' : '' ?>" data-nav-group="<?= e($groupId) ?>">
+                <button type="button" class="nav-group-toggle" aria-expanded="<?= $current ? 'true' : 'false' ?>" aria-controls="<?= e($groupId) ?>">
+                    <span><?= e($group['title']) ?></span>
+                    <span class="nav-group-count"><?= count($links) ?></span>
+                    <span class="nav-chevron" aria-hidden="true"></span>
+                </button>
+                <div class="nav-group-items" id="<?= e($groupId) ?>">
+                    <div>
+                        <?php foreach ($links as $item): ?>
+                            <a class="nav-link <?= $item['active'] ? 'active' : '' ?>" href="<?= url($item['url']) ?>">
+                                <?= icon($item['icon'] ?? 'dashboard') ?>
+                                <span><?= e($item['label']) ?></span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
         <?php endforeach; ?>
     </nav>
 </aside>

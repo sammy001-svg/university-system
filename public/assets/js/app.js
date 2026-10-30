@@ -17,6 +17,27 @@
       });
     }
 
+    /* Sidebar module groups open and close on click; each person's choice is remembered.
+       The group holding the current page always starts open. */
+    var navKey = 'ums.nav.open';
+    var navState = {};
+    try { navState = JSON.parse(localStorage.getItem(navKey) || '{}') || {}; } catch (e) { navState = {}; }
+    var setGroup = function (group, open) {
+      group.classList.toggle('open', open);
+      group.querySelector('.nav-group-toggle').setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    document.querySelectorAll('[data-nav-group]').forEach(function (group) {
+      var id = group.getAttribute('data-nav-group');
+      if (!group.classList.contains('current') && navState[id] !== undefined) { setGroup(group, !!navState[id]); }
+      group.querySelector('.nav-group-toggle').addEventListener('click', function () {
+        var open = !group.classList.contains('open');
+        setGroup(group, open);
+        navState[id] = open;
+        try { localStorage.setItem(navKey, JSON.stringify(navState)); } catch (e) { /* private mode */ }
+      });
+    });
+    if (sidebar) { requestAnimationFrame(function () { sidebar.classList.add('nav-ready'); }); }
+
     /* Confirm before destructive actions */
     document.querySelectorAll('form[data-confirm]').forEach(function (form) {
       form.addEventListener('submit', function (e) {

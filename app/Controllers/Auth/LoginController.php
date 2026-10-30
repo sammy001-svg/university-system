@@ -20,23 +20,26 @@ final class LoginController extends Controller
     {
         $this->verifyCsrf($request);
 
+        $as = $request->input('login_as') === 'student' ? 'student' : 'staff';
+        Session::keepOldInput(['login_as' => $as, 'identifier' => (string) $request->input('identifier', '')]);
+
         $data = $this->validate($request, [
             'identifier' => 'required|max:150',
             'password'   => 'required',
         ], [
-            'identifier' => 'Username or email',
+            'identifier' => $as === 'student' ? 'Admission number' : 'Username or email',
         ]);
 
         $result = Auth::attempt(
             (string) $data['identifier'],
             (string) $data['password'],
             $request->ip(),
-            $request->userAgent()
+            $request->userAgent(),
+            $as
         );
 
         if (!$result['ok']) {
-            Session::keepOldInput(['identifier' => $data['identifier']]);
-            $this->error($result['message'], '/login');
+            $this->error($result['message'], '/login' . ($as === 'student' ? '?as=student' : ''));
         }
 
         Csrf::rotate();

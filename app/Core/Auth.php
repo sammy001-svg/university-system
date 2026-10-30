@@ -11,19 +11,37 @@ final class Auth
     private const SESSION_KEY = 'auth_user_id';
     private static ?array $user = null;
 
-    public static function attempt(string $identifier, string $password, string $ip, string $agent): array
+    /**
+     * Sign in. $as = 'student' looks the account up by admission (or
+     * registration) number; 'staff' by username or email, for every account
+     * that is not a student's.
+     */
+    public static function attempt(string $identifier, string $password, string $ip, string $agent, string $as = 'staff'): array
     {
-        $user = Database::selectOne(
-            'SELECT * FROM users
-              WHERE (username = ? OR email = ?) AND deleted_at IS NULL
-              LIMIT 1',
-            [$identifier, $identifier]
-        );
+        if ($as === 'student') {
+            $identifier = strtoupper((string) preg_replace('/\s+/', '', $identifier));
+            $user = Database::selectOne(
+                'SELECT u.* FROM users u JOIN students s ON s.user_id = u.id
+                  WHERE (s.admission_number = ? OR s.registration_number = ?) AND u.deleted_at IS NULL
+                  ORDER BY s.admission_number = ? DESC
+                  LIMIT 1',
+                [$identifier, $identifier, $identifier]
+            );
+        } else {
+            $user = Database::selectOne(
+                'SELECT * FROM users
+                  WHERE (username = ? OR email = ?) AND deleted_at IS NULL
+                  LIMIT 1',
+                [$identifier, $identifier]
+            );
+        }
 
         self::logAttempt($identifier, $ip, $agent, false);
 
         if ($user === null) {
-            return ['ok' => false, 'message' => 'Invalid credentials. Please try again.'];
+            return ['ok' => false, 'message' => $as === 'student'
+                ? 'Admission number or password is incorrect. Please try again.'
+                : 'Invalid credentials. Please try again.'];
         }
 
         if ($user['locked_until'] !== null && strtotime($user['locked_until']) > time()) {
@@ -31,9 +49,22 @@ final class Auth
             return ['ok' => false, 'message' => "Account temporarily locked. Try again in {$minutes} minute(s)."];
         }
 
+        // Imported accounts have no password until a login slip is issued.
+        if ($user['password_hash'] === '!') {
+            return ['ok' => false, 'message' => $user['user_type'] === 'student'
+                ? 'Your student account has not been activated yet. Collect your login slip from the Office of Admission and Records.'
+                : 'Your account has not been activated yet. Ask the system administrator for your login slip.'];
+        }
+
         if (!Hash::check($password, $user['password_hash'])) {
             self::registerFailure($user);
-            return ['ok' => false, 'message' => 'Invalid credentials. Please try again.'];
+            return ['ok' => false, 'message' => $as === 'student'
+                ? 'Admission number or password is incorrect. Please try again.'
+                : 'Invalid credentials. Please try again.'];
+        }
+
+        if ($as !== 'student' && $user['user_type'] === 'student') {
+            return ['ok' => false, 'message' => 'This is a student account. Choose "Student" and sign in with your admission number.'];
         }
 
         if ($user['status'] === 'suspended') {
