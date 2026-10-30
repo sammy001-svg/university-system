@@ -5,6 +5,7 @@ namespace App\Core;
 
 use App\Core\Exceptions\HttpException;
 use App\Services\AcademicCatalogSync;
+use App\Services\DataImport\DataImportSync;
 use Throwable;
 
 final class App
@@ -78,6 +79,9 @@ final class App
         try {
             if (Config::get('app.catalog_auto_sync', true)) {
                 (new AcademicCatalogSync($this->basePath))->syncIfChanged(static fn () => Database::connection());
+            }
+            if (Config::get('app.data_auto_import', true)) {
+                (new DataImportSync($this->basePath))->syncIfChanged(static fn () => Database::connection());
             }
             $this->shareViewGlobals();
             $output = $this->router->dispatch($this->request);

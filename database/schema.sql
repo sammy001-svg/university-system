@@ -168,6 +168,26 @@ CREATE TABLE `settings` (
   UNIQUE KEY `uq_settings_key` (`setting_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Results of importing the files in database/data/ (App\Services\DataImport\DataImportSync).
+DROP TABLE IF EXISTS `data_imports`;
+CREATE TABLE `data_imports` (
+  `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `file_name`     VARCHAR(150) NOT NULL,
+  `import_type`   VARCHAR(40)           DEFAULT NULL,
+  `source`        VARCHAR(255)          DEFAULT NULL,
+  `checksum`      CHAR(40)     NOT NULL,
+  `code_version`  CHAR(40)     NOT NULL,
+  `status`        ENUM('ok','partial','failed') NOT NULL,
+  `created_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  `updated_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  `failed_count`  INT UNSIGNED NOT NULL DEFAULT 0,
+  `report`        MEDIUMTEXT            DEFAULT NULL,
+  `duration_ms`   INT UNSIGNED NOT NULL DEFAULT 0,
+  `imported_at`   DATETIME     NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_data_import_file` (`file_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 DROP TABLE IF EXISTS `notifications`;
 CREATE TABLE `notifications` (
   `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

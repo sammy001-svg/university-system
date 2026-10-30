@@ -111,6 +111,7 @@ return [
             ['label' => 'Settings',       'url' => '/admin/settings', 'icon' => 'settings', 'permission' => 'settings.manage'],
             ['label' => 'Campuses',       'url' => '/admin/campuses', 'icon' => 'building', 'permission' => 'settings.manage'],
             ['label' => 'Rooms',          'url' => '/admin/rooms',    'icon' => 'building', 'permission' => 'settings.manage'],
+            ['label' => 'Data Imports',   'url' => '/admin/data-imports', 'icon' => 'file', 'permission' => 'settings.manage'],
             ['label' => 'Audit Trail',    'url' => '/admin/audit',    'icon' => 'shield',   'permission' => 'audit.view'],
         ],
     ],

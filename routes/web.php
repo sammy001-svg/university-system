@@ -336,6 +336,12 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth']], static function
     $r->post('/settings', 'Admin\SettingController@save');
     $r->get('/audit', 'Admin\AuditController@index');
 
+    $r->get('/data-imports', 'Admin\DataImportController@index');
+    $r->post('/data-imports/run', 'Admin\DataImportController@run');
+    $r->get('/data-imports/slips', 'Admin\DataImportController@slips');
+    $r->post('/data-imports/slips', 'Admin\DataImportController@issue');
+    $r->get('/data-imports/{id}', 'Admin\DataImportController@show');
+
     $resource($r, '/campuses', 'Admin\CampusController');
     $resource($r, '/rooms', 'Admin\RoomController');
     $resource($r, '/buildings', 'Admin\BuildingController');
