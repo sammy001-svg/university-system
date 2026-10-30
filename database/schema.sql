@@ -454,6 +454,8 @@ CREATE TABLE `staff` (
   `user_id`         BIGINT UNSIGNED NOT NULL,
   `staff_number`    VARCHAR(40)     NOT NULL,
   `department_id`   INT UNSIGNED             DEFAULT NULL,
+  -- College the staff member belongs to; follows the department when one is set.
+  `faculty_id`      INT UNSIGNED             DEFAULT NULL,
   `designation`     VARCHAR(120)             DEFAULT NULL,
   `staff_category`  ENUM('academic','administrative','support','technical') NOT NULL DEFAULT 'academic',
   `employment_type` ENUM('permanent','contract','part_time','visiting','intern') NOT NULL DEFAULT 'permanent',
@@ -478,8 +480,10 @@ CREATE TABLE `staff` (
   UNIQUE KEY `uq_staff_number` (`staff_number`),
   UNIQUE KEY `uq_staff_user` (`user_id`),
   KEY `ix_staff_dept` (`department_id`),
+  KEY `ix_staff_faculty` (`faculty_id`),
   CONSTRAINT `fk_staff_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_staff_dept` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL
+  CONSTRAINT `fk_staff_dept` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_staff_faculty` FOREIGN KEY (`faculty_id`) REFERENCES `faculties` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DROP TABLE IF EXISTS `intakes`;

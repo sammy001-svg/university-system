@@ -11,7 +11,7 @@ final class Staff extends Model
 {
     protected string $table = 'staff';
     protected array $fillable = [
-        'user_id', 'staff_number', 'department_id', 'designation', 'staff_category', 'employment_type',
+        'user_id', 'staff_number', 'department_id', 'faculty_id', 'designation', 'staff_category', 'employment_type',
         'qualification', 'specialization', 'date_joined', 'contract_end', 'salary_grade', 'basic_salary',
         'bank_name', 'bank_branch', 'bank_account', 'tax_pin', 'nssf_number', 'nhif_number',
         'national_id', 'address', 'status',
@@ -31,7 +31,7 @@ final class Staff extends Model
             )
             ->join('users u', 'u.id = s.user_id')
             ->leftJoin('departments d', 'd.id = s.department_id')
-            ->leftJoin('faculties f', 'f.id = d.faculty_id')
+            ->leftJoin('faculties f', 'f.id = COALESCE(d.faculty_id, s.faculty_id)')
             ->whereNull('u.deleted_at');
     }
 

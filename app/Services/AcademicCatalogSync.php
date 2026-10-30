@@ -248,6 +248,15 @@ final class AcademicCatalogSync
         if (!$hasColumn('course_registrations', 'credit_hours')) {
             $pdo->exec('ALTER TABLE course_registrations ADD COLUMN credit_hours TINYINT UNSIGNED DEFAULT NULL AFTER registration_type');
         }
+        // Staff can belong to a college without (yet) a department.
+        if (!$hasColumn('staff', 'faculty_id')) {
+            $pdo->exec(
+                'ALTER TABLE staff ADD COLUMN faculty_id INT UNSIGNED DEFAULT NULL AFTER department_id,
+                   ADD KEY ix_staff_faculty (faculty_id),
+                   ADD CONSTRAINT fk_staff_faculty FOREIGN KEY (faculty_id) REFERENCES faculties (id) ON DELETE SET NULL'
+            );
+            $pdo->exec('UPDATE staff s JOIN departments d ON d.id = s.department_id SET s.faculty_id = d.faculty_id');
+        }
         if (!$hasColumn('invoice_items', 'course_id')) {
             $pdo->exec('ALTER TABLE invoice_items ADD COLUMN course_id INT UNSIGNED DEFAULT NULL AFTER fee_type_id');
         }

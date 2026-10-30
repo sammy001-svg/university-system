@@ -78,7 +78,7 @@
                         </div>
                     </td>
                     <td><?= e($row['designation'] ?? '—') ?></td>
-                    <td><?= e($row['department_name'] ?? '—') ?></td>
+                    <td><?= e($row['department_name'] ?? '—') ?><?php if (!empty($row['faculty_name'])): ?><div class="text-muted-sm"><?= e($row['faculty_name']) ?></div><?php endif; ?></td>
                     <td><?= status_badge($row['staff_category'] ?? '') ?></td>
                     <td><?= status_badge($row['status']) ?></td>
                     <td class="text-end text-nowrap">

@@ -33,6 +33,7 @@ final class StaffController extends Controller
             'record'      => [],
             'isNew'       => true,
             'departments' => Database::select("SELECT id, name FROM departments WHERE status='active' ORDER BY name"),
+            'colleges'    => Database::select("SELECT id, name FROM faculties WHERE status='active' ORDER BY name"),
         ]);
     }
 
@@ -46,6 +47,7 @@ final class StaffController extends Controller
             'email'           => 'required|email|max:150',
             'phone'           => 'nullable|max:30',
             'department_id'   => 'nullable|integer|exists:departments,id',
+            'faculty_id'      => 'nullable|integer|exists:faculties,id',
             'designation'     => 'nullable|max:120',
             'staff_category'  => 'required|in:academic,administrative,support,technical',
             'employment_type' => 'required|in:permanent,contract,part_time,visiting,intern',
@@ -73,6 +75,7 @@ final class StaffController extends Controller
             'user_id'         => $userId,
             'staff_number'    => $staffNumber,
             'department_id'   => $data['department_id'] ?? null,
+            'faculty_id'      => $this->collegeFor($data),
             'designation'     => $data['designation'] ?? null,
             'staff_category'  => $data['staff_category'],
             'employment_type' => $data['employment_type'],
@@ -100,6 +103,7 @@ final class StaffController extends Controller
             'record'      => $staff,
             'isNew'       => false,
             'departments' => Database::select("SELECT id, name FROM departments WHERE status='active' ORDER BY name"),
+            'colleges'    => Database::select("SELECT id, name FROM faculties WHERE status='active' ORDER BY name"),
         ]);
     }
 
@@ -110,11 +114,13 @@ final class StaffController extends Controller
         $data = $this->validate($request, [
             'designation'     => 'nullable|max:120',
             'department_id'   => 'nullable|integer|exists:departments,id',
+            'faculty_id'      => 'nullable|integer|exists:faculties,id',
             'staff_category'  => 'required|in:academic,administrative,support,technical',
             'employment_type' => 'required|in:permanent,contract,part_time,visiting,intern',
             'basic_salary'    => 'nullable|numeric',
             'status'          => 'required|in:active,on_leave,suspended,terminated,retired',
         ]);
+        $data['faculty_id'] = $this->collegeFor($data);
         $this->model->update((int)$id, $data);
         $this->success('Staff updated.', '/staff/' . $id);
     }
@@ -127,6 +133,15 @@ final class StaffController extends Controller
         $this->success('Staff record deleted.', '/staff');
     }
 
+    /** A department fixes the college; without one, the chosen college stands. */
+    private function collegeFor(array $data): ?int
+    {
+        if (!empty($data['department_id'])) {
+            return (int) Database::scalar('SELECT faculty_id FROM departments WHERE id = ?', [(int) $data['department_id']]);
+        }
+        return empty($data['faculty_id']) ? null : (int) $data['faculty_id'];
+    }
+
     private function staffProfile(int $id): array
     {
         $row = Database::selectOne(
@@ -135,7 +150,7 @@ final class StaffController extends Controller
                FROM staff st
                JOIN users u         ON u.id = st.user_id
           LEFT JOIN departments d   ON d.id = st.department_id
-          LEFT JOIN faculties f     ON f.id = d.faculty_id
+          LEFT JOIN faculties f     ON f.id = COALESCE(d.faculty_id, st.faculty_id)
               WHERE st.id=?',
             [$id]
         );

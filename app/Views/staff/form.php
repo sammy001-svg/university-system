@@ -39,6 +39,13 @@
                     <input type="text" name="designation" class="form-control" value="<?= e(old('designation', $record['designation'] ?? '')) ?>">
                 </div>
                 <div class="col-md-4">
+                    <label class="form-label">College</label>
+                    <select name="faculty_id" class="form-select">
+                        <?= options(array_column($colleges, 'name', 'id'), old('faculty_id', $record['faculty_id'] ?? ''), '— None —') ?>
+                    </select>
+                    <div class="form-text">Set automatically when a department is chosen.</div>
+                </div>
+                <div class="col-md-4">
                     <label class="form-label">Department</label>
                     <select name="department_id" class="form-select">
                         <?= options(array_column($departments, 'name', 'id'), old('department_id', $record['department_id'] ?? ''), '— None —') ?>
