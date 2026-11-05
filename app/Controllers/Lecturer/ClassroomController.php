@@ -8,7 +8,7 @@ use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Exceptions\HttpException;
-use App\Core\Notify;
+use App\Services\Alerts\Alerts;
 use App\Core\Request;
 use App\Core\Upload;
 use App\Services\Elearning\ClassroomService;
@@ -33,6 +33,12 @@ final class ClassroomController extends Controller
                FROM online_exams e WHERE e.offering_id = ? ORDER BY e.opens_at',
             [(int) $id]
         );
+        $assignments = Database::select(
+            'SELECT a.*, (SELECT COUNT(*) FROM assignment_submissions sub WHERE sub.assignment_id = a.id) AS submitted,
+                    (SELECT COUNT(*) FROM assignment_submissions sub WHERE sub.assignment_id = a.id AND sub.graded_at IS NULL) AS to_mark
+               FROM assignments a WHERE a.offering_id = ? ORDER BY a.due_at',
+            [(int) $id]
+        );
         $students = (int) Database::scalar(
             'SELECT COUNT(*) FROM course_registrations WHERE offering_id = ? AND status <> "dropped"',
             [(int) $id]
@@ -44,6 +50,7 @@ final class ClassroomController extends Controller
             'sessions'  => $sessions,
             'materials' => $materials,
             'exams'     => $exams,
+            'assignments' => $assignments,
             'students'  => $students,
             'editing'   => $request->filled('edit')
                 ? Database::selectOne('SELECT * FROM class_sessions WHERE id = ? AND offering_id = ?', [(int) $request->query('edit'), (int) $id])
@@ -87,7 +94,7 @@ final class ClassroomController extends Controller
             Database::statement('UPDATE class_sessions SET status = ? WHERE id = ?', [$action === 'cancel' ? 'cancelled' : 'completed', $session['id']]);
             if ($action === 'cancel') {
                 $this->notifyClass((int) $session['offering_id'], 'Online class cancelled: ' . $offering['code'],
-                    $session['title'] . ' (' . fdatetime($session['starts_at']) . ') has been cancelled.', '/portal/classes');
+                    $session['title'] . ' (' . fdatetime($session['starts_at']) . ') has been cancelled.', '/portal/classes', 'class_cancelled');
             }
             $this->success($action === 'cancel' ? 'Class cancelled; students have been notified.' : 'Class marked as held.',
                 '/teaching/' . $session['offering_id'] . '/classroom');
@@ -172,7 +179,7 @@ final class ClassroomController extends Controller
                 if ($upload === null || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
                     throw new RuntimeException('Choose a file to upload.');
                 }
-                $file = Upload::store($upload, 'materials/' . (int) $id, array_merge(Upload::DOCUMENTS, Upload::IMAGES, ['zip']), 25);
+                $file = Upload::storePrivate($upload, 'materials/' . (int) $id, array_merge(Upload::DOCUMENTS, Upload::IMAGES, Upload::ARCHIVES), 25);
             }
         } catch (RuntimeException $e) {
             $this->error($e->getMessage(), $back);
@@ -200,9 +207,7 @@ final class ClassroomController extends Controller
         }
         CourseAccess::teaching((int) $material['offering_id']);
         Database::statement('DELETE FROM course_materials WHERE id = ?', [$material['id']]);
-        if ($material['file_path']) {
-            @unlink(dirname(__DIR__, 3) . '/public/' . $material['file_path']);
-        }
+        Upload::delete($material['file_path']);
         $this->success('Material removed.', '/teaching/' . $material['offering_id'] . '/classroom#materials');
     }
 
@@ -271,13 +276,13 @@ final class ClassroomController extends Controller
     }
 
     /** Tell everyone on the class list (in-app notification). */
-    private function notifyClass(int $offeringId, string $title, string $message, string $link): void
+    private function notifyClass(int $offeringId, string $title, string $message, string $link, string $event = 'class_scheduled'): void
     {
         $userIds = array_column(Database::select(
             'SELECT s.user_id FROM course_registrations cr JOIN students s ON s.id = cr.student_id
               WHERE cr.offering_id = ? AND cr.status <> "dropped"',
             [$offeringId]
         ), 'user_id');
-        Notify::sendMany($userIds, $title, $message, $link, 'info', 'calendar');
+        Alerts::sendMany($userIds, $event, $title, $message, $link, 'info', 'calendar');
     }
 }

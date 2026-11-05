@@ -33,7 +33,7 @@ final class DataImportController extends Controller
           LEFT JOIN faculties sfc ON sfc.id = sf.faculty_id
          WHERE u.status = "active" AND u.deleted_at IS NULL AND u.last_login_at IS NULL';
 
-    private const TYPES = ['student' => 'Students', 'lecturer' => 'Lecturers', 'staff' => 'Staff'];
+    private const TYPES = ['student' => 'Students', 'lecturer' => 'Lecturers', 'staff' => 'Staff', 'parent' => 'Parents and sponsors'];
 
     public function index(Request $request): string
     {

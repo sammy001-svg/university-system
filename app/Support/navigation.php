@@ -12,7 +12,8 @@ return [
     [
         'title' => 'Overview',
         'items' => [
-            ['label' => 'Dashboard',     'url' => '/dashboard',     'icon' => 'dashboard',  'permission' => null, 'except_user_type' => ['student']],
+            ['label' => 'Dashboard',     'url' => '/dashboard',     'icon' => 'dashboard',  'permission' => null, 'except_user_type' => ['student', 'parent']],
+            ['label' => 'My Students',   'url' => '/family',        'icon' => 'student',    'permission' => null, 'user_type' => ['parent']],
             ['label' => 'Student Home',  'url' => '/portal',        'icon' => 'dashboard',  'permission' => 'portal.access',  'user_type' => ['student'], 'exact' => true],
         ],
     ],
@@ -22,10 +23,12 @@ return [
             ['label' => 'My Courses',      'url' => '/portal/courses',    'icon' => 'book',     'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Online Classes',  'url' => '/portal/classes',    'icon' => 'video',    'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Online Exams',    'url' => '/portal/exams',      'icon' => 'exam',     'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Assignments',     'url' => '/portal/assignments','icon' => 'file',     'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Timetable',       'url' => '/portal/timetable',  'icon' => 'clock',    'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Attendance',      'url' => '/portal/attendance', 'icon' => 'check',    'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Results',         'url' => '/portal/results',    'icon' => 'chart',    'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Transcript',      'url' => '/portal/transcript', 'icon' => 'file',     'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Degree Audit',    'url' => '/portal/degree-audit','icon' => 'check',   'permission' => 'portal.access', 'user_type' => ['student']],
         ],
     ],
     [
@@ -36,6 +39,7 @@ return [
             ['label' => 'My Library',          'url' => '/portal/library',      'icon' => 'book',      'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Accommodation',       'url' => '/portal/hostel',       'icon' => 'bed',       'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Clearance',           'url' => '/portal/clearance',    'icon' => 'shield',    'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'My Documents',        'url' => '/portal/documents',    'icon' => 'print',     'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'My Profile',          'url' => '/portal/profile',      'icon' => 'user',      'permission' => 'portal.access', 'user_type' => ['student']],
         ],
     ],
@@ -94,6 +98,7 @@ return [
             ['label' => 'Fee Structures', 'url' => '/finance/fee-structures', 'icon' => 'money', 'permission' => 'finance.manage'],
             ['label' => 'Invoices',       'url' => '/finance/invoices',       'icon' => 'file',  'permission' => 'finance.view'],
             ['label' => 'Payments',       'url' => '/finance/payments',       'icon' => 'money', 'permission' => 'finance.view'],
+            ['label' => 'Online Payments','url' => '/finance/online-payments','icon' => 'money', 'permission' => 'finance.view'],
             ['label' => 'Scholarships',   'url' => '/finance/scholarships',   'icon' => 'money', 'permission' => 'finance.manage'],
             ['label' => 'Expenses',       'url' => '/finance/expenses',       'icon' => 'money', 'permission' => 'finance.manage'],
             ['label' => 'Payroll',        'url' => '/finance/payroll',        'icon' => 'money', 'permission' => 'payroll.view'],
@@ -142,6 +147,9 @@ return [
             ['label' => 'Rooms',          'url' => '/admin/rooms',    'icon' => 'building', 'permission' => 'settings.manage'],
             ['label' => 'Data Imports',   'url' => '/admin/data-imports', 'icon' => 'file', 'permission' => 'settings.manage'],
             ['label' => 'Audit Trail',    'url' => '/admin/audit',    'icon' => 'shield',   'permission' => 'audit.view'],
+            ['label' => 'Signed-in Sessions', 'url' => '/admin/sessions', 'icon' => 'users', 'permission' => 'users.view'],
+            ['label' => 'Email &amp; SMS Alerts', 'url' => '/admin/alerts', 'icon' => 'mail', 'permission' => 'settings.manage'],
+            ['label' => 'Backups',        'url' => '/admin/backups',  'icon' => 'download', 'permission' => 'settings.manage'],
         ],
     ],
 ];

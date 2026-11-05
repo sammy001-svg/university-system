@@ -22,7 +22,13 @@ $router->group(['middleware' => ['guest']], static function ($r): void {
     $r->post('/password/forgot', 'Auth\PasswordController@sendResetLink');
     $r->get('/password/reset', 'Auth\PasswordController@showReset');
     $r->post('/password/reset', 'Auth\PasswordController@reset');
+    $r->get('/login/two-factor', 'Auth\LoginController@twoFactorForm');
+    $r->post('/login/two-factor', 'Auth\LoginController@twoFactor');
 });
+
+// Public check of an issued document (QR code on letters, transcripts and ID cards).
+$router->get('/verify', 'Students\RecordController@verify');
+$router->get('/verify/{code}', 'Students\RecordController@verify');
 
 // Public online application portal
 $router->get('/apply', 'Admissions\PublicApplicationController@show');
@@ -41,6 +47,48 @@ $router->group(['middleware' => ['auth']], static function ($r): void {
     $r->get('/search', 'DashboardController@search');
     $r->get('/profile', 'ProfileController@show');
     $r->post('/profile', 'ProfileController@update');
+
+    // Account security: two-step sign-in and signed-in devices.
+    $r->get('/account/security', 'SecurityController@index');
+    $r->post('/account/security/two-factor/start', 'SecurityController@startTwoFactor');
+    $r->post('/account/security/two-factor/enable', 'SecurityController@enableTwoFactor');
+    $r->post('/account/security/two-factor/disable', 'SecurityController@disableTwoFactor');
+    $r->post('/account/security/recovery-codes', 'SecurityController@newRecoveryCodes');
+    $r->post('/account/security/sessions/{id}', 'SecurityController@revokeSession');
+
+    // Course files, served only to the class (materials, assignment briefs, submitted work).
+    $r->get('/files/materials/{id}', 'FileController@material');
+    $r->get('/files/assignments/{id}', 'FileController@assignmentBrief');
+    $r->get('/files/submissions/{id}', 'FileController@submission');
+
+    // Paying fees online (students and linked parents/sponsors).
+    $r->get('/pay/status/{reference}', 'PayController@status');
+    $r->get('/pay/status/{reference}/check', 'PayController@check');
+    $r->get('/pay/{student}/{invoice}', 'PayController@form');
+    $r->post('/pay/{student}/{invoice}', 'PayController@start');
+
+    // Family portal (parents and sponsors).
+    $r->get('/family', 'FamilyController@index');
+    $r->get('/family/{id}', 'FamilyController@show');
+    $r->get('/family/{id}/fees', 'FamilyController@fees');
+
+    // Official documents and degree audits.
+    $r->get('/issued-documents/{id}', 'Students\RecordController@print');
+    $r->post('/issued-documents/{id}/revoke', 'Students\RecordController@revoke');
+    $r->get('/students/{id}/degree-audit', 'Students\RecordController@audit');
+    $r->get('/students/{id}/documents', 'Students\RecordController@documents');
+    $r->post('/students/{id}/documents', 'Students\RecordController@issue');
+    $r->get('/students/{id}/guardians', 'Students\GuardianController@index');
+    $r->post('/students/{id}/guardians', 'Students\GuardianController@store');
+    $r->post('/guardians/{id}/access', 'Students\GuardianController@grantAccess');
+    $r->delete('/guardians/{id}/access', 'Students\GuardianController@revokeAccess');
+    $r->delete('/guardians/{id}', 'Students\GuardianController@destroy');
+
+    // Online payments queue (Finance).
+    $r->get('/finance/online-payments', 'Finance\OnlinePaymentController@index');
+    $r->post('/finance/online-payments/{reference}/approve', 'Finance\OnlinePaymentController@approve');
+    $r->post('/finance/online-payments/{reference}/reject', 'Finance\OnlinePaymentController@reject');
+    $r->get('/finance/online-payments/{reference}/proof', 'Finance\OnlinePaymentController@proof');
 
     $r->get('/password/change', 'Auth\PasswordController@showChange');
     $r->post('/password/change', 'Auth\PasswordController@change');
@@ -184,7 +232,16 @@ $router->group(['middleware' => ['auth']], static function ($r) use ($resource):
     $r->get('/teaching/class-sessions/{id}/attendance', 'Lecturer\ClassroomController@attendance');
     $r->delete('/teaching/materials/{id}', 'Lecturer\ClassroomController@destroyMaterial');
 
+    $r->get('/teaching/assignments/{id}', 'Lecturer\AssignmentController@show');
+    $r->get('/teaching/assignments/{id}/edit', 'Lecturer\AssignmentController@edit');
+    $r->put('/teaching/assignments/{id}', 'Lecturer\AssignmentController@update');
+    $r->delete('/teaching/assignments/{id}', 'Lecturer\AssignmentController@destroy');
+    $r->post('/teaching/assignments/{id}/grade', 'Lecturer\AssignmentController@grade');
+    $r->post('/teaching/assignments/{id}/transfer', 'Lecturer\AssignmentController@transfer');
+
     $r->get('/teaching/{id}', 'Lecturer\TeachingController@show');
+    $r->get('/teaching/{id}/assignments/create', 'Lecturer\AssignmentController@create');
+    $r->post('/teaching/{id}/assignments', 'Lecturer\AssignmentController@store');
     $r->get('/teaching/{id}/classroom', 'Lecturer\ClassroomController@show');
     $r->post('/teaching/{id}/class-sessions', 'Lecturer\ClassroomController@storeSession');
     $r->post('/teaching/{id}/materials', 'Lecturer\ClassroomController@storeMaterial');
@@ -335,6 +392,12 @@ $router->group(['prefix' => '/portal', 'middleware' => ['auth', 'permission:port
     $r->get('/hostel', 'Portal\PortalController@hostel');
     $r->get('/clearance', 'Portal\PortalController@clearance');
 
+    $r->get('/assignments', 'Portal\AssignmentController@index');
+    $r->get('/assignments/{id}', 'Portal\AssignmentController@show');
+    $r->post('/assignments/{id}', 'Portal\AssignmentController@submit');
+    $r->get('/degree-audit', 'Students\RecordController@myAudit');
+    $r->get('/documents', 'Students\RecordController@myDocuments');
+    $r->post('/documents', 'Students\RecordController@issueMine');
     $r->get('/courses', 'Portal\CourseController@index');
     $r->get('/courses/{id}', 'Portal\CourseController@show');
     $r->get('/classes', 'Portal\OnlineClassController@index');
@@ -373,6 +436,14 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth']], static function
     $r->get('/settings', 'Admin\SettingController@index');
     $r->post('/settings', 'Admin\SettingController@save');
     $r->get('/audit', 'Admin\AuditController@index');
+    $r->get('/sessions', 'Admin\SecurityAdminController@sessions');
+    $r->post('/sessions/{id}/revoke', 'Admin\SecurityAdminController@revokeSession');
+    $r->get('/backups', 'Admin\SecurityAdminController@backups');
+    $r->post('/backups', 'Admin\SecurityAdminController@createBackup');
+    $r->get('/backups/{name}', 'Admin\SecurityAdminController@downloadBackup');
+    $r->delete('/backups/{name}', 'Admin\SecurityAdminController@deleteBackup');
+    $r->get('/alerts', 'Admin\SecurityAdminController@alerts');
+    $r->post('/alerts/send', 'Admin\SecurityAdminController@sendAlerts');
 
     $r->get('/data-imports', 'Admin\DataImportController@index');
     $r->post('/data-imports/run', 'Admin\DataImportController@run');

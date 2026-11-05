@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Exceptions\HttpException;
 use App\Core\Request;
+use App\Services\Alerts\Alerts;
 
 final class MarkEntryController extends Controller
 {
@@ -90,6 +91,11 @@ final class MarkEntryController extends Controller
             'UPDATE course_results SET is_published = 1, published_at = NOW() WHERE offering_id = ?',
             [(int) $id]
         );
+        $course = (string) Database::scalar('SELECT c.code FROM course_offerings o JOIN courses c ON c.id = o.course_id WHERE o.id = ?', [(int) $id]);
+        Alerts::sendMany(array_column(Database::select(
+            'SELECT s.user_id FROM course_results r JOIN students s ON s.id = r.student_id WHERE r.offering_id = ?', [(int) $id]
+        ), 'user_id'), 'results_released', 'Results published: ' . $course,
+            'Your final result for ' . $course . ' is now available.', '/portal/results', 'success', 'chart');
         $this->success('Results published.', '/teaching/' . $id . '/marks');
     }
 

@@ -126,6 +126,34 @@ return [
         'from'      => env('MAIL_FROM', 'no-reply@localhost'),
         'from_name' => env('MAIL_FROM_NAME', 'Best Brain University'),
     ],
+    // SMS gateway for alerts (see App\Services\Alerts\SmsGateway). "log" sends nothing.
+    'sms' => [
+        'driver'       => env('SMS_DRIVER', 'log'),
+        'sender'       => env('SMS_SENDER', ''),
+        'country_code' => env('SMS_COUNTRY_CODE', '231'),
+        'at_username'  => env('AT_USERNAME', ''),
+        'at_api_key'   => env('AT_API_KEY', ''),
+        'twilio_sid'   => env('TWILIO_SID', ''),
+        'twilio_token' => env('TWILIO_TOKEN', ''),
+        'twilio_from'  => env('TWILIO_FROM', ''),
+        'http_url'     => env('SMS_HTTP_URL', ''),
+        'http_method'  => env('SMS_HTTP_METHOD', 'GET'),
+    ],
+    // MTN MoMo Collection API (request-to-pay). Leave MOMO_ENABLED=false until the merchant account is live.
+    'momo' => [
+        'enabled'          => filter_var(env('MOMO_ENABLED', 'false'), FILTER_VALIDATE_BOOLEAN),
+        'base_url'         => rtrim((string) env('MOMO_BASE_URL', 'https://sandbox.momodeveloper.mtn.com'), '/'),
+        'target_env'       => env('MOMO_TARGET_ENV', 'sandbox'),
+        'subscription_key' => env('MOMO_SUBSCRIPTION_KEY', ''),
+        'api_user'         => env('MOMO_API_USER', ''),
+        'api_key'          => env('MOMO_API_KEY', ''),
+        'currency'         => env('MOMO_CURRENCY', 'USD'),
+        'country_code'     => env('MOMO_COUNTRY_CODE', '231'),
+    ],
+    'backup' => [
+        // Optional path to mysqldump; without it the backup is written in PHP.
+        'mysqldump' => env('MYSQLDUMP_PATH', ''),
+    ],
     'security' => [
         'max_login_attempts'  => (int) env('MAX_LOGIN_ATTEMPTS', 5),
         'lockout_minutes'     => (int) env('LOCKOUT_MINUTES', 15),

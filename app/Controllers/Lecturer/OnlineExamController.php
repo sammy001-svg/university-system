@@ -8,7 +8,7 @@ use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Exceptions\HttpException;
-use App\Core\Notify;
+use App\Services\Alerts\Alerts;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
@@ -222,11 +222,12 @@ final class OnlineExamController extends Controller
                     $this->error(implode(' ', $problems), $back);
                 }
                 Database::statement('UPDATE online_exams SET status = "published" WHERE id = ?', [$exam['id']]);
-                Notify::sendMany(
+                Alerts::sendMany(
                     array_column(Database::select(
                         'SELECT s.user_id FROM course_registrations cr JOIN students s ON s.id = cr.student_id
                           WHERE cr.offering_id = ? AND cr.status <> "dropped"', [$exam['offering_id']]
                     ), 'user_id'),
+                    'exam_published',
                     'Online exam: ' . $offering['code'] . ' - ' . $exam['title'],
                     'Opens ' . fdatetime($exam['opens_at']) . ', closes ' . fdatetime($exam['closes_at']) . '. Time allowed: '
                         . $exam['duration_minutes'] . ' minutes.',
@@ -246,6 +247,11 @@ final class OnlineExamController extends Controller
                 $this->success('Exam closed. Attempts still open were submitted.', '/teaching/online-exams/' . $examId . '/results');
             case 'release':
                 Database::statement('UPDATE online_exams SET results_released = 1 WHERE id = ?', [$exam['id']]);
+                Alerts::sendMany(array_column(Database::select(
+                    'SELECT s.user_id FROM online_exam_attempts t JOIN students s ON s.id = t.student_id WHERE t.exam_id = ? AND t.status = "graded"',
+                    [$exam['id']]), 'user_id'),
+                    'results_released', 'Result available: ' . $offering['code'] . ' - ' . $exam['title'],
+                    'Your marked paper is ready to view.', '/portal/exams/' . $exam['id'], 'success', 'chart');
                 $this->success('Results released to students.', '/teaching/online-exams/' . $examId . '/results');
             case 'withhold':
                 Database::statement('UPDATE online_exams SET results_released = 0 WHERE id = ?', [$exam['id']]);

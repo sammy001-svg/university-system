@@ -23,6 +23,9 @@ final class DashboardController extends Controller
         if ($user['user_type'] === 'student' && !Auth::can('students.view')) {
             Response::redirect('/portal');
         }
+        if ($user['user_type'] === 'parent') {
+            Response::redirect('/family');
+        }
         if ($user['user_type'] === 'lecturer' && !Auth::can('students.view')) {
             Response::redirect('/teaching');
         }

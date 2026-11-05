@@ -23,6 +23,7 @@ $upcoming = array_filter($sessions, static fn (array $s): bool => in_array(Class
     <div class="d-flex gap-2 flex-wrap">
         <a class="btn btn-sm btn-light" href="<?= url('/teaching/' . $o['id']) ?>">&larr; Class list</a>
         <a class="btn btn-sm btn-outline-secondary" href="<?= url('/teaching/' . $o['id'] . '/marks') ?>"><?= icon('edit', 'ico-sm') ?> Marks</a>
+        <a class="btn btn-sm btn-outline-primary btn-icon" href="<?= url('/teaching/' . $o['id'] . '/assignments/create') ?>"><?= icon('plus', 'ico-sm') ?> New assignment</a>
         <a class="btn btn-sm btn-primary btn-icon" href="<?= url('/teaching/' . $o['id'] . '/online-exams/create') ?>"><?= icon('plus', 'ico-sm') ?> New online exam</a>
     </div>
 </div>
@@ -160,6 +161,27 @@ $upcoming = array_filter($sessions, static fn (array $s): bool => in_array(Class
             </div>
         </div>
 
+        <!-- ============ Assignments ============ -->
+        <div class="card mb-3" id="assignments">
+            <div class="card-header"><?= icon('file') ?> Assignments
+                <a class="ms-auto small fw-normal" href="<?= url('/teaching/' . $o['id'] . '/assignments/create') ?>">New</a>
+            </div>
+            <div class="card-body py-1">
+                <?php if ($assignments === []): ?>
+                    <div class="empty-state py-4"><?= icon('file') ?><p>No assignments yet.</p></div>
+                <?php endif; ?>
+                <?php foreach ($assignments as $a): ?>
+                    <a class="el-item text-decoration-none" href="<?= url('/teaching/assignments/' . $a['id']) ?>">
+                        <div class="el-item-main">
+                            <div class="el-item-title"><?= e($a['title']) ?></div>
+                            <div class="el-item-meta">Due <?= fdatetime($a['due_at']) ?> &middot; <?= (int) $a['submitted'] ?> of <?= $students ?> handed in</div>
+                        </div>
+                        <?php if ((int) $a['to_mark'] > 0): ?><span class="badge text-bg-warning"><?= (int) $a['to_mark'] ?> to mark</span><?php endif; ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
         <!-- ============ Materials ============ -->
         <div class="card mb-3" id="materials">
             <div class="card-header"><?= icon('book') ?> Course materials <span class="badge text-bg-light"><?= count($materials) ?></span></div>
@@ -174,7 +196,7 @@ $upcoming = array_filter($sessions, static fn (array $s): bool => in_array(Class
                             <span class="material-ico"><?= icon($m['kind'] === 'link' ? 'link' : 'file', 'ico-sm') ?></span>
                             <div class="flex-grow-1 min-w-0">
                                 <a class="fw-semibold d-block text-truncate" target="_blank" rel="noopener"
-                                   href="<?= e($m['kind'] === 'link' ? $m['url'] : url($m['file_path'])) ?>"><?= e($m['title']) ?></a>
+                                   href="<?= e($m['kind'] === 'link' ? $m['url'] : url('/files/materials/' . $m['id'])) ?>"><?= e($m['title']) ?></a>
                                 <span class="text-muted-sm"><?= $m['kind'] === 'link' ? 'Link' : e(strtoupper(pathinfo((string) $m['file_name'], PATHINFO_EXTENSION))) . ' &middot; ' . number_format((int) $m['file_size'] / 1024, 0) . ' KB' ?>
                                     <?= (int) $m['is_published'] === 0 ? ' &middot; hidden' : '' ?></span>
                             </div>

@@ -1,6 +1,6 @@
 <?php layout('layouts.app'); section('content'); ?>
 <div class="page-head">
-    <div><h1>My Fees &amp; Payments</h1></div>
+    <div><h1>My Fees &amp; Payments</h1><p class="lede">Pay online by mobile money or bank transfer; your receipt is issued automatically.</p></div>
 </div>
 
 <div class="row g-3 mb-4">
@@ -38,7 +38,12 @@
                             <td class="<?= $inv['balance'] > 0 ? 'text-danger fw-semibold' : 'text-success' ?>"><?= number_format((float)$inv['balance'], 2) ?></td>
                             <td class="text-muted-sm"><?= date_fmt($inv['due_date'] ?? '') ?></td>
                             <td><?= status_badge($inv['status']) ?></td>
-                            <td><a class="btn btn-sm btn-light" href="<?= url('/portal/finance/invoice/' . $inv['id']) ?>">View</a></td>
+                            <td class="text-nowrap">
+                                <?php if ((float) $inv['balance'] > 0.005 && !in_array($inv['status'], ['cancelled', 'draft'], true)): ?>
+                                    <a class="btn btn-sm btn-primary" href="<?= url('/pay/' . $student['id'] . '/' . $inv['id']) ?>">Pay online</a>
+                                <?php endif; ?>
+                                <a class="btn btn-sm btn-light" href="<?= url('/portal/finance/invoice/' . $inv['id']) ?>">View</a>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>

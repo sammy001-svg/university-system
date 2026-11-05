@@ -41,6 +41,31 @@ final class CourseAccess
         return $offering;
     }
 
+    /** May the signed-in user teach the offering? (Same rule as teaching(), without throwing.) */
+    public static function mayTeach(int $offeringId): bool
+    {
+        if (!Auth::can('teaching.access') && !Auth::can('exams.edit')) {
+            return false;
+        }
+        try {
+            self::teaching($offeringId);
+            return true;
+        } catch (HttpException) {
+            return false;
+        }
+    }
+
+    /** The signed-in user's student id, when they are a student registered on the offering. */
+    public static function studentOn(int $offeringId): ?int
+    {
+        $id = Database::scalar(
+            'SELECT s.id FROM students s JOIN course_registrations cr ON cr.student_id = s.id AND cr.offering_id = ? AND cr.status <> "dropped"
+              WHERE s.user_id = ?',
+            [$offeringId, Auth::id()]
+        );
+        return $id === null ? null : (int) $id;
+    }
+
     /** The offering, if the student is registered on it; 404 otherwise. */
     public static function studying(int $offeringId, int $studentId): array
     {

@@ -15,6 +15,15 @@ $paidPercent = $billed > 0 ? min(100, ($paid / $billed) * 100) : 0;
         <a class="btn btn-outline-secondary btn-sm btn-icon" href="<?= url('/students/' . $student['id'] . '/transcript') ?>">
             <?= icon('file', 'ico-sm') ?> Transcript
         </a>
+        <a class="btn btn-outline-secondary btn-sm btn-icon" href="<?= url('/students/' . $student['id'] . '/degree-audit') ?>">
+            <?= icon('check', 'ico-sm') ?> Degree audit
+        </a>
+        <a class="btn btn-outline-secondary btn-sm btn-icon" href="<?= url('/students/' . $student['id'] . '/documents') ?>">
+            <?= icon('print', 'ico-sm') ?> Documents
+        </a>
+        <a class="btn btn-outline-secondary btn-sm btn-icon" href="<?= url('/students/' . $student['id'] . '/guardians') ?>">
+            <?= icon('users', 'ico-sm') ?> Parents
+        </a>
         <a class="btn btn-outline-secondary btn-sm btn-icon" href="<?= url('/students/' . $student['id'] . '/statement') ?>">
             <?= icon('money', 'ico-sm') ?> Fee statement
         </a>

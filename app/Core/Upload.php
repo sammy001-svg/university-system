@@ -12,6 +12,7 @@ final class Upload
 {
     public const IMAGES    = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     public const DOCUMENTS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'ppt', 'pptx'];
+    public const ARCHIVES  = ['zip'];
 
     private const MIME_MAP = [
         'jpg'  => ['image/jpeg'],
@@ -28,12 +29,28 @@ final class Upload
         'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'],
         'csv'  => ['text/csv', 'text/plain', 'application/csv'],
         'txt'  => ['text/plain'],
+        'zip'  => ['application/zip', 'application/x-zip-compressed'],
     ];
 
     /**
      * @return array{path:string,name:string,size:int,mime:string} relative path from /public
      */
     public static function store(array $file, string $folder, array $allowed = self::IMAGES, int $maxMb = 5): array
+    {
+        return self::save($file, $folder, $allowed, $maxMb, false);
+    }
+
+    /**
+     * Like store(), but outside the web root (storage/private): the file can only be
+     * reached through a controller that checks who is asking (see App\Support\PrivateFile).
+     * @return array{path:string,name:string,size:int,mime:string} path is "private/<folder>/<file>"
+     */
+    public static function storePrivate(array $file, string $folder, array $allowed = self::DOCUMENTS, int $maxMb = 25): array
+    {
+        return self::save($file, $folder, $allowed, $maxMb, true);
+    }
+
+    private static function save(array $file, string $folder, array $allowed, int $maxMb, bool $private): array
     {
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
             throw new RuntimeException(self::errorMessage((int) $file['error']));
@@ -58,7 +75,7 @@ final class Upload
         }
 
         $folder    = trim($folder, '/');
-        $directory = Config::get('paths.uploads') . '/' . $folder;
+        $directory = ($private ? Config::get('paths.storage') . '/private' : Config::get('paths.uploads')) . '/' . $folder;
         if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
             throw new RuntimeException('Could not create the upload directory.');
         }
@@ -71,7 +88,7 @@ final class Upload
         @chmod($target, 0644);
 
         return [
-            'path' => 'uploads/' . $folder . '/' . $safeName,
+            'path' => ($private ? 'private/' : 'uploads/') . $folder . '/' . $safeName,
             'name' => basename((string) $file['name']),
             'size' => (int) $file['size'],
             'mime' => $mime,
@@ -83,7 +100,10 @@ final class Upload
         if ($relativePath === null || $relativePath === '') {
             return;
         }
-        $full = Config::get('paths.public') . '/' . ltrim($relativePath, '/');
+        $relativePath = ltrim($relativePath, '/');
+        $full = str_starts_with($relativePath, 'private/')
+            ? Config::get('paths.storage') . '/' . $relativePath
+            : Config::get('paths.public') . '/' . $relativePath;
         if (is_file($full)) {
             @unlink($full);
         }

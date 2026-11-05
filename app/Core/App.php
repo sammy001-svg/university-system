@@ -6,6 +6,8 @@ namespace App\Core;
 use App\Core\Exceptions\HttpException;
 use App\Services\AcademicCatalogSync;
 use App\Services\DataImport\DataImportSync;
+use App\Services\Security\BackupService;
+use App\Controllers\SecurityController;
 use Throwable;
 
 final class App
@@ -84,6 +86,17 @@ final class App
                 (new DataImportSync($this->basePath))->syncIfChanged(static fn () => Database::connection());
             }
             $this->shareViewGlobals();
+            $this->requireTwoFactorWhereSet();
+            register_shutdown_function(static function (): void {
+                // After the page is delivered: one database backup a day (Settings > Security).
+                if (session_status() === PHP_SESSION_ACTIVE) {
+                    session_write_close();
+                }
+                if (function_exists('fastcgi_finish_request')) {
+                    fastcgi_finish_request();
+                }
+                BackupService::dailyIfDue();
+            });
             $output = $this->router->dispatch($this->request);
             if (is_string($output)) {
                 echo $output;
@@ -91,6 +104,23 @@ final class App
         } catch (Throwable $e) {
             $this->handleException($e);
         }
+    }
+
+    /** Administrators without two-step sign-in are sent to set it up when Settings > Security requires it. */
+    private function requireTwoFactorWhereSet(): void
+    {
+        $user = Auth::user();
+        if ($user === null || !SecurityController::twoFactorRequired($user) || $user['two_factor_on']) {
+            return;
+        }
+        $path = $this->request->uri();
+        foreach (['/account/security', '/logout', '/password/change', '/login'] as $allowed) {
+            if (str_starts_with($path, $allowed)) {
+                return;
+            }
+        }
+        Session::flash('warning', 'Two-step sign-in is required for administrator accounts. Please set it up to continue.');
+        Response::redirect('/account/security');
     }
 
     private function shareViewGlobals(): void

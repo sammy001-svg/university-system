@@ -6,6 +6,7 @@ namespace App\Services;
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Notify;
+use App\Services\Alerts\Alerts;
 use App\Models\FeeStructure;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -385,8 +386,9 @@ final class BillingService
             }
         });
 
-        Notify::send(
+        Alerts::send(
             (int) $student['user_id'],
+            'payment_received',
             'Payment received',
             money($amount) . ' has been posted to your account. Receipt ' . $receipt . '.',
             '/portal/finance',
@@ -496,8 +498,9 @@ final class BillingService
         );
 
         if ($cleared && ($current === null || $current['status'] !== 'enrolled')) {
-            Notify::send(
+            Alerts::send(
                 (int) Database::scalar('SELECT user_id FROM students WHERE id = ?', [$studentId]),
+                'registration_complete',
                 'Registration complete',
                 'Your 1st installment is paid. You are enrolled for the semester and may now register for courses.',
                 '/portal/registration',

@@ -36,6 +36,7 @@ $joinable = array_filter($sessions, static fn (array $s): bool => $s['can_join']
 <nav class="el-tabs">
     <a href="#materials" class="active">Materials <span class="badge text-bg-light"><?= count($materials) ?></span></a>
     <a href="#classes">Online classes <span class="badge text-bg-light"><?= count($sessions) ?></span></a>
+    <a href="#assignments">Assignments <span class="badge text-bg-light"><?= count($assignments) ?></span></a>
     <a href="#exams">Exams <span class="badge text-bg-light"><?= count($exams) ?></span></a>
     <a href="#progress">My progress</a>
 </nav>
@@ -57,7 +58,7 @@ $joinable = array_filter($sessions, static fn (array $s): bool => $s['can_join']
                                 <div class="fw-semibold"><?= e($m['title']) ?></div>
                                 <?php if ($m['description']): ?><div class="text-muted-sm"><?= e($m['description']) ?></div><?php endif; ?>
                             </div>
-                            <a class="btn btn-sm btn-light" target="_blank" rel="noopener" href="<?= e($m['kind'] === 'link' ? $m['url'] : url($m['file_path'])) ?>">
+                            <a class="btn btn-sm btn-light" target="_blank" rel="noopener" href="<?= e($m['kind'] === 'link' ? $m['url'] : url('/files/materials/' . $m['id'])) ?>">
                                 <?= $m['kind'] === 'link' ? 'Open' : icon('download', 'ico-sm') . ' ' . e(strtoupper(pathinfo((string) $m['file_name'], PATHINFO_EXTENSION))) ?></a>
                         </div>
                     <?php endforeach; ?>
@@ -95,6 +96,27 @@ $joinable = array_filter($sessions, static fn (array $s): bool => $s['can_join']
     </div>
 
     <div class="col-xl-5">
+        <div class="card mb-3" id="assignments">
+            <div class="card-header"><?= icon('file') ?> Assignments</div>
+            <div class="card-body py-1">
+                <?php if ($assignments === []): ?>
+                    <p class="text-muted-sm py-3 mb-0">No assignments for this course yet.</p>
+                <?php endif; ?>
+                <?php foreach ($assignments as $a): ?>
+                    <a class="el-item text-decoration-none" href="<?= url('/portal/assignments/' . $a['id']) ?>">
+                        <div class="el-item-main">
+                            <div class="el-item-title"><?= e($a['title']) ?></div>
+                            <div class="el-item-meta">Due <?= fdatetime($a['due_at']) ?></div>
+                        </div>
+                        <?php if ($a['graded_at'] !== null): ?><span class="fw-bold"><?= rtrim(rtrim((string) $a['score'], '0'), '.') ?> / <?= rtrim(rtrim((string) $a['max_score'], '0'), '.') ?></span>
+                        <?php elseif ($a['submitted_at'] !== null): ?><span class="badge text-bg-success">Handed in</span>
+                        <?php elseif ($a['due_at'] < date('Y-m-d H:i:s')): ?><span class="badge text-bg-danger">Overdue</span>
+                        <?php else: ?><span class="badge text-bg-light">To do</span><?php endif; ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
         <div class="card mb-3" id="exams">
             <div class="card-header"><?= icon('exam') ?> Online exams</div>
             <div class="card-body py-1">

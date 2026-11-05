@@ -5,6 +5,9 @@
         <p class="lede">Student Fee Invoice</p>
     </div>
     <div class="d-flex gap-2">
+        <?php if ((float) $invoice['balance'] > 0.005 && !in_array($invoice['status'], ['cancelled', 'draft'], true)): ?>
+            <a class="btn btn-sm btn-primary" href="<?= url('/pay/' . $invoice['student_id'] . '/' . $invoice['id']) ?>"><?= icon('money', 'ico-sm') ?> Pay online</a>
+        <?php endif; ?>
         <a class="btn btn-sm btn-outline-primary" href="<?= url('/portal/finance/invoice/' . $invoice['id'] . '/billing-form') ?>"><?= icon('print', 'ico-sm') ?> Billing Form</a>
         <a class="btn btn-sm btn-light" href="<?= url('/portal/finance') ?>">&larr; Back to Fees &amp; Payments</a>
     </div>

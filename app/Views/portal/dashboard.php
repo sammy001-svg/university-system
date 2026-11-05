@@ -42,7 +42,8 @@ $hour     = (int) date('H');
         <?= icon('clock') ?>
         <div><strong>Your registration for <?= e($semester['name']) ?> is not complete.</strong>
             Pay the compulsory 1st installment (<?= e(money($enrollment['first_outstanding'])) ?> outstanding) to be enrolled, attend classes and sit examinations.
-            <a class="fw-semibold" href="<?= url('/portal/finance/invoice/' . $enrollment['invoice_id']) ?>">View my bill</a></div>
+            <a class="fw-semibold" href="<?= url('/pay/' . $s['id'] . '/' . $enrollment['invoice_id']) ?>">Pay online now</a> &middot;
+            <a href="<?= url('/portal/finance/invoice/' . $enrollment['invoice_id']) ?>">View my bill</a></div>
     </div>
 <?php endif; ?>
 

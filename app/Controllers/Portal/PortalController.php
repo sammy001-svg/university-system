@@ -88,6 +88,16 @@ final class PortalController extends Controller
                            'url' => '/portal/exams/' . $exam['id'], 'tone' => 'warning'];
             }
         }
+        foreach (\App\Core\Database::select(
+            'SELECT a.id, a.title, a.due_at, c.code FROM assignments a JOIN course_offerings o ON o.id = a.offering_id JOIN courses c ON c.id = o.course_id
+              WHERE a.offering_id IN (' . CourseAccess::inList($offeringIds) . ') AND a.status = "published" AND a.due_at BETWEEN ? AND ?
+                AND NOT EXISTS (SELECT 1 FROM assignment_submissions s WHERE s.assignment_id = a.id AND s.student_id = ?)
+              ORDER BY a.due_at',
+            [date('Y-m-d H:i:s'), date('Y-m-d H:i:s', strtotime('+7 days')), $studentId]
+        ) as $a) {
+            $todo[] = ['label' => 'Hand in ' . $a['code'] . ': ' . $a['title'] . ' (due ' . fdatetime($a['due_at']) . ')',
+                       'url' => '/portal/assignments/' . $a['id'], 'tone' => 'warning'];
+        }
         if (empty($student['phone']) || empty($student['emergency_contact_name'])) {
             $todo[] = ['label' => 'Complete your contact and emergency details', 'url' => '/portal/profile', 'tone' => 'info'];
         }

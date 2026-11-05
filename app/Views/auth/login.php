@@ -3,12 +3,14 @@ layout('layouts.auth');
 $pageTitle = 'Sign in';
 section('content');
 $as = $_GET['as'] ?? old_raw('login_as', 'staff');
-$as = $as === 'student' ? 'student' : 'staff';
+$as = in_array($as, ['student', 'parent'], true) ? $as : 'staff';
 $fields = [
     'staff'   => ['label' => 'Username or email', 'placeholder' => 'e.g. jdoe or jdoe@bestbrain.edu.lr',
                   'hint'  => 'Administrators, lecturers and staff.'],
     'student' => ['label' => 'Admission number', 'placeholder' => 'e.g. BBIU2026100162',
                   'hint'  => 'Use the admission number on your billing form or login slip.'],
+    'parent'  => ['label' => 'Username, email or phone', 'placeholder' => 'e.g. p.jdoe or 0770 123 456',
+                  'hint'  => 'Parents and sponsors: use the details on your login slip.'],
 ];
 ?>
 <h1>Welcome back</h1>
@@ -22,6 +24,8 @@ $fields = [
         <label for="as-staff"><?= icon('users') ?> Staff</label>
         <input type="radio" name="login_as" id="as-student" value="student" <?= $as === 'student' ? 'checked' : '' ?>>
         <label for="as-student"><?= icon('student') ?> Student</label>
+        <input type="radio" name="login_as" id="as-parent" value="parent" <?= $as === 'parent' ? 'checked' : '' ?>>
+        <label for="as-parent"><?= icon('user') ?> Parent</label>
     </div>
 
     <div class="mb-3">
@@ -52,13 +56,14 @@ $fields = [
         <label class="form-check-label small" for="remember">Keep me signed in on this device</label>
     </div>
 
-    <button type="submit" class="btn btn-primary w-100 py-2" data-field="submit">Sign in as <?= $as === 'student' ? 'student' : 'staff' ?></button>
+    <button type="submit" class="btn btn-primary w-100 py-2" data-field="submit">Sign in as <?= e($as) ?></button>
 </form>
 
 <div class="divider"></div>
 <p class="text-muted-sm mb-0">
     Applying for admission? <a href="<?= url('/apply') ?>">Start an application</a>.
 </p>
+<p class="text-muted-sm mb-0">Checking a certificate or letter? <a href="<?= url('/verify') ?>">Verify a document</a>.</p>
 <p class="text-muted-sm">Trouble signing in? Contact the ICT helpdesk on
     <a href="mailto:<?= e(setting('support_email', 'ict@bestbrain.edu.lr')) ?>"><?= e(setting('support_email', 'ict@bestbrain.edu.lr')) ?></a>.
 </p>

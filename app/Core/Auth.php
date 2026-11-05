@@ -14,7 +14,10 @@ final class Auth
     /**
      * Sign in. $as = 'student' looks the account up by admission (or
      * registration) number; 'staff' by username or email, for every account
-     * that is not a student's.
+     * that is not a student's or a parent's; 'parent' by username, email or phone.
+     *
+     * When the account has two-step sign-in, the result is ['ok' => true, 'two_factor' => true]
+     * and nobody is signed in yet: completeTwoFactor() finishes once the code is checked.
      */
     public static function attempt(string $identifier, string $password, string $ip, string $agent, string $as = 'staff'): array
     {
@@ -24,6 +27,13 @@ final class Auth
                 'SELECT u.* FROM users u JOIN students s ON s.user_id = u.id
                   WHERE (s.admission_number = ? OR s.registration_number = ?) AND u.deleted_at IS NULL
                   ORDER BY s.admission_number = ? DESC
+                  LIMIT 1',
+                [$identifier, $identifier, $identifier]
+            );
+        } elseif ($as === 'parent') {
+            $user = Database::selectOne(
+                'SELECT * FROM users
+                  WHERE user_type = "parent" AND (username = ? OR email = ? OR (phone IS NOT NULL AND phone = ?)) AND deleted_at IS NULL
                   LIMIT 1',
                 [$identifier, $identifier, $identifier]
             );
@@ -66,6 +76,9 @@ final class Auth
         if ($as !== 'student' && $user['user_type'] === 'student') {
             return ['ok' => false, 'message' => 'This is a student account. Choose "Student" and sign in with your admission number.'];
         }
+        if ($as === 'staff' && $user['user_type'] === 'parent') {
+            return ['ok' => false, 'message' => 'This is a parent account. Choose "Parent" to sign in.'];
+        }
 
         if ($user['status'] === 'suspended') {
             return ['ok' => false, 'message' => 'Your account has been suspended. Contact the administrator.'];
@@ -82,8 +95,12 @@ final class Auth
             Database::statement('UPDATE users SET password_hash = ? WHERE id = ?', [Hash::make($password), $user['id']]);
         }
 
-        self::login($user, $ip);
         self::logAttempt($identifier, $ip, $agent, true);
+        if (!empty($user['two_factor_enabled_at'])) {
+            Session::put('auth_2fa_pending', ['user_id' => (int) $user['id'], 'at' => time()]);
+            return ['ok' => true, 'two_factor' => true, 'user' => $user];
+        }
+        self::login($user, $ip);
 
         return ['ok' => true, 'user' => $user];
     }
@@ -124,13 +141,51 @@ final class Auth
             [$ip, $user['id']]
         );
         Acl::flush((int) $user['id']);
+        self::trackSession((int) $user['id'], $ip);
         Audit::log('login', 'auth', 'users', (string) $user['id'], 'User signed in');
+    }
+
+    /** Record this browser session so it can be listed and signed out remotely. */
+    private static function trackSession(int $userId, string $ip): void
+    {
+        try {
+            $hash = hash('sha256', session_id() . '|' . bin2hex(random_bytes(8)));
+            $now  = date('Y-m-d H:i:s');
+            Database::statement(
+                'INSERT INTO user_sessions (user_id, session_hash, ip_address, user_agent, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?)',
+                [$userId, $hash, $ip, substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255), $now, $now]
+            );
+            Session::put('auth_session_hash', $hash);
+        } catch (\Throwable) {
+            // Before the sessions table exists (first request after an upgrade) sign-in still works.
+        }
+    }
+
+    /** The user waiting for their two-step code, if the password was right less than 10 minutes ago. */
+    public static function pendingTwoFactor(): ?array
+    {
+        $pending = Session::get('auth_2fa_pending');
+        if (!is_array($pending) || time() - (int) $pending['at'] > 600) {
+            return null;
+        }
+        return Database::selectOne('SELECT * FROM users WHERE id = ? AND deleted_at IS NULL', [$pending['user_id']]);
+    }
+
+    public static function completeTwoFactor(array $user, string $ip): void
+    {
+        Session::forget('auth_2fa_pending');
+        self::login($user, $ip);
     }
 
     public static function logout(): void
     {
         if (self::check()) {
             Audit::log('logout', 'auth', 'users', (string) self::id(), 'User signed out');
+            try {
+                Database::statement('UPDATE user_sessions SET revoked_at = ? WHERE session_hash = ? AND revoked_at IS NULL',
+                    [date('Y-m-d H:i:s'), (string) Session::get('auth_session_hash', '')]);
+            } catch (\Throwable) {
+            }
         }
         self::$user = null;
         Session::destroy();
@@ -138,7 +193,39 @@ final class Auth
 
     public static function check(): bool
     {
-        return Session::has(self::SESSION_KEY);
+        return Session::has(self::SESSION_KEY) && self::sessionStillValid();
+    }
+
+    /**
+     * A session signed out from another device (Account security or Admin > Sessions) ends on its next
+     * request. Checked once per request; last_seen_at is refreshed at most once a minute.
+     */
+    private static function sessionStillValid(): bool
+    {
+        static $checked = null;
+        if ($checked !== null) {
+            return $checked;
+        }
+        $hash = Session::get('auth_session_hash');
+        if (!is_string($hash) || $hash === '') {
+            return $checked = true;   // signed in before session tracking existed
+        }
+        try {
+            $row = Database::selectOne('SELECT revoked_at, last_seen_at FROM user_sessions WHERE session_hash = ?', [$hash]);
+        } catch (\Throwable) {
+            return $checked = true;
+        }
+        if ($row === null || $row['revoked_at'] !== null) {
+            self::$user = null;
+            Session::destroy();
+            Session::start();
+            Session::flash('warning', 'You were signed out of this device.');
+            return $checked = false;
+        }
+        if (strtotime((string) $row['last_seen_at']) < time() - 60) {
+            Database::statement('UPDATE user_sessions SET last_seen_at = ? WHERE session_hash = ?', [date('Y-m-d H:i:s'), $hash]);
+        }
+        return $checked = true;
     }
 
     public static function guest(): bool
@@ -158,7 +245,7 @@ final class Auth
             return self::$user;
         }
         $id = self::id();
-        if ($id === null) {
+        if ($id === null || !self::check()) {
             return null;
         }
         $user = Database::selectOne('SELECT * FROM users WHERE id = ? AND deleted_at IS NULL', [$id]);
@@ -166,7 +253,8 @@ final class Auth
             Session::destroy();
             return null;
         }
-        unset($user['password_hash'], $user['remember_token']);
+        $user['two_factor_on'] = !empty($user['two_factor_enabled_at']);
+        unset($user['password_hash'], $user['remember_token'], $user['two_factor_secret'], $user['two_factor_recovery_codes']);
         return self::$user = $user;
     }
 

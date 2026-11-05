@@ -40,6 +40,7 @@ final class AcademicCatalogSync
             . (string) sha1_file($this->basePath . '/database/seeds/academic.php')
             . (string) sha1_file(__FILE__)
             . (string) sha1_file($this->basePath . '/database/migrations/2026_11_05_elearning.sql')
+            . (string) sha1_file($this->basePath . '/database/migrations/2026_11_06_services.sql')
         );
     }
 
@@ -280,6 +281,14 @@ final class AcademicCatalogSync
         }
         // Online classes, course materials and online examinations.
         $this->runMigration($pdo, '2026_11_05_elearning.sql');
+        // Assignments, online payments, documents, alerts and sessions.
+        $this->runMigration($pdo, '2026_11_06_services.sql');
+        // Two-step sign-in (TOTP authenticator app).
+        if (!$hasColumn('users', 'two_factor_secret')) {
+            $pdo->exec('ALTER TABLE users ADD COLUMN two_factor_secret VARCHAR(64) DEFAULT NULL,
+                          ADD COLUMN two_factor_enabled_at DATETIME DEFAULT NULL,
+                          ADD COLUMN two_factor_recovery_codes TEXT DEFAULT NULL');
+        }
     }
 
     /** Run a migration file whose statements are all safe to repeat (CREATE TABLE IF NOT EXISTS ...). */

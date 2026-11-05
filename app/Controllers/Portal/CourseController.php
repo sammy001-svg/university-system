@@ -103,6 +103,12 @@ final class CourseController extends Controller
             'exams'       => $exams,
             'attendance'  => $attendance,
             'assessments' => $assessments,
+            'assignments' => Database::select(
+                'SELECT a.*, sub.submitted_at, sub.score, sub.graded_at FROM assignments a
+              LEFT JOIN assignment_submissions sub ON sub.assignment_id = a.id AND sub.student_id = ?
+                  WHERE a.offering_id = ? AND a.status = "published" ORDER BY a.due_at',
+                [$student['id'], (int) $id]
+            ),
             'classmates'  => (int) Database::scalar('SELECT COUNT(*) FROM course_registrations WHERE offering_id = ? AND status <> "dropped"', [(int) $id]),
         ]);
     }

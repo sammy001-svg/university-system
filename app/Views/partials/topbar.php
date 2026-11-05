@@ -84,6 +84,7 @@ $displayName    = $user ? trim($user['first_name'] . ' ' . $user['last_name']) :
                 </li>
                 <li><a class="dropdown-item" href="<?= url('/profile') ?>"><?= icon('users', 'ico-sm') ?> My profile</a></li>
                 <li><a class="dropdown-item" href="<?= url('/password/change') ?>"><?= icon('shield', 'ico-sm') ?> Change password</a></li>
+                <li><a class="dropdown-item" href="<?= url('/account/security') ?>"><?= icon('shield', 'ico-sm') ?> Account security</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
                     <form action="<?= url('/logout') ?>" method="post" class="m-0">
