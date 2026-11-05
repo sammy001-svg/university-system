@@ -8,7 +8,6 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
-use App\Services\Academic\DegreeAudit;
 use App\Services\Academic\GraduationService;
 use App\Support\Lookup;
 use RuntimeException;
@@ -90,13 +89,6 @@ final class GraduationController extends Controller
         $this->success($done === 1 && isset($message) ? $message : $done . ' graduand(s) updated.', '/graduation');
     }
 
-    /** The degree audit next to the graduation record. */
-    public function audit(Request $request, string $studentId): never
-    {
-        $this->authorize('graduation.view');
-        $this->redirect('/students/' . (int) $studentId . '/degree-audit');
-    }
-
     public function alumni(Request $request): string
     {
         $this->authorize('graduation.view');
@@ -133,7 +125,6 @@ final class GraduationController extends Controller
             'programs'  => Lookup::programs(),
             'years'     => array_column(Database::select('SELECT DISTINCT YEAR(graduation_date) AS y FROM graduations WHERE status = "graduated" ORDER BY y DESC'), 'y'),
             'employed'  => $employed,
-            'audits'    => null,
         ]);
     }
 }

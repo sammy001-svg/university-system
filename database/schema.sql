@@ -1887,7 +1887,7 @@ CREATE TABLE `student_requests` (
   UNIQUE KEY `uq_sr_reference` (`reference`),
   KEY `ix_sr_student` (`student_id`),
   KEY `ix_sr_status` (`status`, `request_type`),
-  CONSTRAINT `fk_sr_student` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_req_student` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------- academic advising

@@ -89,6 +89,12 @@ final class GraduationService
                 }
                 $gpa = Database::selectOne('SELECT SUM(quality_points) AS qp, SUM(credit_hours) AS ch FROM course_results WHERE student_id = ? AND is_published = 1', [$g['student_id']]);
                 $cgpa = (float) ($gpa['ch'] ?? 0) > 0 ? round((float) $gpa['qp'] / (float) $gpa['ch'], 2) : 0.0;
+                // Clearing can be overridden (e.g. results still to come); graduating below the minimum CGPA cannot.
+                $minCgpa = (float) Setting::get('graduation_min_cgpa', 2.0);
+                if ($cgpa < $minCgpa) {
+                    throw new RuntimeException($g['admission_number'] . ' has a CGPA of ' . number_format($cgpa, 2) . ', below the '
+                        . number_format($minCgpa, 2) . ' needed to graduate.');
+                }
                 $date = $graduationDate ?: date('Y-m-d');
                 $prefix = (string) preg_replace('/[^A-Z0-9]/', '', strtoupper((string) Setting::get('institution_short_name', 'UNI')));
                 $n = (int) Database::scalar('SELECT COUNT(*) FROM graduations WHERE certificate_no IS NOT NULL') + 1;

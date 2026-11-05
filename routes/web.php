@@ -26,6 +26,11 @@ $router->group(['middleware' => ['guest']], static function ($r): void {
     $r->post('/login/two-factor', 'Auth\LoginController@twoFactor');
 });
 
+// Public careers page: open vacancies and online applications.
+$router->get('/careers', 'HR\CareersController@index');
+$router->get('/careers/{id}', 'HR\CareersController@show');
+$router->post('/careers/{id}', 'HR\CareersController@apply');
+
 // Public check of an issued document (QR code on letters, transcripts and ID cards).
 $router->get('/verify', 'Students\RecordController@verify');
 $router->get('/verify/{code}', 'Students\RecordController@verify');
@@ -41,7 +46,20 @@ $router->post('/logout', 'Auth\LoginController@logout', ['auth']);
 /* ------------------------------------------------------------------ */
 /*  Authenticated                                                      */
 /* ------------------------------------------------------------------ */
-$router->group(['middleware' => ['auth']], static function ($r): void {
+/**
+ * Register the seven conventional CRUD routes for a resource controller.
+ */
+$resource = static function ($r, string $path, string $controller): void {
+    $r->get($path, $controller . '@index');
+    $r->get($path . '/create', $controller . '@create');
+    $r->post($path, $controller . '@store');
+    $r->get($path . '/{id}/edit', $controller . '@edit');
+    $r->put($path . '/{id}', $controller . '@update');
+    $r->patch($path . '/{id}', $controller . '@update');
+    $r->delete($path . '/{id}', $controller . '@destroy');
+};
+
+$router->group(['middleware' => ['auth']], static function ($r) use ($resource): void {
 
     $r->get('/dashboard', 'DashboardController@index');
     $r->get('/search', 'DashboardController@search');
@@ -84,6 +102,68 @@ $router->group(['middleware' => ['auth']], static function ($r): void {
     $r->delete('/guardians/{id}/access', 'Students\GuardianController@revokeAccess');
     $r->delete('/guardians/{id}', 'Students\GuardianController@destroy');
 
+    // Graduation and alumni.
+    $r->get('/graduation', 'Students\GraduationController@index');
+    $r->post('/graduation/add', 'Students\GraduationController@add');
+    $r->post('/graduation/{id}/advance', 'Students\GraduationController@advance');
+    $r->get('/alumni', 'Students\GraduationController@alumni');
+
+    // Student requests (petitions).
+    $r->get('/requests', 'Students\RequestController@index');
+    $r->get('/requests/{id}', 'Students\RequestController@show');
+    $r->post('/requests/{id}/decide', 'Students\RequestController@decide');
+    $r->get('/requests/{id}/attachment', 'Students\RequestController@attachment');
+
+    // Academic advising and standing.
+    $r->get('/advising', 'Students\AdvisingController@index');
+    $r->post('/advising/assign', 'Students\AdvisingController@assign');
+    $r->get('/advising/mine', 'Students\AdvisingController@mine');
+    $r->get('/advising/standing', 'Students\AdvisingController@standing');
+    $r->get('/advising/students/{id}', 'Students\AdvisingController@student');
+    $r->post('/advising/students/{id}/notes', 'Students\AdvisingController@addNote');
+    $r->post('/advising/students/{id}/advisor', 'Students\AdvisingController@assignOne');
+
+    // Course and lecturer evaluation.
+    $r->get('/evaluations', 'Quality\EvaluationController@index');
+    $r->post('/evaluations/periods', 'Quality\EvaluationController@storePeriod');
+    $r->post('/evaluations/periods/{id}/toggle', 'Quality\EvaluationController@togglePeriod');
+    $r->get('/evaluations/{period}/{offering}', 'Quality\EvaluationController@report');
+    $r->get('/teaching/evaluations', 'Quality\EvaluationController@mine');
+
+    // Research output.
+    $resource($r, '/research', 'Quality\ResearchController');
+
+    // Assets and stores.
+    $resource($r, '/assets/stock', 'Operations\StockController');
+    $r->get('/assets/stock/{id}/movements', 'Operations\StockController@movements');
+    $r->post('/assets/stock/{id}/movements', 'Operations\StockController@move');
+    $resource($r, '/assets', 'Operations\AssetController');
+    $r->get('/assets/{id}/maintenance', 'Operations\AssetController@maintenance');
+    $r->post('/assets/{id}/maintenance', 'Operations\AssetController@addMaintenance');
+
+    // Staff appraisal and recruitment.
+    $r->get('/hr/appraisals', 'HR\AppraisalController@index');
+    $r->post('/hr/appraisal-cycles', 'HR\AppraisalController@storeCycle');
+    $r->post('/hr/appraisal-cycles/{id}/toggle', 'HR\AppraisalController@closeCycle');
+    $r->get('/appraisals/mine', 'HR\AppraisalController@mine');
+    $r->get('/appraisals/{id}', 'HR\AppraisalController@show');
+    $r->post('/appraisals/{id}/self', 'HR\AppraisalController@selfAssess');
+    $r->post('/appraisals/{id}/review', 'HR\AppraisalController@review');
+    $r->post('/appraisals/{id}/reviewer', 'HR\AppraisalController@assignReviewer');
+    $resource($r, '/hr/vacancies', 'HR\VacancyController');
+    $r->get('/hr/vacancies/{id}/applicants', 'HR\VacancyController@applicants');
+    $r->post('/hr/applications/{id}', 'HR\VacancyController@moveApplicant');
+    $r->get('/hr/applications/{id}/cv', 'HR\VacancyController@cv');
+
+    // Clubs and societies.
+    $resource($r, '/clubs', 'StudentLife\ClubController');
+    $r->get('/clubs/{id}/members', 'StudentLife\ClubController@members');
+    $r->post('/clubs/{id}/members', 'StudentLife\ClubController@saveMember');
+
+    // Budgets.
+    $r->get('/finance/budgets', 'Finance\BudgetController@index');
+    $r->post('/finance/budgets', 'Finance\BudgetController@save');
+
     // Online payments queue (Finance).
     $r->get('/finance/online-payments', 'Finance\OnlinePaymentController@index');
     $r->post('/finance/online-payments/{reference}/approve', 'Finance\OnlinePaymentController@approve');
@@ -119,18 +199,6 @@ $router->group(['middleware' => ['auth']], static function ($r): void {
     $r->delete('/events/{id}', 'Comms\EventController@destroy');
 });
 
-/**
- * Register the seven conventional CRUD routes for a resource controller.
- */
-$resource = static function ($r, string $path, string $controller): void {
-    $r->get($path, $controller . '@index');
-    $r->get($path . '/create', $controller . '@create');
-    $r->post($path, $controller . '@store');
-    $r->get($path . '/{id}/edit', $controller . '@edit');
-    $r->put($path . '/{id}', $controller . '@update');
-    $r->patch($path . '/{id}', $controller . '@update');
-    $r->delete($path . '/{id}', $controller . '@destroy');
-};
 
 /* ------------------------------------------------------------------ */
 /*  Academics                                                          */
@@ -396,6 +464,18 @@ $router->group(['prefix' => '/portal', 'middleware' => ['auth', 'permission:port
     $r->get('/assignments/{id}', 'Portal\AssignmentController@show');
     $r->post('/assignments/{id}', 'Portal\AssignmentController@submit');
     $r->get('/degree-audit', 'Students\RecordController@myAudit');
+    $r->get('/graduation', 'Portal\GraduationController@show');
+    $r->post('/graduation', 'Portal\GraduationController@apply');
+    $r->post('/alumni-profile', 'Portal\GraduationController@profile');
+    $r->get('/requests', 'Students\RequestController@mine');
+    $r->post('/requests', 'Students\RequestController@store');
+    $r->post('/requests/{id}/cancel', 'Students\RequestController@cancel');
+    $r->get('/advising', 'Students\AdvisingController@myAdvising');
+    $r->get('/clubs', 'StudentLife\ClubController@portal');
+    $r->post('/clubs/{id}', 'StudentLife\ClubController@join');
+    $r->get('/evaluations', 'Quality\EvaluationController@portal');
+    $r->get('/evaluations/{period}/{offering}', 'Quality\EvaluationController@form');
+    $r->post('/evaluations/{period}/{offering}', 'Quality\EvaluationController@submit');
     $r->get('/documents', 'Students\RecordController@myDocuments');
     $r->post('/documents', 'Students\RecordController@issueMine');
     $r->get('/courses', 'Portal\CourseController@index');
