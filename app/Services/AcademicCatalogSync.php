@@ -41,6 +41,7 @@ final class AcademicCatalogSync
             . (string) sha1_file(__FILE__)
             . (string) sha1_file($this->basePath . '/database/migrations/2026_11_05_elearning.sql')
             . (string) sha1_file($this->basePath . '/database/migrations/2026_11_06_services.sql')
+            . (string) sha1_file($this->basePath . '/database/migrations/2026_11_07_modules.sql')
         );
     }
 
@@ -283,6 +284,17 @@ final class AcademicCatalogSync
         $this->runMigration($pdo, '2026_11_05_elearning.sql');
         // Assignments, online payments, documents, alerts and sessions.
         $this->runMigration($pdo, '2026_11_06_services.sql');
+        // Graduation & alumni, requests, advising, evaluations, research, assets, appraisals,
+        // recruitment, clubs and budgets.
+        $this->runMigration($pdo, '2026_11_07_modules.sql');
+        if (!$hasColumn('students', 'advisor_id')) {
+            $pdo->exec('ALTER TABLE students ADD COLUMN advisor_id BIGINT UNSIGNED DEFAULT NULL AFTER minor_program_id, ADD KEY ix_students_advisor (advisor_id)');
+        }
+        if (!$hasColumn('graduations', 'applied_at')) {
+            $pdo->exec('ALTER TABLE graduations ADD COLUMN program_id INT UNSIGNED DEFAULT NULL AFTER academic_year_id,
+                          ADD COLUMN name_on_certificate VARCHAR(150) DEFAULT NULL AFTER classification,
+                          ADD COLUMN applied_at DATETIME DEFAULT NULL, ADD COLUMN approved_by BIGINT UNSIGNED DEFAULT NULL');
+        }
         // Two-step sign-in (TOTP authenticator app).
         if (!$hasColumn('users', 'two_factor_secret')) {
             $pdo->exec('ALTER TABLE users ADD COLUMN two_factor_secret VARCHAR(64) DEFAULT NULL,

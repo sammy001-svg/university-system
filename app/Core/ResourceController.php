@@ -77,10 +77,24 @@ abstract class ResourceController extends Controller
         return [];
     }
 
+    /** Modules with just "view" and "manage" permissions: create, edit and delete all need "manage". */
+    protected bool $viewManagePermissions = false;
+
+    protected function allowed(string $action): bool
+    {
+        if ($this->permission === '') {
+            return true;
+        }
+        if ($this->viewManagePermissions && $action !== 'view') {
+            $action = 'manage';
+        }
+        return Auth::can($this->permission . '.' . $action);
+    }
+
     protected function permit(string $action): void
     {
-        if ($this->permission !== '') {
-            $this->authorize($this->permission . '.' . $action);
+        if (!$this->allowed($action)) {
+            throw new \App\Core\Exceptions\HttpException(403);
         }
     }
 
@@ -124,9 +138,9 @@ abstract class ResourceController extends Controller
             'sort'       => $sort,
             'dir'        => strtolower($dir),
             'filters'    => $this->filters(),
-            'canCreate'  => $this->permission === '' || Auth::can($this->permission . '.create'),
-            'canEdit'    => $this->permission === '' || Auth::can($this->permission . '.edit'),
-            'canDelete'  => $this->permission === '' || Auth::can($this->permission . '.delete'),
+            'canCreate'  => $this->allowed('create'),
+            'canEdit'    => $this->allowed('edit'),
+            'canDelete'  => $this->allowed('delete'),
             'rowActions' => $this->rowActions(),
         ]));
     }
