@@ -29,6 +29,9 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
                 if (isset($item['user_type']) && !in_array($userType, (array) $item['user_type'], true)) {
                     return false;
                 }
+                if (isset($item['except_user_type']) && in_array($userType, (array) $item['except_user_type'], true)) {
+                    return false;
+                }
                 if (($item['permission'] ?? null) === null) {
                     return true;
                 }
@@ -40,9 +43,12 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
             $links = [];
             foreach ($visible as $item) {
                 $href    = $item['url'];
-                $links[] = $item + ['active' => $href === '/dashboard'
-                    ? str_ends_with($currentPath, '/dashboard')
-                    : str_contains($currentPath, rtrim($href, '/'))];
+                // 'match' (a regex) or 'exact' narrow links whose path is a prefix of other pages' paths.
+                $links[] = $item + ['active' => match (true) {
+                    isset($item['match'])                   => (bool) preg_match($item['match'], $currentPath),
+                    $href === '/dashboard', !empty($item['exact']) => str_ends_with(rtrim($currentPath, '/'), $href),
+                    default                                 => str_contains($currentPath, rtrim($href, '/')),
+                }];
             }
             $current = in_array(true, array_column($links, 'active'), true);
             $groupId = 'nav-' . strtolower((string) preg_replace('/[^A-Za-z0-9]+/', '-', $group['title']));

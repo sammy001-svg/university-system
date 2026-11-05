@@ -149,6 +149,22 @@ function fdatetime(?string $date): string
 }
 
 /** "3 hours ago" style relative time. */
+/** How long until a future moment: "3 days", "2 hours", "15 minutes", "under a minute". */
+function time_until(?string $date): string
+{
+    $diff = (int) strtotime((string) $date) - time();
+    if ($diff < 60) {
+        return 'under a minute';
+    }
+    foreach ([86400 => 'day', 3600 => 'hour', 60 => 'minute'] as $seconds => $unit) {
+        if ($diff >= $seconds) {
+            $count = (int) floor($diff / $seconds);
+            return $count . ' ' . $unit . ($count > 1 ? 's' : '');
+        }
+    }
+    return '';
+}
+
 function ago(?string $date): string
 {
     if ($date === null || $date === '') {

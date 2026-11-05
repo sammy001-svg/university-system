@@ -163,7 +163,33 @@ $router->group(['middleware' => ['auth']], static function ($r): void {
 $router->group(['middleware' => ['auth']], static function ($r) use ($resource): void {
 
     $r->get('/teaching', 'Lecturer\TeachingController@index');
+
+    // Online classroom (live classes and course materials) and online examinations.
+    // Registered before /teaching/{id} so their literal paths are not taken for a class id.
+    $r->get('/teaching/online-exams', 'Lecturer\OnlineExamController@mine');
+    $r->get('/teaching/online-exams/{id}', 'Lecturer\OnlineExamController@show');
+    $r->get('/teaching/online-exams/{id}/edit', 'Lecturer\OnlineExamController@edit');
+    $r->put('/teaching/online-exams/{id}', 'Lecturer\OnlineExamController@update');
+    $r->delete('/teaching/online-exams/{id}', 'Lecturer\OnlineExamController@destroy');
+    $r->post('/teaching/online-exams/{id}/questions', 'Lecturer\OnlineExamController@saveQuestion');
+    $r->post('/teaching/online-exams/{id}/status', 'Lecturer\OnlineExamController@status');
+    $r->get('/teaching/online-exams/{id}/results', 'Lecturer\OnlineExamController@results');
+    $r->post('/teaching/online-exams/{id}/transfer', 'Lecturer\OnlineExamController@transfer');
+    $r->delete('/teaching/exam-questions/{id}', 'Lecturer\OnlineExamController@destroyQuestion');
+    $r->post('/teaching/exam-questions/{id}/move', 'Lecturer\OnlineExamController@moveQuestion');
+    $r->get('/teaching/online-exams/attempts/{id}', 'Lecturer\OnlineExamController@attempt');
+    $r->post('/teaching/online-exams/attempts/{id}', 'Lecturer\OnlineExamController@mark');
+    $r->put('/teaching/class-sessions/{id}', 'Lecturer\ClassroomController@updateSession');
+    $r->delete('/teaching/class-sessions/{id}', 'Lecturer\ClassroomController@destroySession');
+    $r->get('/teaching/class-sessions/{id}/attendance', 'Lecturer\ClassroomController@attendance');
+    $r->delete('/teaching/materials/{id}', 'Lecturer\ClassroomController@destroyMaterial');
+
     $r->get('/teaching/{id}', 'Lecturer\TeachingController@show');
+    $r->get('/teaching/{id}/classroom', 'Lecturer\ClassroomController@show');
+    $r->post('/teaching/{id}/class-sessions', 'Lecturer\ClassroomController@storeSession');
+    $r->post('/teaching/{id}/materials', 'Lecturer\ClassroomController@storeMaterial');
+    $r->get('/teaching/{id}/online-exams/create', 'Lecturer\OnlineExamController@create');
+    $r->post('/teaching/{id}/online-exams', 'Lecturer\OnlineExamController@store');
     $r->get('/teaching/{id}/marks', 'Lecturer\MarkEntryController@edit');
     $r->post('/teaching/{id}/marks', 'Lecturer\MarkEntryController@save');
     $r->post('/teaching/{id}/publish', 'Lecturer\MarkEntryController@publish');
@@ -308,6 +334,18 @@ $router->group(['prefix' => '/portal', 'middleware' => ['auth', 'permission:port
     $r->get('/library', 'Portal\PortalController@library');
     $r->get('/hostel', 'Portal\PortalController@hostel');
     $r->get('/clearance', 'Portal\PortalController@clearance');
+
+    $r->get('/courses', 'Portal\CourseController@index');
+    $r->get('/courses/{id}', 'Portal\CourseController@show');
+    $r->get('/classes', 'Portal\OnlineClassController@index');
+    $r->get('/classes/{id}/join', 'Portal\OnlineClassController@join');
+    $r->get('/exams', 'Portal\OnlineExamController@index');
+    $r->get('/exams/{id}', 'Portal\OnlineExamController@show');
+    $r->post('/exams/{id}/start', 'Portal\OnlineExamController@start');
+    $r->get('/exams/{id}/take', 'Portal\OnlineExamController@take');
+    $r->post('/exams/{id}/answer', 'Portal\OnlineExamController@answer');
+    $r->post('/exams/{id}/focus', 'Portal\OnlineExamController@focus');
+    $r->post('/exams/{id}/submit', 'Portal\OnlineExamController@submit');
 });
 
 /* ------------------------------------------------------------------ */

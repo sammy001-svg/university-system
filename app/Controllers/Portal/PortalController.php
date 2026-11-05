@@ -11,6 +11,9 @@ use App\Models\Announcement;
 use App\Models\Student;
 use App\Models\Semester;
 use App\Models\SemesterEnrollment;
+use App\Services\Elearning\ClassroomService;
+use App\Services\Elearning\CourseAccess;
+use App\Services\Elearning\ExamService;
 
 final class PortalController extends Controller
 {
@@ -32,18 +35,78 @@ final class PortalController extends Controller
 
     public function dashboard(Request $request): string
     {
-        $student  = $this->getStudent();
-        $semester = (new Semester())->current();
+        $student    = $this->getStudent();
+        $semester   = (new Semester())->current();
+        $studentId  = (int) $student['id'];
+        $semesterId = isset($semester['id']) ? (int) $semester['id'] : null;
+        $offeringIds = CourseAccess::studiedOfferingIds($studentId, $semesterId);
+
+        // Online classes that are live now or start within the next 7 days.
+        $classes = [];
+        foreach (ClassroomService::sessions($offeringIds, $studentId) as $session) {
+            $phase = ClassroomService::phase($session);
+            if ($phase === 'live' || ($phase === 'upcoming' && strtotime($session['starts_at']) < strtotime('+7 days'))) {
+                $classes[] = $session + ['phase' => $phase, 'can_join' => ClassroomService::canJoin($session)];
+            }
+        }
+
+        // Exams open now or opening soon that the student has not finished.
+        $exams = [];
+        foreach (\App\Core\Database::select(
+            'SELECT e.id, c.code FROM online_exams e JOIN course_offerings o ON o.id = e.offering_id JOIN courses c ON c.id = o.course_id
+              WHERE e.offering_id IN (' . CourseAccess::inList($offeringIds) . ') AND e.status = "published" ORDER BY e.opens_at'
+        ) as $row) {
+            $exam    = ExamService::find((int) $row['id']) + ['code' => $row['code']];
+            $phase   = ExamService::phase($exam);
+            $attempt = ExamService::attempt((int) $exam['id'], $studentId);
+            if (in_array($phase, ['open', 'upcoming'], true) && ($attempt === null || $attempt['status'] === 'in_progress')) {
+                $exams[] = $exam + ['phase' => $phase, 'attempt' => $attempt];
+            }
+        }
+
+        $gpa = \App\Core\Database::selectOne(
+            'SELECT SUM(quality_points) AS qp, SUM(credit_hours) AS credits,
+                    SUM(CASE WHEN outcome = "pass" THEN credit_hours ELSE 0 END) AS earned
+               FROM course_results WHERE student_id = ? AND is_published = 1',
+            [$studentId]
+        );
+        $registrations = $this->studentModel->registrations($studentId, $semesterId);
+        $enrollment    = $semesterId !== null ? (new SemesterEnrollment())->forStudent($studentId, $semesterId) : null;
+
+        // What the student still has to do this semester.
+        $todo = [];
+        if ($semesterId !== null && $registrations === []) {
+            $todo[] = ['label' => 'Register your courses for ' . $semester['name'], 'url' => '/portal/registration', 'tone' => 'warning'];
+        }
+        if ($enrollment !== null && $enrollment['status'] !== 'enrolled') {
+            $todo[] = ['label' => 'Pay your 1st installment (' . money($enrollment['first_outstanding']) . ') to complete registration',
+                       'url' => '/portal/finance/invoice/' . $enrollment['invoice_id'], 'tone' => 'danger'];
+        }
+        foreach ($exams as $exam) {
+            if ($exam['phase'] === 'open') {
+                $todo[] = ['label' => ($exam['attempt'] ? 'Finish' : 'Sit') . ' ' . $exam['code'] . ': ' . $exam['title'] . ' (closes ' . fdatetime($exam['closes_at']) . ')',
+                           'url' => '/portal/exams/' . $exam['id'], 'tone' => 'warning'];
+            }
+        }
+        if (empty($student['phone']) || empty($student['emergency_contact_name'])) {
+            $todo[] = ['label' => 'Complete your contact and emergency details', 'url' => '/portal/profile', 'tone' => 'info'];
+        }
 
         return $this->view('portal.dashboard', [
-            'pageTitle'    => 'My Portal',
-            'student'      => $student,
-            'semester'     => $semester,
-            'registrations'=> $this->studentModel->registrations($student['id'], $semester['id'] ?? null),
-            'balance'      => $this->studentModel->balance($student['id']),
-            'attendance'   => $this->studentModel->attendanceRate($student['id'], $semester['id'] ?? null),
-            'announcements'=> (new Announcement())->feedFor(Auth::user(), 5),
-            'enrollment'   => $semester ? (new SemesterEnrollment())->forStudent((int) $student['id'], (int) $semester['id']) : null,
+            'pageTitle'     => 'My Portal',
+            'student'       => $student,
+            'semester'      => $semester,
+            'registrations' => $registrations,
+            'credits'       => array_sum(array_map(static fn (array $r): int => (int) ($r['credit_hours'] ?? 0), $registrations)),
+            'balance'       => $this->studentModel->balance($studentId),
+            'attendance'    => $this->studentModel->attendanceRate($studentId, $semesterId),
+            'cgpa'          => (float) ($gpa['credits'] ?? 0) > 0 ? round((float) $gpa['qp'] / (float) $gpa['credits'], 2) : null,
+            'creditsEarned' => (int) ($gpa['earned'] ?? 0),
+            'classes'       => $classes,
+            'exams'         => $exams,
+            'todo'          => $todo,
+            'announcements' => (new Announcement())->feedFor(Auth::user(), 5),
+            'enrollment'    => $enrollment,
         ]);
     }
 

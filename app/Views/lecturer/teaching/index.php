@@ -7,7 +7,7 @@
 </div>
 
 <?php if (empty($offerings)): ?>
-    <div class="card"><div class="card-body"><div class="empty-state"><?= icon('teaching') ?><p>No courses assigned to you.</p></div></div></div>
+    <div class="card"><div class="card-body"><div class="empty-state"><?= icon('clipboard') ?><p>No courses assigned to you.</p></div></div></div>
 <?php else: ?>
 <div class="row g-3">
     <?php foreach ($offerings as $o): ?>
@@ -22,11 +22,12 @@
                     <p class="text-muted-sm mb-3"><?= e($o['semester_name']) ?> &middot; <?= e($o['academic_year']) ?> &middot; Section <?= e($o['section']) ?></p>
                     <div class="d-flex gap-3 text-muted-sm">
                         <span><?= icon('student','ico-sm') ?> <?= (int)($o['enrolled_count'] ?? 0) ?> students</span>
-                        <span><?= icon('assessment','ico-sm') ?> <?= (int)($o['assessment_count'] ?? 0) ?> assessments</span>
+                        <span><?= icon('chart','ico-sm') ?> <?= (int)($o['assessment_count'] ?? 0) ?> assessments</span>
                     </div>
                 </div>
                 <div class="card-footer d-flex gap-2">
-                    <a class="btn btn-sm btn-primary" href="<?= url('/teaching/' . $o['id']) ?>">View Class</a>
+                    <a class="btn btn-sm btn-primary" href="<?= url('/teaching/' . $o['id'] . '/classroom') ?>">Online classroom</a>
+                    <a class="btn btn-sm btn-light" href="<?= url('/teaching/' . $o['id']) ?>">Class list</a>
                     <a class="btn btn-sm btn-light" href="<?= url('/teaching/' . $o['id'] . '/marks') ?>">Marks</a>
                     <a class="btn btn-sm btn-light" href="<?= url('/teaching/' . $o['id'] . '/assessments') ?>">Assessments</a>
                 </div>

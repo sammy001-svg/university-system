@@ -39,6 +39,7 @@ final class AcademicCatalogSync
             (string) sha1_file($this->basePath . '/database/seeds/catalog/bbiu.php')
             . (string) sha1_file($this->basePath . '/database/seeds/academic.php')
             . (string) sha1_file(__FILE__)
+            . (string) sha1_file($this->basePath . '/database/migrations/2026_11_05_elearning.sql')
         );
     }
 
@@ -276,6 +277,20 @@ final class AcademicCatalogSync
         }
         if (!$hasColumn('invoice_items', 'course_id')) {
             $pdo->exec('ALTER TABLE invoice_items ADD COLUMN course_id INT UNSIGNED DEFAULT NULL AFTER fee_type_id');
+        }
+        // Online classes, course materials and online examinations.
+        $this->runMigration($pdo, '2026_11_05_elearning.sql');
+    }
+
+    /** Run a migration file whose statements are all safe to repeat (CREATE TABLE IF NOT EXISTS ...). */
+    private function runMigration(PDO $pdo, string $file): void
+    {
+        $sql = (string) file_get_contents($this->basePath . '/database/migrations/' . $file);
+        foreach (explode(";\n", str_replace("\r\n", "\n", $sql)) as $chunk) {
+            $statement = trim((string) preg_replace('/^\s*--.*$/m', '', $chunk));
+            if ($statement !== '') {
+                $pdo->exec($statement);
+            }
         }
     }
 

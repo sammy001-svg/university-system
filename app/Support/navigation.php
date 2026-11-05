@@ -12,9 +12,38 @@ return [
     [
         'title' => 'Overview',
         'items' => [
-            ['label' => 'Dashboard',     'url' => '/dashboard',     'icon' => 'dashboard',  'permission' => null],
-            ['label' => 'My Portal',     'url' => '/portal',        'icon' => 'student',    'permission' => 'portal.access',  'user_type' => ['student']],
-            ['label' => 'My Classes',    'url' => '/teaching',      'icon' => 'clipboard',  'permission' => 'teaching.access', 'user_type' => ['lecturer', 'staff']],
+            ['label' => 'Dashboard',     'url' => '/dashboard',     'icon' => 'dashboard',  'permission' => null, 'except_user_type' => ['student']],
+            ['label' => 'Student Home',  'url' => '/portal',        'icon' => 'dashboard',  'permission' => 'portal.access',  'user_type' => ['student'], 'exact' => true],
+        ],
+    ],
+    [
+        'title' => 'My Studies',
+        'items' => [
+            ['label' => 'My Courses',      'url' => '/portal/courses',    'icon' => 'book',     'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Online Classes',  'url' => '/portal/classes',    'icon' => 'video',    'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Online Exams',    'url' => '/portal/exams',      'icon' => 'exam',     'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Timetable',       'url' => '/portal/timetable',  'icon' => 'clock',    'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Attendance',      'url' => '/portal/attendance', 'icon' => 'check',    'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Results',         'url' => '/portal/results',    'icon' => 'chart',    'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Transcript',      'url' => '/portal/transcript', 'icon' => 'file',     'permission' => 'portal.access', 'user_type' => ['student']],
+        ],
+    ],
+    [
+        'title' => 'My Account',
+        'items' => [
+            ['label' => 'Course Registration', 'url' => '/portal/registration', 'icon' => 'clipboard', 'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Fees &amp; Payments', 'url' => '/portal/finance',      'icon' => 'money',     'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'My Library',          'url' => '/portal/library',      'icon' => 'book',      'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Accommodation',       'url' => '/portal/hostel',       'icon' => 'bed',       'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Clearance',           'url' => '/portal/clearance',    'icon' => 'shield',    'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'My Profile',          'url' => '/portal/profile',      'icon' => 'user',      'permission' => 'portal.access', 'user_type' => ['student']],
+        ],
+    ],
+    [
+        'title' => 'Teaching',
+        'items' => [
+            ['label' => 'My Classes',      'url' => '/teaching',              'icon' => 'clipboard', 'permission' => 'teaching.access', 'user_type' => ['lecturer', 'staff'], 'match' => '#/teaching(/\d+(/.*)?)?$#'],
+            ['label' => 'Online Exams',    'url' => '/teaching/online-exams', 'icon' => 'exam',      'permission' => 'teaching.access', 'user_type' => ['lecturer', 'staff']],
         ],
     ],
     [

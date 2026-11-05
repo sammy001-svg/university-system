@@ -6,8 +6,9 @@
     </div>
     <div class="d-flex gap-2">
         <a class="btn btn-sm btn-light" href="<?= url('/teaching') ?>">&larr; My Teaching</a>
+        <a class="btn btn-sm btn-primary" href="<?= url('/teaching/' . $offering['id'] . '/classroom') ?>"><?= icon('video','ico-sm') ?> Online classroom</a>
         <a class="btn btn-sm btn-outline-primary" href="<?= url('/teaching/' . $offering['id'] . '/marks') ?>"><?= icon('edit','ico-sm') ?> Marks</a>
-        <a class="btn btn-sm btn-outline-secondary" href="<?= url('/teaching/' . $offering['id'] . '/assessments') ?>"><?= icon('assessment','ico-sm') ?> Assessments</a>
+        <a class="btn btn-sm btn-outline-secondary" href="<?= url('/teaching/' . $offering['id'] . '/assessments') ?>"><?= icon('chart','ico-sm') ?> Assessments</a>
     </div>
 </div>
 
