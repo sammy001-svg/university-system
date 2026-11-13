@@ -17,7 +17,7 @@
         <dl class="row mb-0">
             <dt class="col-sm-4">Room Number</dt><dd class="col-sm-8">Rm <?= e($allocation['room_number']) ?></dd>
             <dt class="col-sm-4">Floor</dt><dd class="col-sm-8"><?= e($allocation['floor'] ?? 'G') ?></dd>
-            <dt class="col-sm-4">Check-In Date</dt><dd class="col-sm-8"><?= date_fmt($allocation['check_in_date']) ?></dd>
+            <dt class="col-sm-4">Allocated</dt><dd class="col-sm-8"><?= date_fmt($allocation['allocated_at']) ?></dd>
             <dt class="col-sm-4">Allocation Status</dt><dd class="col-sm-8"><?= status_badge($allocation['status']) ?></dd>
         </dl>
     <?php endif; ?>

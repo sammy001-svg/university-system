@@ -23,9 +23,10 @@
                         <span class="badge text-bg-info"><?= e(humanize($a['audience'])) ?></span>
                         <span class="text-muted-sm"><?= date_fmt($a['published_at']) ?></span>
                     </div>
-                    <h5 class="card-title mb-2"><?= e($a['title']) ?></h5>
+                    <h5 class="card-title mb-2"><a href="<?= url('/announcements/' . $a['id']) ?>"><?= e($a['title']) ?></a>
+                        <?php if ($a['status'] !== 'published'): ?><span class="badge text-bg-secondary"><?= e(ucfirst($a['status'])) ?></span><?php endif; ?></h5>
                     <p class="card-text text-muted mb-3"><?= nl2br(e(str_limit($a['body'], 200))) ?></p>
-                    <div class="text-muted-sm">Published by <?= e($a['first_name'] . ' ' . $a['last_name']) ?></div>
+                    <div class="text-muted-sm">Published by <?= e(trim(($a['first_name'] ?? '') . ' ' . ($a['last_name'] ?? '')) ?: 'the university') ?></div>
                 </div>
                 <?php if (can('announcements.edit')): ?>
                 <div class="card-footer text-end">

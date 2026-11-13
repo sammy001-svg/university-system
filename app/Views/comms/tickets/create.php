@@ -16,7 +16,7 @@
                 <div class="col-md-4">
                     <label class="form-label">Category <span class="text-danger">*</span></label>
                     <select name="category" class="form-select" required>
-                        <?= enum_options(['technical','academic','finance','hostel','library','other'], old('category', 'technical')) ?>
+                        <?= options(['ict' => 'ICT / technical', 'academic' => 'Academic', 'finance' => 'Finance', 'hostel' => 'Hostel', 'library' => 'Library', 'complaint' => 'Complaint', 'general' => 'General'], old('category', 'ict')) ?>
                     </select>
                 </div>
                 <div class="col-md-4">

@@ -11,13 +11,45 @@ use App\Models\Announcement;
 
 final class AnnouncementController extends Controller
 {
+    /** Audiences the signed-in user belongs to. Editors (announcements.create) see everything, drafts included. */
+    private function audiences(): array
+    {
+        $type = Auth::user()['user_type'] ?? '';
+        $out  = ['all'];
+        if ($type === 'student') { $out[] = 'students'; }
+        if (in_array($type, ['staff', 'lecturer', 'admin'], true)) { $out[] = 'staff'; }
+        if ($type === 'lecturer') { $out[] = 'lecturers'; }
+        return $out;
+    }
+
     public function index(Request $request): string
     {
         $this->authorize('announcements.view');
-        $announcements = Database::select(
-            'SELECT a.*, u.first_name, u.last_name FROM announcements a JOIN users u ON u.id=a.created_by ORDER BY a.published_at DESC LIMIT 100'
-        );
+        $sql = 'SELECT a.*, u.first_name, u.last_name FROM announcements a LEFT JOIN users u ON u.id = a.created_by';
+        $params = [];
+        if (!Auth::can('announcements.create')) {
+            $audiences = $this->audiences();
+            $sql .= ' WHERE a.status = "published" AND a.audience IN (' . implode(',', array_fill(0, count($audiences), '?')) . ')
+                      AND (a.expires_at IS NULL OR a.expires_at >= ?)';
+            $params = array_merge($audiences, [date('Y-m-d H:i:s')]);
+        }
+        $announcements = Database::select($sql . ' ORDER BY a.published_at DESC LIMIT 100', $params);
         return $this->view('comms.announcements.index', ['pageTitle' => 'Announcements', 'announcements' => $announcements]);
+    }
+
+    public function show(Request $request, string $id): string
+    {
+        $a = Database::selectOne(
+            'SELECT a.*, CONCAT_WS(" ", u.first_name, u.last_name) AS author_name FROM announcements a LEFT JOIN users u ON u.id = a.created_by WHERE a.id = ?',
+            [(int) $id]
+        );
+        $visible = $a !== null && (Auth::can('announcements.create')
+            || ($a['status'] === 'published' && in_array($a['audience'], $this->audiences(), true)));
+        if (!$visible) {
+            throw new \App\Core\Exceptions\HttpException(404, 'Announcement not found.');
+        }
+        Database::statement('UPDATE announcements SET views = views + 1 WHERE id = ?', [$a['id']]);
+        return $this->view('comms.announcements.show', ['pageTitle' => $a['title'], 'a' => $a]);
     }
 
     public function create(Request $request): string

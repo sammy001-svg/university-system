@@ -35,7 +35,7 @@
             </div>
         <?php endforeach; ?>
 
-        <?php if (can('tickets.edit')): ?>
+        <?php if ($canReply): ?>
         <div class="card mt-4">
             <div class="card-header"><?= icon('plus') ?> Post Reply</div>
             <form method="post" action="<?= url('/services/tickets/' . $ticket['id'] . '/reply') ?>">

@@ -39,6 +39,23 @@ final class RegistrationController extends Controller
         ]);
     }
 
+    /** Staff register a student on a class of the current semester (e.g. a late addition). */
+    public function create(Request $request): string
+    {
+        $this->authorize('registrations.create');
+        $semester = (new Semester())->current();
+        return $this->view('academics.registrations.create', [
+            'pageTitle' => 'Register a student',
+            'semester'  => $semester,
+            'students'  => (new \App\Models\Student())->options(),
+            'offerings' => $semester ? array_column(Database::select(
+                'SELECT o.id, CONCAT(c.code, " ", c.title, " - section ", o.section, " (", o.enrolled_count, "/", o.capacity, ")") AS label
+                   FROM course_offerings o JOIN courses c ON c.id = o.course_id
+                  WHERE o.semester_id = ? AND o.status = "open" ORDER BY c.code, o.section', [$semester['id']]), 'label', 'id') : [],
+            'studentId' => (int) $request->query('student_id', 0),
+        ]);
+    }
+
     public function store(Request $request): never
     {
         $this->authorize('registrations.create');
@@ -48,13 +65,13 @@ final class RegistrationController extends Controller
             'offering_id' => 'required|integer|exists:course_offerings,id',
         ]);
         $semester = (new Semester())->current();
-        if (!$semester) { $this->error('No current semester.', '/registrations'); }
+        if (!$semester) { $this->error('No current semester.', '/academics/registrations'); }
 
         $existing = Database::selectOne(
             'SELECT id, status FROM course_registrations WHERE student_id = ? AND offering_id = ?',
             [$data['student_id'], $data['offering_id']]
         );
-        if ($existing && $existing['status'] !== 'dropped') { $this->error('The student is already registered for this class.', '/registrations'); }
+        if ($existing && $existing['status'] !== 'dropped') { $this->error('The student is already registered for this class.', '/academics/registrations'); }
 
         // Staff may add courses after registration is complete; the extra tuition falls on the later installments.
         if ($existing) {
@@ -67,7 +84,7 @@ final class RegistrationController extends Controller
             (new CourseRegistration())->create($data);
         }
         (new BillingService())->refreshSemesterBill((int) $data['student_id'], (int) $semester['id'], (int) Auth::id());
-        $this->success("Registration created and the student's bill updated.", '/registrations');
+        $this->success("Registration created and the student's bill updated.", '/academics/registrations');
     }
 
     public function approve(Request $request, string $id): never
@@ -78,7 +95,7 @@ final class RegistrationController extends Controller
             'UPDATE course_registrations SET approval_status="approved", approved_by=?, approved_at=NOW() WHERE id=?',
             [Auth::id(), (int)$id]
         );
-        $this->success('Registration approved.', '/registrations?approval_status=pending');
+        $this->success('Registration approved.', '/academics/registrations?approval_status=pending');
     }
 
     public function reject(Request $request, string $id): never
@@ -89,7 +106,7 @@ final class RegistrationController extends Controller
             'UPDATE course_registrations SET approval_status="rejected" WHERE id=?',
             [(int)$id]
         );
-        $this->success('Registration rejected.', '/registrations?approval_status=pending');
+        $this->success('Registration rejected.', '/academics/registrations?approval_status=pending');
     }
 
     public function destroy(Request $request, string $id): never
@@ -100,6 +117,6 @@ final class RegistrationController extends Controller
         if (!$reg) { throw new HttpException(404); }
         Database::statement("UPDATE course_registrations SET status='dropped' WHERE id=?", [(int)$id]);
         (new BillingService())->refreshSemesterBill((int) $reg['student_id'], (int) $reg['semester_id'], (int) Auth::id());
-        $this->success("Registration dropped and the student's bill updated.", '/registrations');
+        $this->success("Registration dropped and the student's bill updated.", '/academics/registrations');
     }
 }

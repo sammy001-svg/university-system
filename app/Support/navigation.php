@@ -21,6 +21,7 @@ return [
         'title' => 'My Studies',
         'items' => [
             ['label' => 'My Courses',      'url' => '/portal/courses',    'icon' => 'book',     'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Course Guide',    'url' => '/portal/course-guide','icon' => 'clipboard','permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Online Classes',  'url' => '/portal/classes',    'icon' => 'video',    'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Online Exams',    'url' => '/portal/exams',      'icon' => 'exam',     'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Assignments',     'url' => '/portal/assignments','icon' => 'file',     'permission' => 'portal.access', 'user_type' => ['student']],

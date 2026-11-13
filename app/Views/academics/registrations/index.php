@@ -4,6 +4,9 @@
         <h1>Course Registrations</h1>
         <p class="lede">Student course registrations &amp; approval workflow.</p>
     </div>
+    <?php if (can('registrations.create')): ?>
+        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/academics/registrations/create') ?>"><?= icon('plus', 'ico-sm') ?> Register a student</a>
+    <?php endif; ?>
 </div>
 
 <form class="filter-bar mb-3" method="get">

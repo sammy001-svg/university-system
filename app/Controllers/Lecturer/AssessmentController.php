@@ -10,6 +10,7 @@ use App\Core\Exceptions\HttpException;
 use App\Core\Request;
 use App\Models\Assessment;
 use App\Models\AssessmentScore;
+use App\Services\Elearning\CourseAccess;
 
 final class AssessmentController extends Controller
 {
@@ -21,6 +22,7 @@ final class AssessmentController extends Controller
             [(int) $id]
         );
         $offering = $this->offering((int) $id);
+        CourseAccess::teaching((int) $id);
 
         return $this->view('lecturer.assessments.index', [
             'pageTitle'   => 'Assessments – ' . $offering['code'],
@@ -40,6 +42,7 @@ final class AssessmentController extends Controller
             'weight'   => 'required|numeric',
             'due_date' => 'nullable|date',
         ]);
+        CourseAccess::teaching((int) $id);
         $data['offering_id'] = (int) $id;
         $data['created_by']  = Auth::id();
         (new Assessment())->create($data);
@@ -51,6 +54,7 @@ final class AssessmentController extends Controller
         $this->authorize('results.create');
         $assessment = Database::selectOne('SELECT a.*, o.id AS offering_id, c.code FROM assessments a JOIN course_offerings o ON o.id = a.offering_id JOIN courses c ON c.id = o.course_id WHERE a.id = ?', [(int) $id]);
         if (!$assessment) { throw new HttpException(404); }
+        CourseAccess::teaching((int) $assessment['offering_id']);
 
         $students = Database::select(
             'SELECT cr.student_id, s.admission_number, u.first_name, u.last_name,
@@ -75,8 +79,13 @@ final class AssessmentController extends Controller
     {
         $this->authorize('results.create');
         $this->verifyCsrf($request);
+        $assessment = Database::selectOne('SELECT offering_id, max_score FROM assessments WHERE id=?', [(int)$id]);
+        if (!$assessment) { throw new HttpException(404); }
+        CourseAccess::teaching((int) $assessment['offering_id']);
         $scores = $request->input('scores', []);
         foreach ((array) $scores as $studentId => $score) {
+            if ($score === '' || $score === null) { continue; }   // a blank box means "no score yet", not zero
+            $score = max(0, min((float) $assessment['max_score'], (float) $score));
             $existing = Database::scalar('SELECT id FROM assessment_scores WHERE assessment_id=? AND student_id=?', [(int)$id, (int)$studentId]);
             if ($existing) {
                 Database::statement('UPDATE assessment_scores SET score=?, status="graded", graded_by=?, graded_at=NOW() WHERE id=?', [(float)$score, Auth::id(), (int)$existing]);
@@ -84,7 +93,6 @@ final class AssessmentController extends Controller
                 Database::statement('INSERT INTO assessment_scores (assessment_id, student_id, score, status, graded_by, graded_at) VALUES (?,?,?,"graded",?,NOW())', [(int)$id, (int)$studentId, (float)$score, Auth::id()]);
             }
         }
-        $assessment = Database::selectOne('SELECT offering_id FROM assessments WHERE id=?', [(int)$id]);
         $this->success('Scores saved.', '/teaching/assessments/' . $id . '/scores');
     }
 

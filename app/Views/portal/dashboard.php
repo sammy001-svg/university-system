@@ -190,6 +190,7 @@ $hour     = (int) date('H');
             <div class="card-header"><?= icon('check') ?> Quick links</div>
             <div class="card-body">
                 <div class="quick-actions">
+                    <a href="<?= url('/portal/course-guide') ?>"><?= icon('clipboard') ?><span>Course guide</span></a>
                     <a href="<?= url('/portal/timetable') ?>"><?= icon('clock') ?><span>Timetable</span></a>
                     <a href="<?= url('/portal/results') ?>"><?= icon('chart') ?><span>Results</span></a>
                     <a href="<?= url('/portal/transcript') ?>"><?= icon('file') ?><span>Transcript</span></a>

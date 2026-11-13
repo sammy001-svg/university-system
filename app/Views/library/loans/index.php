@@ -35,7 +35,7 @@
                     <td><code><?= e($l['accession_number']) ?></code></td>
                     <td class="fw-semibold"><?= e($l['title']) ?></td>
                     <td><?= e($l['first_name'] . ' ' . $l['last_name']) ?> (<code><?= e($l['admission_number']) ?></code>)</td>
-                    <td><?= date_fmt($l['issued_date']) ?></td>
+                    <td><?= date_fmt($l['issued_at']) ?></td>
                     <td><?= date_fmt($l['due_date']) ?></td>
                     <td><?= status_badge($l['status']) ?></td>
                     <td class="text-end text-nowrap">

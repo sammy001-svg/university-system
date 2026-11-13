@@ -29,7 +29,7 @@
                     <td><code><?= e($l['accession_number']) ?></code></td>
                     <td class="fw-semibold"><?= e($l['title']) ?></td>
                     <td><?= e($l['author']) ?></td>
-                    <td><?= date_fmt($l['issued_date']) ?></td>
+                    <td><?= date_fmt($l['issued_at']) ?></td>
                     <td><?= date_fmt($l['due_date']) ?></td>
                     <td><?= status_badge($l['status']) ?></td>
                 </tr>

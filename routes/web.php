@@ -230,7 +230,7 @@ $router->group(['prefix' => '/academics', 'middleware' => ['auth']], static func
     $r->post('/registrations', 'Academics\RegistrationController@store');
     $r->post('/registrations/{id}/approve', 'Academics\RegistrationController@approve');
     $r->post('/registrations/{id}/reject', 'Academics\RegistrationController@reject');
-    $r->delete('/registrations/{id}', 'Academics\RegistrationController@drop');
+    $r->delete('/registrations/{id}', 'Academics\RegistrationController@destroy');
 });
 
 /* ------------------------------------------------------------------ */
@@ -463,6 +463,7 @@ $router->group(['prefix' => '/portal', 'middleware' => ['auth', 'permission:port
     $r->get('/assignments', 'Portal\AssignmentController@index');
     $r->get('/assignments/{id}', 'Portal\AssignmentController@show');
     $r->post('/assignments/{id}', 'Portal\AssignmentController@submit');
+    $r->get('/course-guide', 'Portal\CourseGuideController@show');
     $r->get('/degree-audit', 'Students\RecordController@myAudit');
     $r->get('/graduation', 'Portal\GraduationController@show');
     $r->post('/graduation', 'Portal\GraduationController@apply');
