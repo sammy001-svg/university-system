@@ -9,6 +9,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Hash;
 use App\Core\Mailer;
+use App\Core\Notify;
 use App\Core\QueryBuilder;
 use App\Core\Request;
 use App\Core\Response;
@@ -157,6 +158,9 @@ final class StudentController extends Controller
         $this->verifyCsrf($request);
 
         $data = $this->validate($request, [
+            // The university's own student ID, typed in by the registrar - never generated here.
+            'admission_number' => 'required|max:40|unique:students,admission_number',
+            'registration_number' => 'nullable|max:40',
             'first_name'    => 'required|max:80',
             'last_name'     => 'required|max:80',
             'email'         => 'required|email|max:150|unique:users,email',
@@ -169,15 +173,16 @@ final class StudentController extends Controller
             'study_mode'    => 'required|in:full_time,part_time,evening,distance',
             'national_id'   => 'nullable|max:40',
             'county'        => 'nullable|max:80',
-        ]);
+        ], ['admission_number' => 'Student ID', 'registration_number' => 'Registration number']);
 
         $program = (new Program())->find((int) $data['program_id']);
         if ($program === null) {
             $this->error('Select a valid programme.', '/students/create');
         }
 
-        $password  = Hash::tempPassword();
-        $studentId = Database::transaction(function () use ($data, $request, $program, $password) {
+        $password        = Hash::tempPassword();
+        $admissionNumber = trim((string) $data['admission_number']);
+        $studentId = Database::transaction(function () use ($data, $request, $password, $admissionNumber) {
             $username = $this->users->generateUsername((string) $data['first_name'], (string) $data['last_name']);
 
             $userId = $this->users->createAccount([
@@ -186,23 +191,20 @@ final class StudentController extends Controller
                 'first_name'           => $data['first_name'],
                 'last_name'            => $data['last_name'],
                 'other_name'           => $request->input('other_name'),
-                'gender'               => $data['gender'] ?: null,
-                'date_of_birth'        => $data['date_of_birth'] ?: null,
-                'phone'                => $data['phone'],
+                'gender'               => ($data['gender'] ?? '') ?: null,
+                'date_of_birth'        => ($data['date_of_birth'] ?? '') ?: null,
+                'phone'                => ($data['phone'] ?? '') ?: null,
                 'user_type'            => 'student',
                 'status'               => 'active',
                 'must_change_password' => 1,
             ], $this->studentRoleIds(), $password, Auth::id());
 
-            $admissionNumber = trim((string) $request->input('admission_number'))
-                ?: $this->students->nextAdmissionNumber((string) $program['code']);
-
             return $this->students->create([
                 'user_id'                    => $userId,
                 'admission_number'           => $admissionNumber,
-                'registration_number'        => $request->input('registration_number') ?: $admissionNumber,
+                'registration_number'        => trim((string) ($data['registration_number'] ?? '')) ?: $admissionNumber,
                 'program_id'                 => (int) $data['program_id'],
-                'intake_id'                  => $data['intake_id'] ?: null,
+                'intake_id'                  => ($data['intake_id'] ?? '') ?: null,
                 'year_of_study'              => (int) $data['year_of_study'],
                 'current_semester'           => (int) $request->input('current_semester', 1),
                 'study_mode'                 => $data['study_mode'],
@@ -210,8 +212,8 @@ final class StudentController extends Controller
                 'sponsor_type'               => $request->input('sponsor_type', 'self'),
                 'sponsor_name'               => $request->input('sponsor_name'),
                 'nationality'                => $request->input('nationality', 'Liberian'),
-                'national_id'                => $data['national_id'],
-                'county'                     => $data['county'],
+                'national_id'                => ($data['national_id'] ?? '') ?: null,
+                'county'                     => ($data['county'] ?? '') ?: null,
                 'physical_address'           => $request->input('physical_address'),
                 'postal_address'             => $request->input('postal_address'),
                 'city'                       => $request->input('city'),
@@ -225,7 +227,7 @@ final class StudentController extends Controller
             ]);
         });
 
-        Audit::created('student', $studentId, ['email' => $data['email']], 'students');
+        Audit::created('student', $studentId, ['admission_number' => $admissionNumber, 'email' => $data['email']], 'students');
         Mailer::send(
             (string) $data['email'],
             'Your student account',
@@ -235,6 +237,24 @@ final class StudentController extends Controller
 
         Session::flash('success', 'Student admitted. Temporary password: ' . $password);
         $this->redirect('/students/' . $studentId);
+    }
+
+    /**
+     * A student's ID is what they sign in with, so when the registrar corrects it the
+     * sign-in name follows - but only when it was the old number, never a name the
+     * student chose, and never one already taken by somebody else.
+     */
+    private function renameStudentId(int $studentId, int $userId, string $oldNumber, string $newNumber): void
+    {
+        $username = (string) Database::scalar('SELECT username FROM users WHERE id = ?', [$userId]);
+        if (strcasecmp($username, $oldNumber) === 0
+            && !Database::scalar('SELECT 1 FROM users WHERE username = ? AND id <> ?', [strtolower($newNumber), $userId])) {
+            $this->users->update($userId, ['username' => strtolower($newNumber)]);
+        }
+        Audit::log('student_id_change', 'students', 'students', (string) $studentId,
+            'Student ID changed from ' . $oldNumber . ' to ' . $newNumber);
+        Notify::send($userId, 'Your student ID has changed',
+            'Your student ID is now ' . $newNumber . '. Please use it to sign in from now on.', '/portal/profile', 'info', 'student');
     }
 
     private function studentRoleIds(): array
@@ -281,19 +301,26 @@ final class StudentController extends Controller
             'year_of_study'       => 'required|integer|between:1,6',
             'current_semester'    => 'required|integer|between:1,4',
             'study_mode'          => 'required|in:full_time,part_time,evening,distance',
+            'admission_number'    => 'required|max:40|unique:students,admission_number,' . $id,
             'registration_number' => 'nullable|max:40',
             'status'              => 'required|in:active,deferred,suspended,graduated,withdrawn,expelled,alumni',
-        ]);
+        ], ['admission_number' => 'Student ID', 'registration_number' => 'Registration number']);
 
-        Database::transaction(function () use ($data, $request, $student, $id) {
+        $oldNumber = (string) $student['admission_number'];
+        $newNumber = trim((string) $data['admission_number']);
+
+        Database::transaction(function () use ($data, $request, $student, $id, $oldNumber, $newNumber) {
+            if ($newNumber !== $oldNumber) {
+                $this->renameStudentId((int) $id, (int) $student['user_id'], $oldNumber, $newNumber);
+            }
             $this->users->update((int) $student['user_id'], [
                 'first_name'    => $data['first_name'],
                 'last_name'     => $data['last_name'],
                 'other_name'    => $request->input('other_name'),
                 'email'         => $data['email'],
-                'phone'         => $data['phone'],
-                'gender'        => $data['gender'] ?: null,
-                'date_of_birth' => $data['date_of_birth'] ?: null,
+                'phone'         => ($data['phone'] ?? '') ?: null,
+                'gender'        => ($data['gender'] ?? '') ?: null,
+                'date_of_birth' => ($data['date_of_birth'] ?? '') ?: null,
             ]);
 
             $avatar = $request->file('avatar');
@@ -303,7 +330,8 @@ final class StudentController extends Controller
             }
 
             $this->students->update((int) $id, [
-                'registration_number'        => $data['registration_number'],
+                'admission_number'           => $newNumber,
+                'registration_number'        => trim((string) ($data['registration_number'] ?? '')) ?: $newNumber,
                 'program_id'                 => (int) $data['program_id'],
                 'intake_id'                  => $request->input('intake_id') ?: null,
                 'year_of_study'              => (int) $data['year_of_study'],

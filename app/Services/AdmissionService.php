@@ -26,7 +26,7 @@ final class AdmissionService
     /**
      * @return array{ok:bool,message:string,student_id?:int,credentials?:array}
      */
-    public function enrol(int $applicationId, ?int $actorId = null): array
+    public function enrol(int $applicationId, ?int $actorId = null, string $admissionNumber = ''): array
     {
         $application = $this->applications->detail($applicationId);
         if ($application === null) {
@@ -42,9 +42,21 @@ final class AdmissionService
             return ['ok' => false, 'message' => 'A user account already exists with that email address.'];
         }
 
+        // Student IDs are the university's own and are never generated here.
+        $admissionNumber = trim($admissionNumber);
+        if ($admissionNumber === '') {
+            return ['ok' => false, 'message' => 'Enter the student ID to give this applicant.'];
+        }
+        if (mb_strlen($admissionNumber) > 40) {
+            return ['ok' => false, 'message' => 'A student ID can be at most 40 characters.'];
+        }
+        if ($this->students->exists('admission_number', $admissionNumber)) {
+            return ['ok' => false, 'message' => 'Student ID ' . $admissionNumber . ' already belongs to another student.'];
+        }
+
         $password = Hash::tempPassword();
 
-        $result = Database::transaction(function () use ($application, $applicationId, $actorId, $password) {
+        $result = Database::transaction(function () use ($application, $applicationId, $actorId, $password, $admissionNumber) {
             $username = $this->users->generateUsername($application['first_name'], $application['last_name']);
 
             $userId = $this->users->createAccount(
@@ -65,8 +77,6 @@ final class AdmissionService
                 $password,
                 $actorId
             );
-
-            $admissionNumber = $this->students->nextAdmissionNumber((string) $application['program_code']);
 
             $studentId = $this->students->create([
                 'user_id'                => $userId,

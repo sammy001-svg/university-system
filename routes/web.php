@@ -333,8 +333,12 @@ $router->group(['middleware' => ['auth']], static function ($r) use ($resource):
     $r->get('/attendance/report', 'Attendance\AttendanceController@report');
 
     $r->get('/timetable', 'Timetable\TimetableController@index');
+    $r->get('/timetable/conflicts', 'Timetable\TimetableController@conflicts');
     $r->get('/timetable/create', 'Timetable\TimetableController@create');
+    $r->post('/timetable/check', 'Timetable\TimetableController@check');
     $r->post('/timetable', 'Timetable\TimetableController@store');
+    $r->get('/timetable/{id}/edit', 'Timetable\TimetableController@edit');
+    $r->put('/timetable/{id}', 'Timetable\TimetableController@update');
     $r->delete('/timetable/{id}', 'Timetable\TimetableController@destroy');
 
     $r->get('/exams', 'Exams\ExamController@index');

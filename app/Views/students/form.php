@@ -100,8 +100,12 @@ $field = static function (string $name, string $label, array $opts = []) use ($s
                         $field('study_mode', 'Study mode', ['type' => 'enum', 'values' => ['full_time', 'part_time', 'evening', 'distance'], 'width' => 3, 'required' => true]);
                         $field('year_of_study', 'Year of study', ['type' => 'number', 'min' => 1, 'max' => 6, 'width' => 3, 'required' => true, 'default' => 1]);
                         $field('current_semester', 'Current semester', ['type' => 'number', 'min' => 1, 'max' => 4, 'width' => 3, 'required' => true, 'default' => 1]);
-                        $field('admission_number', 'Admission number', ['width' => 3, 'help' => $isNew ? 'Leave blank to generate automatically.' : null]);
-                        $field('registration_number', 'Registration number', ['width' => 3]);
+                        $field('admission_number', 'Student ID / admission number', ['width' => 3, 'required' => true,
+                            'help' => $isNew
+                                ? "The university's own number, exactly as on the student's records. The student signs in with it."
+                                : 'Changing this changes what the student signs in with.']);
+                        $field('registration_number', 'Registration number', ['width' => 3,
+                            'help' => $isNew ? 'Leave blank to use the same number.' : null]);
                         $field('admission_date', 'Admission date', ['type' => 'date', 'width' => 3]);
                         if (!$isNew) {
                             $field('status', 'Status', [

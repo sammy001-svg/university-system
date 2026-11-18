@@ -4,11 +4,16 @@
         <h1>Timetable</h1>
         <p class="lede">Lecture room schedules &amp; class timetables.</p>
     </div>
-    <?php if (can('timetable.create')): ?>
-        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/timetable/create') ?>">
-            <?= icon('plus', 'ico-sm') ?> Add Timetable Slot
+    <div class="d-flex gap-2">
+        <a class="btn btn-sm <?= $clashes ? 'btn-outline-danger' : 'btn-light' ?>" href="<?= url('/timetable/conflicts?semester_id=' . ($current['id'] ?? '')) ?>">
+            <?= icon('shield', 'ico-sm') ?> Conflicts<?= $clashes ? ' <span class="badge text-bg-danger">' . $clashes . '</span>' : '' ?>
         </a>
-    <?php endif; ?>
+        <?php if (can('timetable.create')): ?>
+            <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/timetable/create') ?>">
+                <?= icon('plus', 'ico-sm') ?> Add Timetable Slot
+            </a>
+        <?php endif; ?>
+    </div>
 </div>
 
 <form class="filter-bar mb-3" method="get">
@@ -35,6 +40,7 @@
                     <th>Time</th>
                     <th>Course Code</th>
                     <th>Course Title</th>
+                    <th>Section</th>
                     <th>Room</th>
                     <th>Lecturer</th>
                     <th>Type</th>
@@ -43,7 +49,7 @@
             </thead>
             <tbody>
             <?php if (empty($slots)): ?>
-                <tr><td colspan="8"><div class="empty-state"><?= icon('clock') ?><p>No timetable slots configured for this semester.</p></div></td></tr>
+                <tr><td colspan="9"><div class="empty-state"><?= icon('clock') ?><p>No timetable slots configured for this semester.</p></div></td></tr>
             <?php endif; ?>
             <?php foreach ($slots as $s): ?>
                 <tr>
@@ -51,13 +57,17 @@
                     <td><code><?= e(substr($s['start_time'], 0, 5)) ?> - <?= e(substr($s['end_time'], 0, 5)) ?></code></td>
                     <td><code><?= e($s['code']) ?></code></td>
                     <td class="fw-semibold"><?= e($s['title']) ?></td>
+                    <td class="text-muted-sm"><?= e($s['section']) ?></td>
                     <td><span class="badge text-bg-light"><?= e($s['room_code'] ?? 'TBA') ?></span></td>
                     <td class="text-muted-sm"><?= e($s['lecturer_name'] ?? '—') ?></td>
                     <td><?= e(humanize($s['session_type'])) ?></td>
-                    <td class="text-end">
+                    <td class="text-end text-nowrap">
+                        <?php if (can('timetable.edit')): ?>
+                            <a class="btn btn-sm btn-light" href="<?= url('/timetable/' . $s['id'] . '/edit') ?>" title="Move this class"><?= icon('edit', 'ico-sm') ?></a>
+                        <?php endif; ?>
                         <?php if (can('timetable.delete')): ?>
-                            <form method="post" action="<?= url('/timetable/' . $s['id'] . '/delete') ?>" onsubmit="return confirm('Remove slot?')">
-                                <?= csrf_field() ?>
+                            <form class="d-inline" method="post" action="<?= url('/timetable/' . $s['id']) ?>" data-confirm="Remove this slot from the timetable?">
+                                <?= csrf_field() ?><?= method_field('DELETE') ?>
                                 <button class="btn btn-sm btn-outline-danger"><?= icon('trash', 'ico-sm') ?></button>
                             </form>
                         <?php endif; ?>

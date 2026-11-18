@@ -31,14 +31,21 @@
 
         <?php if ($application['status'] === 'accepted' && can('admissions.enrol')): ?>
             <div class="card border-success">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div>
-                        <h6 class="mb-1 text-success">Application Accepted</h6>
-                        <p class="text-muted-sm mb-0">Applicant is ready to be enrolled into the student body.</p>
-                    </div>
-                    <form method="post" action="<?= url('/admissions/applications/' . $application['id'] . '/enrol') ?>">
+                <div class="card-body">
+                    <h6 class="mb-1 text-success">Application Accepted</h6>
+                    <p class="text-muted-sm">Give the applicant their student ID to enrol them. Use the university's own numbering;
+                        the student signs in with this ID, so type it exactly as it appears on their records.</p>
+                    <form method="post" action="<?= url('/admissions/applications/' . $application['id'] . '/enrol') ?>"
+                          class="row g-2 align-items-end" style="max-width:560px">
                         <?= csrf_field() ?>
-                        <button class="btn btn-success"><?= icon('student', 'ico-sm') ?> Enrol as Student</button>
+                        <div class="col-sm-7">
+                            <label class="form-label" for="admission_number">Student ID <span class="req">*</span></label>
+                            <input class="form-control" id="admission_number" name="admission_number" maxlength="40" required
+                                   value="<?= old('admission_number') ?>" placeholder="e.g. BBIU2026100162">
+                        </div>
+                        <div class="col-sm-5">
+                            <button class="btn btn-success w-100"><?= icon('student', 'ico-sm') ?> Enrol as Student</button>
+                        </div>
                     </form>
                 </div>
             </div>

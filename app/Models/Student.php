@@ -68,23 +68,6 @@ final class Student extends Model
         ])));
     }
 
-    /** Next admission number, e.g. MU/BCS/0042/2026 */
-    public function nextAdmissionNumber(string $programCode, ?int $year = null): string
-    {
-        $year   = $year ?? (int) date('Y');
-        $prefix = (string) \App\Core\Setting::get('institution_short_name', 'UNI');
-        $count  = (int) Database::scalar(
-            'SELECT COUNT(*) FROM students WHERE YEAR(COALESCE(admission_date, created_at)) = ?',
-            [$year]
-        );
-        do {
-            $count++;
-            $number = sprintf('%s/%s/%04d/%d', $prefix, $programCode, $count, $year);
-        } while ($this->exists('admission_number', $number));
-
-        return $number;
-    }
-
     public function countByStatus(): array
     {
         $rows = Database::select('SELECT status, COUNT(*) AS total FROM students GROUP BY status');

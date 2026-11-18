@@ -1,8 +1,19 @@
-<?php layout('layouts.app'); section('content'); ?>
+<?php
+layout('layouts.app');
+section('content');
+$clashes = App\Core\Session::getFlash('clashes') ?: [];
+?>
 <div class="page-head">
     <div><h1><?= e($isNew ? 'Schedule Examination' : 'Edit Examination') ?></h1></div>
     <a class="btn btn-sm btn-light" href="<?= url('/exams') ?>">&larr; Back to Exams</a>
 </div>
+
+<?php if ($clashes !== []): ?>
+    <div class="alert alert-danger">
+        <strong>Not scheduled.</strong> This examination clashes with what is already booked:
+        <ul class="mb-0 mt-1"><?php foreach ($clashes as $c): ?><li><?= e($c) ?></li><?php endforeach; ?></ul>
+    </div>
+<?php endif; ?>
 
 <div class="card">
     <form method="post" action="<?= $isNew ? url('/exams') : url('/exams/' . ($record['id'] ?? '')) ?>">

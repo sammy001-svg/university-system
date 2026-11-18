@@ -77,6 +77,10 @@ final class Session
         self::$started = false;
     }
 
+    /** Read once per request, then gone, so a later page never shows yesterday's errors. */
+    private static ?array $errors = null;
+    private static ?array $old    = null;
+
     /** One-request flash values. */
     public static function flash(string $key, mixed $value): void
     {
@@ -99,15 +103,35 @@ final class Session
     {
         unset($input['password'], $input['password_confirmation'], $input['_token']);
         $_SESSION['_old'] = $input;
+        self::$old        = $input;
     }
 
+    /**
+     * What was typed into the form that failed. Taken from the session the first time it is
+     * read and kept for the rest of the request only: a form opened later starts empty.
+     */
     public static function old(string $key, mixed $default = ''): mixed
     {
-        return $_SESSION['_old'][$key] ?? $default;
+        if (self::$old === null) {
+            self::$old = (array) ($_SESSION['_old'] ?? []);
+            unset($_SESSION['_old']);
+        }
+        return self::$old[$key] ?? $default;
     }
 
     public static function clearOldInput(): void
     {
         unset($_SESSION['_old']);
+        self::$old = [];
+    }
+
+    /** Validation errors from the form that failed, likewise good for this request only. */
+    public static function errors(): array
+    {
+        if (self::$errors === null) {
+            self::$errors = (array) ($_SESSION['_flash']['errors'] ?? []);
+            unset($_SESSION['_flash']['errors']);
+        }
+        return self::$errors;
     }
 }

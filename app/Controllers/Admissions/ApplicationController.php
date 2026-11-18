@@ -131,7 +131,7 @@ final class ApplicationController extends Controller
         $application = $this->model->detail((int) $id);
         if (!$application) { throw new HttpException(404); }
 
-        $result = (new AdmissionService())->enrol((int) $id, \App\Core\Auth::id());
+        $result = (new AdmissionService())->enrol((int) $id, \App\Core\Auth::id(), (string) $request->input('admission_number', ''));
         if (!$result['ok']) {
             $this->error($result['message'], '/admissions/applications/' . $id);
         }

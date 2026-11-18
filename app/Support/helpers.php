@@ -81,14 +81,12 @@ function old_raw(string $key, mixed $default = ''): mixed
 
 function has_error(string $field): bool
 {
-    $errors = Session::get('_flash')['errors'] ?? [];
-    return isset($errors[$field]);
+    return isset(Session::errors()[$field]);
 }
 
 function error_for(string $field): string
 {
-    $errors = Session::get('_flash')['errors'] ?? [];
-    return e($errors[$field] ?? '');
+    return e(Session::errors()[$field] ?? '');
 }
 
 function auth(): ?array
