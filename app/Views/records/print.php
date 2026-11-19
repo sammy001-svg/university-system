@@ -77,26 +77,17 @@ $verify = static function (int $size = 96) use ($verifyUrl, $doc): string {
         <div class="doc-title"><?= e(DocumentService::TYPES[$type]) ?></div>
 
         <?php if ($type === 'transcript'): ?>
-            <table class="facts">
-                <tr><th>Name</th><td><?= e($name) ?></td><th>Student ID</th><td><?= e($s['admission_number']) ?></td></tr>
-                <tr><th>Programme</th><td colspan="3"><?= e($s['program_name']) ?> (<?= e($s['faculty_name']) ?>)</td></tr>
+            <?php partial('partials.transcript-facts', ['student' => $s, 'tx' => $tx, 'printedOn' => $doc['issued_at']]) ?>
+            <div style="height:10px"></div>
+            <?php partial('partials.transcript-table', ['tx' => $tx]) ?>
+            <table class="grid-box" style="margin-top:10px">
+                <tr>
+                    <td style="width:34%"><span class="k">Credit hours earned:</span> <b><?= e((string) ($summary['Credits earned'] ?? (int) $tx['credits'])) ?></b></td>
+                    <td style="width:33%"><span class="k">Cumulative GPA:</span> <b><?= e((string) ($summary['CGPA'] ?? number_format((float) $tx['cgpa'], 2))) ?></b></td>
+                    <td style="width:33%"><span class="k">Status:</span> <b><?= e(humanize((string) $s['status'])) ?></b></td>
+                </tr>
             </table>
-            <?php $cum = ['qp' => 0.0, 'ch' => 0.0]; foreach ($terms as $term => $rows):
-                $qp = array_sum(array_map('floatval', array_column($rows, 'quality_points'))); $ch = array_sum(array_map('floatval', array_column($rows, 'credit_hours')));
-                $cum['qp'] += $qp; $cum['ch'] += $ch; ?>
-                <div class="term-head"><?= e($term) ?></div>
-                <table class="transcript">
-                    <thead><tr><th style="width:14%">Code</th><th>Course</th><th style="width:9%">Credits</th><th style="width:8%">Grade</th><th style="width:10%">Points</th></tr></thead>
-                    <tbody>
-                    <?php foreach ($rows as $r): ?>
-                        <tr><td><?= e($r['code']) ?></td><td><?= e($r['title']) ?></td><td><?= (int) $r['credit_hours'] ?></td><td><b><?= e((string) $r['grade']) ?></b></td><td><?= number_format((float) $r['quality_points'], 2) ?></td></tr>
-                    <?php endforeach; ?>
-                    <tr><td colspan="5" style="text-align:right">Semester GPA <b><?= $ch > 0 ? number_format($qp / $ch, 2) : '-' ?></b> &nbsp; Cumulative GPA <b><?= $cum['ch'] > 0 ? number_format($cum['qp'] / $cum['ch'], 2) : '-' ?></b></td></tr>
-                    </tbody>
-                </table>
-            <?php endforeach; ?>
-            <p class="mt-3" style="font-family:system-ui;font-size:12px">Cumulative GPA: <b><?= e((string) ($summary['CGPA'] ?? '')) ?></b> &middot;
-                Credits earned: <b><?= e((string) ($summary['Credits earned'] ?? '')) ?></b>. This transcript is official only with a valid verification code.</p>
+            <p class="mt-2" style="font-family:system-ui;font-size:11px">This transcript is official only with a valid verification code.</p>
         <?php else: ?>
             <p class="body-text">To whom it may concern,</p>
             <?php if ($type === 'enrollment_letter'): ?>

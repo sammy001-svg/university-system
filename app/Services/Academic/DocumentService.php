@@ -31,10 +31,12 @@ final class DocumentService
     public static function student(int $studentId): ?array
     {
         return Database::selectOne(
-            'SELECT s.*, u.first_name, u.last_name, u.other_name, u.gender, u.date_of_birth, u.avatar, u.email,
-                    p.name AS program_name, p.code AS program_code, p.level AS program_level, d.name AS department_name, f.name AS faculty_name
+            'SELECT s.*, u.first_name, u.last_name, u.other_name, u.gender, u.date_of_birth, u.avatar, u.email, u.phone,
+                    p.name AS program_name, p.code AS program_code, p.level AS program_level, d.name AS department_name, f.name AS faculty_name,
+                    mp.name AS minor_name
                FROM students s JOIN users u ON u.id = s.user_id JOIN programs p ON p.id = s.program_id
                JOIN departments d ON d.id = p.department_id JOIN faculties f ON f.id = d.faculty_id
+          LEFT JOIN programs mp ON mp.id = s.minor_program_id
               WHERE s.id = ?',
             [$studentId]
         );
@@ -67,16 +69,18 @@ final class DocumentService
                 $summary += ['Admitted' => $s['admission_date'] ? fdate($s['admission_date']) : 'On record'];
                 break;
             case 'transcript':
-                $gpa = Database::selectOne(
-                    'SELECT SUM(quality_points) AS qp, SUM(credit_hours) AS ch, SUM(CASE WHEN outcome = "pass" THEN credit_hours ELSE 0 END) AS earned, COUNT(*) AS n
-                       FROM course_results WHERE student_id = ? AND is_published = 1',
-                    [$studentId]
-                );
-                if ((int) $gpa['n'] === 0) {
+                // The same figures the transcript itself prints, so the stored summary cannot drift from it.
+                $tx = AcademicRecord::transcript($studentId);
+                if ($tx['terms'] === []) {
                     throw new RuntimeException('The student has no published results yet.');
                 }
-                $summary += ['CGPA' => number_format((float) $gpa['qp'] / max(1, (float) $gpa['ch']), 2), 'Credits earned' => (string) (int) $gpa['earned'],
-                             'Courses on record' => (string) (int) $gpa['n']];
+                $earned = (int) Database::scalar(
+                    'SELECT COALESCE(SUM(credit_hours), 0) FROM course_results WHERE student_id = ? AND is_published = 1 AND outcome = "pass"',
+                    [$studentId]
+                );
+                $courses = array_sum(array_map(static fn (array $t): int => count($t['rows']), $tx['terms']));
+                $summary += ['CGPA' => number_format($tx['cgpa'], 2), 'Credits earned' => (string) $earned,
+                             'Courses on record' => (string) $courses];
                 break;
             case 'id_card':
                 $summary += ['Status' => ucfirst((string) $s['status'])];
@@ -153,22 +157,5 @@ final class DocumentService
             }
         } while (Database::scalar('SELECT 1 FROM issued_documents WHERE verification_code = ?', [$code]));
         return $code;
-    }
-
-    /** Published results grouped by term, for the transcript. */
-    public static function transcript(int $studentId): array
-    {
-        $terms = [];
-        foreach (Database::select(
-            'SELECT r.*, c.code, c.title, sem.name AS semester_name, ay.name AS academic_year
-               FROM course_results r JOIN courses c ON c.id = r.course_id
-               JOIN semesters sem ON sem.id = r.semester_id JOIN academic_years ay ON ay.id = sem.academic_year_id
-              WHERE r.student_id = ? AND r.is_published = 1
-              ORDER BY ay.start_date, sem.semester_number, c.code',
-            [$studentId]
-        ) as $r) {
-            $terms[$r['academic_year'] . ' ' . $r['semester_name']][] = $r;
-        }
-        return $terms;
     }
 }

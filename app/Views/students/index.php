@@ -42,6 +42,15 @@ $rows = $result['data'];
     <?php endforeach; ?>
 </div>
 
+<?php if ($noEmail > 0 && ($_GET['missing_email'] ?? '') !== '1'): ?>
+    <div class="alert alert-warning d-flex align-items-center gap-2">
+        <?= icon('bell') ?>
+        <div><strong><?= $noEmail ?></strong> active student<?= $noEmail === 1 ? ' has' : 's have' ?> no email address on record.
+            Students sign in with their email, so <?= $noEmail === 1 ? 'this one cannot' : 'they cannot' ?> yet.
+            <a class="fw-semibold" href="<?= url('/students?missing_email=1') ?>">Show them</a></div>
+    </div>
+<?php endif; ?>
+
 <form class="filter-bar" method="get">
     <div class="row g-2 align-items-end">
         <div class="col-md-2">
@@ -130,6 +139,7 @@ $rows = $result['data'];
                     <td class="text-end text-nowrap">
                         <a class="btn btn-sm btn-light" title="Profile" href="<?= url('/students/' . $row['id']) ?>"><?= icon('eye', 'ico-sm') ?></a>
                         <?php if (can('results.view')): ?>
+                            <a class="btn btn-sm btn-light" title="Grade report" href="<?= url('/students/' . $row['id'] . '/records') ?>"><?= icon('clipboard', 'ico-sm') ?></a>
                             <a class="btn btn-sm btn-light" title="Transcript" href="<?= url('/students/' . $row['id'] . '/transcript') ?>"><?= icon('file', 'ico-sm') ?></a>
                         <?php endif; ?>
                         <?php if (can('students.edit')): ?>

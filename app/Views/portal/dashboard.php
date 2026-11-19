@@ -193,6 +193,7 @@ $hour     = (int) date('H');
                     <a href="<?= url('/portal/course-guide') ?>"><?= icon('clipboard') ?><span>Course guide</span></a>
                     <a href="<?= url('/portal/timetable') ?>"><?= icon('clock') ?><span>Timetable</span></a>
                     <a href="<?= url('/portal/results') ?>"><?= icon('chart') ?><span>Results</span></a>
+                    <a href="<?= url('/portal/records') ?>"><?= icon('clipboard') ?><span>Grade report</span></a>
                     <a href="<?= url('/portal/transcript') ?>"><?= icon('file') ?><span>Transcript</span></a>
                     <a href="<?= url('/portal/finance') ?>"><?= icon('money') ?><span>Fee statement</span></a>
                     <a href="<?= url('/portal/library') ?>"><?= icon('book') ?><span>My library</span></a>

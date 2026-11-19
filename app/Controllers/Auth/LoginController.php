@@ -22,14 +22,14 @@ final class LoginController extends Controller
     {
         $this->verifyCsrf($request);
 
-        $as = in_array($request->input('login_as'), ['student', 'parent'], true) ? (string) $request->input('login_as') : 'staff';
+        $as = $request->input('login_as') === 'student' ? 'student' : 'staff';
         Session::keepOldInput(['login_as' => $as, 'identifier' => (string) $request->input('identifier', '')]);
 
         $data = $this->validate($request, [
             'identifier' => 'required|max:150',
             'password'   => 'required',
         ], [
-            'identifier' => ['student' => 'Admission number', 'parent' => 'Username, email or phone'][$as] ?? 'Username or email',
+            'identifier' => $as === 'student' ? 'Email address' : 'Username or email',
         ]);
 
         $result = Auth::attempt(

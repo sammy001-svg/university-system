@@ -19,7 +19,7 @@ final class DataImportController extends Controller
 {
     /** Accounts a slip can be printed for, with the ID and programme / college shown on it. */
     private const ACCOUNTS_SQL = '
-        SELECT u.id, u.username, u.title, u.first_name, u.last_name, u.other_name, u.user_type,
+        SELECT u.id, u.username, u.email, u.title, u.first_name, u.last_name, u.other_name, u.user_type,
                u.password_hash = "' . Importer::NO_PASSWORD . '" AS awaiting,
                COALESCE(st.admission_number, sf.staff_number) AS id_number,
                COALESCE(p.name, sf.designation) AS detail,

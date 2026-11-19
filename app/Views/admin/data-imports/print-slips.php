@@ -34,10 +34,17 @@ section('content');
                 <?php if (!empty($s['id_number'])): ?><dt><?= $s['user_type'] === 'student' ? 'Student ID' : 'Staff no.' ?></dt><dd><?= e($s['id_number']) ?></dd><?php endif; ?>
                 <?php if (!empty($s['detail'])): ?><dt><?= $s['user_type'] === 'student' ? 'Programme' : 'Position' ?></dt><dd><?= e($s['detail']) ?></dd><?php endif; ?>
                 <dt>Website</dt><dd><?= e($loginUrl) ?></dd>
-                <dt>Username</dt><dd class="secret"><?= e($s['username']) ?></dd>
+                <?php if ($s['user_type'] === 'student'): ?>
+                    <dt>Sign in with</dt>
+                    <dd class="secret"><?= $s['email'] ? e($s['email']) : '<span style="color:#b91c1c">no email on record</span>' ?></dd>
+                <?php else: ?>
+                    <dt>Username</dt><dd class="secret"><?= e($s['username']) ?></dd>
+                <?php endif; ?>
                 <dt>Password</dt><dd class="secret"><?= e($s['password']) ?></dd>
             </dl>
-            <div class="small text-muted">Temporary password: you will be asked to choose your own when you first sign in.
+            <div class="small text-muted"><?= $s['user_type'] === 'student' && !$s['email']
+                ? 'This student has no email address on record, so they cannot sign in yet. Ask the Office of Admission and Records to add one.'
+                : 'Temporary password: you will be asked to choose your own when you first sign in.' ?>
                 Keep this slip private.</div>
         </div>
     <?php endforeach; ?>

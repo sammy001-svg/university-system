@@ -12,6 +12,9 @@ $paidPercent = $billed > 0 ? min(100, ($paid / $billed) * 100) : 0;
         <p class="lede"><?= e($student['admission_number']) ?> &middot; <?= e($student['program_name']) ?></p>
     </div>
     <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary btn-sm btn-icon" href="<?= url('/students/' . $student['id'] . '/records') ?>">
+            <?= icon('clipboard', 'ico-sm') ?> Grade report
+        </a>
         <a class="btn btn-outline-secondary btn-sm btn-icon" href="<?= url('/students/' . $student['id'] . '/transcript') ?>">
             <?= icon('file', 'ico-sm') ?> Transcript
         </a>

@@ -261,7 +261,8 @@ $router->group(['middleware' => ['auth']], static function ($r): void {
     $r->put('/students/{id}', 'Students\StudentController@update');
     $r->delete('/students/{id}', 'Students\StudentController@destroy');
     $r->post('/students/{id}/status', 'Students\StudentController@changeStatus');
-    $r->get('/students/{id}/transcript', 'Exams\TranscriptController@show');
+    $r->get('/students/{id}/records', 'Students\AcademicRecordController@record');
+    $r->get('/students/{id}/transcript', 'Students\AcademicRecordController@transcript');
     $r->get('/students/{id}/statement', 'Finance\StatementController@show');
 
     $r->get('/staff', 'Staff\StaffController@index');
@@ -454,7 +455,8 @@ $router->group(['prefix' => '/portal', 'middleware' => ['auth', 'permission:port
     $r->post('/registration', 'Portal\RegistrationController@register');
     $r->delete('/registration/{id}', 'Portal\RegistrationController@drop');
     $r->get('/results', 'Portal\ResultController@index');
-    $r->get('/transcript', 'Portal\ResultController@transcript');
+    $r->get('/records', 'Students\AcademicRecordController@myRecord');
+    $r->get('/transcript', 'Students\AcademicRecordController@myTranscript');
     $r->get('/finance', 'Portal\FinanceController@index');
     $r->get('/finance/invoice/{id}', 'Portal\FinanceController@invoice');
     $r->get('/finance/invoice/{id}/billing-form', 'Portal\FinanceController@billingForm');

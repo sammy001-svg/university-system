@@ -56,7 +56,7 @@ $never = ($_GET['scope'] ?? '') === 'never';
                 <tr>
                     <th style="width:1%"><input type="checkbox" class="form-check-input" checked
                                onclick="document.querySelectorAll('[data-slip]').forEach(c => c.checked = this.checked)"></th>
-                    <th>Name</th><th>Username</th><th>ID</th><th>Programme / position</th><th>College</th><th>Password</th>
+                    <th>Name</th><th>Signs in with</th><th>ID</th><th>Programme / position</th><th>College</th><th>Password</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -69,7 +69,9 @@ $never = ($_GET['scope'] ?? '') === 'never';
                         <td><input type="checkbox" class="form-check-input" name="ids[]" value="<?= (int) $a['id'] ?>" data-slip checked></td>
                         <td class="fw-semibold"><?= e(trim($a['last_name'] . ', ' . $a['first_name'] . ' ' . ($a['other_name'] ?? ''))) ?>
                             <div class="text-muted-sm"><?= e(ucfirst($a['user_type'])) ?></div></td>
-                        <td><code><?= e($a['username']) ?></code></td>
+                        <td><?= $a['user_type'] === 'student'
+                            ? ($a['email'] ? '<code>' . e($a['email']) . '</code>' : '<span class="badge text-bg-danger">No email</span>')
+                            : '<code>' . e($a['username']) . '</code>' ?></td>
                         <td class="text-muted-sm"><?= e($a['id_number'] ?? '') ?></td>
                         <td class="text-muted-sm"><?= e($a['detail'] ?? '') ?></td>
                         <td class="text-muted-sm"><?= e($a['college'] ?? '') ?></td>

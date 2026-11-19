@@ -9,6 +9,7 @@ use App\Core\Database;
 use App\Core\Exceptions\HttpException;
 use App\Core\Request;
 use App\Services\Academic\DegreeAudit;
+use App\Services\Academic\AcademicRecord;
 use App\Services\Academic\DocumentService;
 use RuntimeException;
 
@@ -106,7 +107,7 @@ final class RecordController extends Controller
             'doc'       => $doc,
             'student'   => $student,
             'summary'   => json_decode((string) $doc['summary'], true) ?: [],
-            'terms'     => $doc['doc_type'] === 'transcript' ? DocumentService::transcript((int) $doc['student_id']) : [],
+            'tx'        => $doc['doc_type'] === 'transcript' ? AcademicRecord::transcript((int) $doc['student_id']) : ['terms' => []],
             'verifyUrl' => url('/verify/' . $doc['verification_code']),
             'signatory' => Database::selectOne('SELECT CONCAT_WS(" ", title, first_name, last_name) AS name FROM users WHERE id = ?', [$doc['issued_by']])['name'] ?? null,
         ]);

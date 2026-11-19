@@ -14,7 +14,7 @@ final class Auth
     /**
      * Sign in. $as = 'student' looks the account up by admission (or
      * registration) number; 'staff' by username or email, for every account
-     * that is not a student's or a parent's; 'parent' by username, email or phone.
+     * that is not a student's.
      *
      * When the account has two-step sign-in, the result is ['ok' => true, 'two_factor' => true]
      * and nobody is signed in yet: completeTwoFactor() finishes once the code is checked.
@@ -22,20 +22,11 @@ final class Auth
     public static function attempt(string $identifier, string $password, string $ip, string $agent, string $as = 'staff'): array
     {
         if ($as === 'student') {
-            $identifier = strtoupper((string) preg_replace('/\s+/', '', $identifier));
+            $identifier = trim($identifier);
             $user = Database::selectOne(
                 'SELECT u.* FROM users u JOIN students s ON s.user_id = u.id
-                  WHERE (s.admission_number = ? OR s.registration_number = ?) AND u.deleted_at IS NULL
-                  ORDER BY s.admission_number = ? DESC
-                  LIMIT 1',
-                [$identifier, $identifier, $identifier]
-            );
-        } elseif ($as === 'parent') {
-            $user = Database::selectOne(
-                'SELECT * FROM users
-                  WHERE user_type = "parent" AND (username = ? OR email = ? OR (phone IS NOT NULL AND phone = ?)) AND deleted_at IS NULL
-                  LIMIT 1',
-                [$identifier, $identifier, $identifier]
+                  WHERE u.email = ? AND u.deleted_at IS NULL LIMIT 1',
+                [$identifier]
             );
         } else {
             $user = Database::selectOne(
@@ -50,7 +41,7 @@ final class Auth
 
         if ($user === null) {
             return ['ok' => false, 'message' => $as === 'student'
-                ? 'Admission number or password is incorrect. Please try again.'
+                ? 'Email address or password is incorrect. Please try again.'
                 : 'Invalid credentials. Please try again.'];
         }
 
@@ -69,15 +60,12 @@ final class Auth
         if (!Hash::check($password, $user['password_hash'])) {
             self::registerFailure($user);
             return ['ok' => false, 'message' => $as === 'student'
-                ? 'Admission number or password is incorrect. Please try again.'
+                ? 'Email address or password is incorrect. Please try again.'
                 : 'Invalid credentials. Please try again.'];
         }
 
         if ($as !== 'student' && $user['user_type'] === 'student') {
-            return ['ok' => false, 'message' => 'This is a student account. Choose "Student" and sign in with your admission number.'];
-        }
-        if ($as === 'staff' && $user['user_type'] === 'parent') {
-            return ['ok' => false, 'message' => 'This is a parent account. Choose "Parent" to sign in.'];
+            return ['ok' => false, 'message' => 'This is a student account. Choose "Student" and sign in with your email address.'];
         }
 
         if ($user['status'] === 'suspended') {

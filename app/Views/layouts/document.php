@@ -41,6 +41,39 @@ $pageTitle = $pageTitle ?? 'Document';
         .term-head { font-family: system-ui, sans-serif; font-weight: 700; font-size: 12.5px; margin: 12px 0 4px; color: var(--brand-dark); }
         .footer-note { position: absolute; bottom: 10mm; left: 18mm; right: 18mm; font-family: system-ui, sans-serif; font-size: 9.5px; color: #888;
                        border-top: 1px solid #eee; padding-top: 6px; text-align: center; }
+        /* Office of Admission and Records forms: the semester grade report and the transcript. */
+        .form-head { text-align: center; position: relative; padding-bottom: 6px; }
+        .form-head .crest { position: absolute; left: 0; top: 0; }
+        .form-head h1 { font-size: 21px; margin: 0; letter-spacing: .2px; }
+        .form-head .office { font-size: 13px; }
+        .form-head .addr { font-family: system-ui, sans-serif; font-size: 10.5px; color: #333; line-height: 1.45; }
+        .form-head .strip { margin-top: 6px; padding: 3px 8px; background: #f2ecf3; border-top: 1px solid #000; border-bottom: 1px solid #000;
+                            font-family: system-ui, sans-serif; font-size: 10.5px; display: flex; justify-content: center; gap: 22px; }
+        .office-line { text-align: center; font-weight: 700; font-size: 13px; letter-spacing: .4px; margin-top: 12px; }
+        .record-title { text-align: center; font-weight: 700; font-size: 15px; letter-spacing: 1.2px; margin: 8px 0 2px; text-decoration: underline; }
+        .grid-box { width: 100%; border-collapse: collapse; margin-top: 14px; font-family: system-ui, sans-serif; font-size: 12.5px; }
+        .grid-box td { border: 1px solid #000; padding: 5px 8px; vertical-align: top; }
+        .grid-box .k { color: #333; }
+        .grid-box b { font-weight: 700; }
+        .rec-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-family: system-ui, sans-serif; font-size: 12.5px; }
+        .rec-table th, .rec-table td { border: 1px solid #000; padding: 5px 8px; }
+        .rec-table thead th { text-align: center; font-weight: 700; background: #fff; }
+        .rec-table td.c { text-align: center; }
+        .rec-table td.r { text-align: right; }
+        .rec-table tr.sum td { font-weight: 700; }
+        .sig-lines { margin-top: 46px; font-family: system-ui, sans-serif; font-size: 12.5px; }
+        .sig-lines .line { display: inline-block; border-bottom: 1px solid #000; min-width: 150px; margin: 0 14px 18px 4px; }
+        .tx-table { width: 100%; border-collapse: collapse; font-family: system-ui, sans-serif; font-size: 11.5px; }
+        .tx-table th, .tx-table td { border: 1px solid #000; padding: 3px 6px; vertical-align: top; }
+        .tx-table thead th { text-align: center; font-weight: 700; letter-spacing: .3px; }
+        .tx-table td.c { text-align: center; }
+        .tx-table td.term { font-weight: 700; width: 86px; }
+        .tx-table tr.gpa td { font-weight: 700; }
+        .tx-table tr.gpa td.label { text-align: right; }
+        .doc-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-top: 22px;
+                    font-family: system-ui, sans-serif; font-size: 10.5px; color: #444; }
+        .doc-foot .motto { font-style: italic; }
+
         /* ID card: CR80 (85.6 x 54 mm) */
         .id-sheet { min-height: auto; padding: 14mm; }
         .id-card { width: 85.6mm; height: 54mm; border-radius: 3.2mm; overflow: hidden; position: relative; font-family: system-ui, sans-serif;

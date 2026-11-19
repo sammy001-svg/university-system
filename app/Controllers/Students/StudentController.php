@@ -57,6 +57,10 @@ final class StudentController extends Controller
         if ($request->filled('stage')) {
             $query->where('se.registration_stage', $request->query('stage'));
         }
+        // Students sign in with their email address, so a missing one is worth finding.
+        if ($request->query('missing_email') === '1') {
+            $query->whereRaw('(u.email IS NULL OR u.email = "")');
+        }
         return $query;
     }
 
@@ -74,6 +78,10 @@ final class StudentController extends Controller
             'programs'  => (new Program())->options(),
             'faculties' => (new Faculty())->options('name'),
             'counts'    => $this->students->countByStatus(),
+            'noEmail'   => (int) Database::scalar(
+                'SELECT COUNT(*) FROM students s JOIN users u ON u.id = s.user_id
+                  WHERE s.status = "active" AND u.deleted_at IS NULL AND (u.email IS NULL OR u.email = "")'
+            ),
         ]);
     }
 

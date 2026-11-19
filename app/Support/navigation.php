@@ -28,6 +28,7 @@ return [
             ['label' => 'Timetable',       'url' => '/portal/timetable',  'icon' => 'clock',    'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Attendance',      'url' => '/portal/attendance', 'icon' => 'check',    'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Results',         'url' => '/portal/results',    'icon' => 'chart',    'permission' => 'portal.access', 'user_type' => ['student']],
+            ['label' => 'Grade Report',    'url' => '/portal/records',    'icon' => 'clipboard','permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Transcript',      'url' => '/portal/transcript', 'icon' => 'file',     'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Degree Audit',    'url' => '/portal/degree-audit','icon' => 'check',   'permission' => 'portal.access', 'user_type' => ['student']],
             ['label' => 'Course Evaluations', 'url' => '/portal/evaluations', 'icon' => 'chart', 'permission' => 'portal.access', 'user_type' => ['student']],
