@@ -1,64 +1,107 @@
-<?php layout('layouts.app'); section('content'); ?>
-<div class="page-head">
-    <div>
-        <h1>Staff Payslip</h1>
-        <p class="lede"><?= e($payslip['first_name'] . ' ' . $payslip['last_name']) ?> (<?= e($payslip['staff_number']) ?>)</p>
-    </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><?= icon('download', 'ico-sm') ?> Print Payslip</button>
-        <a class="btn btn-sm btn-light" href="<?= url('/finance/payroll/' . $payslip['payroll_period_id']) ?>">&larr; Back to Period</a>
-    </div>
+<?php
+/** One staff member's payslip, on the printable document sheet. */
+layout('layouts.document');
+section('content');
+$p    = $payslip;
+$name = (string) preg_replace('/\s+/', ' ', trim(($p['title'] ?? '') . ' ' . $p['first_name'] . ' ' . ($p['other_name'] ?? '') . ' ' . $p['last_name']));
+$row  = static fn (string $k, string $v, bool $strong = false): string =>
+    '<tr><td>' . e($k) . '</td><td class="num' . ($strong ? ' b' : '') . '">' . e($v) . '</td></tr>';
+?>
+<style>
+    .pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 16px; }
+    .pay-grid table { width: 100%; border-collapse: collapse; font-family: system-ui, sans-serif; font-size: 12.5px; }
+    .pay-grid th { text-align: left; background: #f2ecf3; border: 1px solid #000; padding: 5px 8px; }
+    .pay-grid td { border: 1px solid #000; padding: 4px 8px; }
+    .pay-grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .pay-grid td.b { font-weight: 700; }
+    .net-line { margin-top: 16px; border: 2px solid #000; padding: 8px 12px; display: flex; justify-content: space-between;
+                font-family: system-ui, sans-serif; font-size: 15px; font-weight: 700; }
+</style>
+
+<div class="toolbar text-center py-3">
+    <button class="btn btn-primary btn-sm" onclick="window.print()">Print / save as PDF</button>
+    <a class="btn btn-light btn-sm" href="<?= url('/finance/payroll/' . $p['payroll_period_id']) ?>">Back to the register</a>
 </div>
 
-<div class="card p-4">
-    <div class="border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center">
-        <div>
-            <h4 class="mb-0 fw-bold"><?= e($appName) ?></h4>
-            <div class="text-muted-sm">Salary Payslip</div>
-        </div>
-        <div class="text-end">
-            <div class="fw-bold text-primary fs-5"><?= e($payslip['period_name'] ?? ($payslip['month'] . '/' . $payslip['year'])) ?></div>
-            <div class="text-muted-sm">Pay Date: <?= date_fmt($payslip['pay_date'] ?? '') ?></div>
-        </div>
-    </div>
+<div class="sheet">
+    <?php partial('partials.record-letterhead', ['office' => 'PAYSLIP &middot; ' . strtoupper((string) $p['period_name']), 'compact' => true]) ?>
 
-    <div class="row mb-4">
-        <div class="col-sm-6">
-            <h6 class="text-muted">Employee Details:</h6>
-            <div class="fw-bold fs-6"><?= e($payslip['first_name'] . ' ' . $payslip['last_name']) ?></div>
-            <div>Staff No: <code><?= e($payslip['staff_number']) ?></code></div>
-            <div>Designation: <?= e($payslip['designation'] ?? 'Staff') ?></div>
-            <div>Email: <?= e($payslip['email']) ?></div>
-        </div>
-    </div>
+    <table class="grid-box">
+        <tr>
+            <td style="width:40%"><span class="k">Name:</span> <b><?= e($name) ?></b></td>
+            <td style="width:30%"><span class="k">Employee ID:</span> <b><?= e($p['staff_number']) ?></b></td>
+            <td style="width:30%"><span class="k">Payroll date:</span> <b><?= e(fdate($p['pay_date'])) ?></b></td>
+        </tr>
+        <tr>
+            <td><span class="k">Position:</span> <b><?= e((string) ($p['designation'] ?? 'N/A')) ?></b></td>
+            <td><span class="k">Department:</span> <b><?= e((string) ($p['department_name'] ?? 'N/A')) ?></b></td>
+            <td><span class="k">Status:</span> <b><?= e(humanize((string) $p['status'])) ?></b></td>
+        </tr>
+        <tr>
+            <td><span class="k">Bank:</span> <b><?= e((string) ($p['bank_name'] ?? 'N/A')) ?></b></td>
+            <td><span class="k">Account:</span> <b><?= e((string) ($p['bank_account'] ?? 'N/A')) ?></b></td>
+            <td><span class="k">Phone:</span> <b><?= e((string) ($p['phone'] ?? 'N/A')) ?></b></td>
+        </tr>
+    </table>
 
-    <div class="table-wrap mb-4">
-        <table class="table table-bordered">
-            <thead class="table-light">
-                <tr>
-                    <th>Item Description</th>
-                    <th class="text-end">Amount (<?= e(currency_code()) ?>)</th>
-                </tr>
-            </thead>
+    <div class="pay-grid">
+        <table>
+            <thead><tr><th>Earnings</th><th style="text-align:right;width:40%">Amount</th></tr></thead>
             <tbody>
-                <tr>
-                    <td>Basic Salary</td>
-                    <td class="text-end fw-semibold"><?= e(money($payslip['basic_salary'])) ?></td>
-                </tr>
-                <tr class="table-light fw-bold">
-                    <td>Gross Pay</td>
-                    <td class="text-end"><?= e(money($payslip['gross_pay'] ?? $payslip['basic_salary'])) ?></td>
-                </tr>
-                <tr class="table-success fw-bold fs-6">
-                    <td>Net Pay</td>
-                    <td class="text-end text-success"><?= e(money($payslip['net_pay'] ?? $payslip['basic_salary'])) ?></td>
-                </tr>
+            <?= $row('Basic salary', money($p['basic_salary'], false)) ?>
+            <?php foreach ($lines as $l): if ($l['kind'] !== 'allowance') { continue; } ?>
+                <?= $row($l['label'] . ((int) $l['taxable'] === 0 ? ' (not taxed)' : ''), money($l['amount'], false)) ?>
+            <?php endforeach; ?>
+            <?= $row('Gross income', money($p['gross_pay'], false), true) ?>
+            </tbody>
+        </table>
+
+        <table>
+            <thead><tr><th>Deductions</th><th style="text-align:right;width:40%">Amount</th></tr></thead>
+            <tbody>
+            <?= $row('Taxable amount', money($p['taxable_amount'], false)) ?>
+            <?= $row('Income tax', money($p['tax_deduction'], false)) ?>
+            <?php foreach ($lines as $l): if ($l['kind'] !== 'deduction') { continue; } ?>
+                <?= $row($l['label'], money($l['amount'], false)) ?>
+            <?php endforeach; ?>
+            <?php foreach ($loans as $l): ?>
+                <?= $row(ucfirst(str_replace('_', ' ', (string) $l['kind'])) . ' ' . $l['reference'], money($l['amount'], false)) ?>
+            <?php endforeach; ?>
+            <?= $row('Total deductions', money($p['total_deductions'], false), true) ?>
             </tbody>
         </table>
     </div>
 
-    <div class="text-center text-muted-sm mt-3">
-        Confidential Employee Salary Statement. Generated by <?= e($appName) ?>.
+    <div class="net-line"><span>NET SALARY</span><span><?= e(money($p['net_pay'])) ?></span></div>
+
+    <?php if ((float) $p['outstanding_balance'] > 0): ?>
+        <p style="font-family:system-ui;font-size:12px;margin-top:10px">Outstanding balance carried forward:
+            <b><?= e(money($p['outstanding_balance'])) ?></b><?php if ($loans !== []): ?> (after this month's repayment)<?php endif; ?>.</p>
+    <?php endif; ?>
+    <?php if (!empty($p['notes'])): ?>
+        <p style="font-family:system-ui;font-size:12px"><b>Note:</b> <?= e($p['notes']) ?></p>
+    <?php endif; ?>
+
+    <div class="signature" style="margin-top:38px">
+        <div><div style="height:38px"></div><div class="line">Payroll Officer<br><span style="font-size:12px;color:#666">Finance Office</span></div></div>
+        <div><div style="height:38px"></div><div class="line">Received by<br><span style="font-size:12px;color:#666">Signature and date</span></div></div>
+    </div>
+
+    <div class="doc-foot">
+        <span>Payslip for <?= e($p['period_name']) ?> &middot; printed <?= e(date('m/d/Y')) ?></span>
+        <span class="motto"><?= e((string) setting('institution_motto', '')) ?></span>
+        <span><?= e((string) setting('institution_email', '')) ?></span>
     </div>
 </div>
+
+<?php if ($p['status'] !== 'paid' && can('payroll.edit')): ?>
+    <div class="toolbar text-center pb-4">
+        <form method="post" action="<?= url('/finance/payroll/payslip/' . $p['id']) ?>" class="d-inline-flex gap-2 align-items-center">
+            <?= csrf_field() ?>
+            <input type="text" name="notes" class="form-control form-control-sm" style="width:320px" maxlength="255"
+                   value="<?= e((string) ($p['notes'] ?? '')) ?>" placeholder="Note on this payslip">
+            <button class="btn btn-sm btn-light">Save note &amp; recalculate</button>
+        </form>
+    </div>
+<?php endif; ?>
 <?php endsection(); ?>

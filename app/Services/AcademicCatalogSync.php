@@ -42,6 +42,9 @@ final class AcademicCatalogSync
             . (string) sha1_file($this->basePath . '/database/migrations/2026_11_05_elearning.sql')
             . (string) sha1_file($this->basePath . '/database/migrations/2026_11_06_services.sql')
             . (string) sha1_file($this->basePath . '/database/migrations/2026_11_07_modules.sql')
+            . (string) sha1_file($this->basePath . '/database/migrations/2026_11_20_payroll.sql')
+            . (string) sha1_file($this->basePath . '/database/seeds/access.php')
+            . (string) sha1_file($this->basePath . '/app/Services/AccessSync.php')
         );
     }
 
@@ -102,6 +105,9 @@ final class AcademicCatalogSync
         $pdo->beginTransaction();
         try {
             $stats = $academic($pdo, ['set_current' => $setCurrent]);
+            // New permissions and roles reach a running database here, additively:
+            // nothing an administrator has granted by hand is taken away.
+            $stats += AccessSync::apply($pdo, $this->basePath);
             if ($extra !== null) {
                 $stats += (array) $extra($pdo);
             }
@@ -287,6 +293,40 @@ final class AcademicCatalogSync
         // Graduation & alumni, requests, advising, evaluations, research, assets, appraisals,
         // recruitment, clubs and budgets.
         $this->runMigration($pdo, '2026_11_07_modules.sql');
+        // Payroll: the register the Finance Office prints, salary components, staff loans and tax bands.
+        $this->runMigration($pdo, '2026_11_20_payroll.sql');
+        // The payslip carries the columns of the university's own payroll sheet.
+        if (!$hasColumn('payslips', 'taxable_amount')) {
+            $pdo->exec(
+                'ALTER TABLE payslips
+                   ADD COLUMN allowances          DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER basic_salary,
+                   ADD COLUMN taxable_amount      DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER gross_pay,
+                   ADD COLUMN tax_deduction       DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER taxable_amount,
+                   ADD COLUMN social_security     DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER tax_deduction,
+                   ADD COLUMN loan_deduction      DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER social_security,
+                   ADD COLUMN penalty             DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER loan_deduction,
+                   ADD COLUMN outstanding_balance DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER net_pay,
+                   ADD COLUMN notes               VARCHAR(255)           DEFAULT NULL,
+                   ADD COLUMN paid_at             DATETIME               DEFAULT NULL'
+            );
+            // Carry over anything the old columns held, then retire them.
+            if ($hasColumn('payslips', 'paye')) {
+                $pdo->exec('UPDATE payslips SET tax_deduction = paye, social_security = nssf + nhif,
+                                   allowances = house_allowance + transport_allowance + other_allowances');
+                $pdo->exec('ALTER TABLE payslips DROP COLUMN paye, DROP COLUMN nssf, DROP COLUMN nhif,
+                              DROP COLUMN house_allowance, DROP COLUMN transport_allowance, DROP COLUMN other_allowances');
+            }
+        }
+        // A payroll run is reviewed before it is paid.
+        if (!str_contains($columnType('payslips', 'status'), 'approved')) {
+            $pdo->exec("ALTER TABLE payslips MODIFY status ENUM('draft','approved','paid') NOT NULL DEFAULT 'draft'");
+        }
+        if (!$hasColumn('payroll_periods', 'notes')) {
+            $pdo->exec('ALTER TABLE payroll_periods ADD COLUMN notes VARCHAR(255) DEFAULT NULL,
+                          ADD COLUMN approved_by BIGINT UNSIGNED DEFAULT NULL,
+                          ADD COLUMN approved_at DATETIME DEFAULT NULL,
+                          ADD COLUMN paid_at DATETIME DEFAULT NULL');
+        }
         if (!$hasColumn('students', 'advisor_id')) {
             $pdo->exec('ALTER TABLE students ADD COLUMN advisor_id BIGINT UNSIGNED DEFAULT NULL AFTER minor_program_id, ADD KEY ix_students_advisor (advisor_id)');
         }

@@ -28,6 +28,8 @@ final class DataImportSync
         'student_list'  => StudentListImporter::class,
         'lecturers'     => LecturerImporter::class,
         'staff'         => StaffImporter::class,
+        'rooms'         => RoomImporter::class,
+        'staff_payroll' => StaffPayrollImporter::class,
     ];
     private const LOCK_NAME     = 'ums_data_import_sync';
     private const RETRY_SECONDS = 600;

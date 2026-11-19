@@ -17,6 +17,7 @@ require_once $base . '/app/Core/Config.php';
 require_once $base . '/app/Core/Database.php';
 require_once $base . '/app/Core/Hash.php';
 require_once $base . '/app/Core/Logger.php';
+require_once $base . '/app/Services/AccessSync.php';
 
 use App\Core\Config;
 use App\Core\Database;

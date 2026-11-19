@@ -1184,7 +1184,11 @@ CREATE TABLE `payroll_periods` (
   `year`        SMALLINT UNSIGNED NOT NULL,
   `pay_date`    DATE                  DEFAULT NULL,
   `status`      ENUM('draft','processing','approved','paid','closed') NOT NULL DEFAULT 'draft',
+  `notes`       VARCHAR(255)          DEFAULT NULL,
   `processed_by` BIGINT UNSIGNED      DEFAULT NULL,
+  `approved_by` BIGINT UNSIGNED       DEFAULT NULL,
+  `approved_at` DATETIME              DEFAULT NULL,
+  `paid_at`     DATETIME              DEFAULT NULL,
   `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_period` (`month`,`year`)
@@ -1192,24 +1196,31 @@ CREATE TABLE `payroll_periods` (
 
 DROP TABLE IF EXISTS `payslips`;
 CREATE TABLE `payslips` (
+  -- One staff member's pay for one period, in the columns of the university's own
+  -- payroll sheet. payslip_lines holds the allowances and deductions behind the
+  -- `allowances` and `other_deductions` totals.
   `id`               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `payroll_period_id` INT UNSIGNED   NOT NULL,
   `staff_id`         BIGINT UNSIGNED NOT NULL,
   `basic_salary`     DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
-  `house_allowance`  DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
-  `transport_allowance` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  `other_allowances` DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
+  `allowances`       DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
   `gross_pay`        DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
-  `paye`             DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
-  `nssf`             DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
-  `nhif`             DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
+  `taxable_amount`   DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
+  `tax_deduction`    DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
+  `social_security`  DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
+  `loan_deduction`   DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
+  `penalty`          DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
   `other_deductions` DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
   `total_deductions` DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
   `net_pay`          DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
+  `outstanding_balance` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `notes`            VARCHAR(255)             DEFAULT NULL,
   `status`           ENUM('draft','approved','paid') NOT NULL DEFAULT 'draft',
+  `paid_at`          DATETIME                 DEFAULT NULL,
   `created_at`       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_payslip` (`payroll_period_id`,`staff_id`),
+  KEY `ix_payslip_staff` (`staff_id`),
   CONSTRAINT `fk_ps_period` FOREIGN KEY (`payroll_period_id`) REFERENCES `payroll_periods` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_ps_staff`  FOREIGN KEY (`staff_id`) REFERENCES `staff` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -12,7 +12,7 @@ final class RoomController extends ResourceController
     protected string $title = 'Rooms';
     protected string $entity = 'Room';
     protected string $routeBase = '/admin/rooms';
-    protected string $permission = 'settings';
+    protected string $permission = 'facilities';
     protected string $icon = 'building';
     protected string $lede = 'Lecture halls, laboratories and examination venues.';
     protected string $defaultSort = 'code';

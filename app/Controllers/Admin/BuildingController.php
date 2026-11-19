@@ -12,7 +12,7 @@ final class BuildingController extends ResourceController
     protected string $title = 'Buildings';
     protected string $entity = 'Building';
     protected string $routeBase = '/admin/buildings';
-    protected string $permission = 'settings';
+    protected string $permission = 'facilities';
     protected string $icon = 'building';
     protected string $lede = 'Blocks and buildings that contain teaching rooms.';
     protected string $defaultSort = 'code';

@@ -9,6 +9,9 @@ final class Payslip extends Model
 {
     protected string $table = 'payslips';
     protected bool $timestamps = false;
-    protected array $fillable = ['payroll_period_id', 'staff_id', 'basic_salary', 'house_allowance', 'transport_allowance', 'other_allowances', 'gross_pay', 'paye', 'nssf', 'nhif', 'other_deductions', 'total_deductions', 'net_pay', 'status'];
+    protected array $fillable = ['payroll_period_id', 'staff_id', 'basic_salary', 'allowances', 'gross_pay',
+                                 'taxable_amount', 'tax_deduction', 'social_security', 'loan_deduction', 'penalty',
+                                 'other_deductions', 'total_deductions', 'net_pay', 'outstanding_balance',
+                                 'notes', 'status', 'paid_at'];
     protected array $searchable = [];
 }

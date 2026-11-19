@@ -368,6 +368,8 @@ $router->group(['prefix' => '/finance', 'middleware' => ['auth']], static functi
     $resource($r, '/tuition-rates', 'Finance\TuitionRateController');
     $resource($r, '/scholarships', 'Finance\ScholarshipController');
     $resource($r, '/expenses', 'Finance\ExpenseController');
+    $resource($r, '/salary-components', 'Finance\SalaryComponentController');
+    $resource($r, '/tax-bands', 'Finance\TaxBandController');
 
     $r->get('/fee-structures', 'Finance\FeeStructureController@index');
     $r->get('/fee-structures/create', 'Finance\FeeStructureController@create');
@@ -394,11 +396,23 @@ $router->group(['prefix' => '/finance', 'middleware' => ['auth']], static functi
     $r->get('/payments/{id}/receipt', 'Finance\PaymentController@receipt');
     $r->post('/payments/{id}/reverse', 'Finance\PaymentController@reverse');
 
+    // Payroll. The fixed paths come before /payroll/{id} so they are not read as an id.
     $r->get('/payroll', 'Finance\PayrollController@index');
     $r->post('/payroll', 'Finance\PayrollController@createPeriod');
-    $r->get('/payroll/{id}', 'Finance\PayrollController@show');
-    $r->post('/payroll/{id}/process', 'Finance\PayrollController@process');
+    $r->get('/payroll/salaries', 'Finance\PayrollController@salaries');
+    $r->get('/payroll/salaries/{id}', 'Finance\PayrollController@editSalary');
+    $r->post('/payroll/salaries/{id}', 'Finance\PayrollController@updateSalary');
+    $r->get('/payroll/loans', 'Finance\PayrollController@loans');
+    $r->post('/payroll/loans', 'Finance\PayrollController@storeLoan');
+    $r->post('/payroll/loans/{id}/cancel', 'Finance\PayrollController@cancelLoan');
     $r->get('/payroll/payslip/{id}', 'Finance\PayrollController@payslip');
+    $r->post('/payroll/payslip/{id}', 'Finance\PayrollController@updatePayslip');
+    $r->get('/payroll/{id}', 'Finance\PayrollController@show');
+    $r->get('/payroll/{id}/export', 'Finance\PayrollController@export');
+    $r->post('/payroll/{id}/process', 'Finance\PayrollController@process');
+    $r->post('/payroll/{id}/approve', 'Finance\PayrollController@approve');
+    $r->post('/payroll/{id}/pay', 'Finance\PayrollController@pay');
+    $r->delete('/payroll/{id}', 'Finance\PayrollController@destroy');
 });
 
 /* ------------------------------------------------------------------ */

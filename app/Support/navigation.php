@@ -132,6 +132,8 @@ return [
             ['label' => 'Scholarships',   'url' => '/finance/scholarships',   'icon' => 'money', 'permission' => 'finance.manage'],
             ['label' => 'Expenses',       'url' => '/finance/expenses',       'icon' => 'money', 'permission' => 'finance.manage'],
             ['label' => 'Payroll',        'url' => '/finance/payroll',        'icon' => 'money', 'permission' => 'payroll.view'],
+            ['label' => 'Staff Salaries', 'url' => '/finance/payroll/salaries','icon' => 'users','permission' => 'payroll.view'],
+            ['label' => 'Staff Loans',    'url' => '/finance/payroll/loans',  'icon' => 'clipboard', 'permission' => 'payroll.view'],
         ],
     ],
     [
@@ -183,7 +185,8 @@ return [
         'items' => [
             ['label' => 'Settings',       'url' => '/admin/settings', 'icon' => 'settings', 'permission' => 'settings.manage'],
             ['label' => 'Campuses',       'url' => '/admin/campuses', 'icon' => 'building', 'permission' => 'settings.manage'],
-            ['label' => 'Rooms',          'url' => '/admin/rooms',    'icon' => 'building', 'permission' => 'settings.manage'],
+            ['label' => 'Buildings',      'url' => '/admin/buildings','icon' => 'building', 'permission' => 'facilities.view'],
+            ['label' => 'Lecture Rooms',  'url' => '/admin/rooms',    'icon' => 'building', 'permission' => 'facilities.view'],
             ['label' => 'Data Imports',   'url' => '/admin/data-imports', 'icon' => 'file', 'permission' => 'settings.manage'],
             ['label' => 'Audit Trail',    'url' => '/admin/audit',    'icon' => 'shield',   'permission' => 'audit.view'],
             ['label' => 'Signed-in Sessions', 'url' => '/admin/sessions', 'icon' => 'users', 'permission' => 'users.view'],
