@@ -8,7 +8,7 @@ $low = (float) $i['quantity'] <= (float) $i['reorder_level'];
 <div class="page-head">
     <div><h1><?= e($i['name']) ?></h1>
         <p class="lede"><code><?= e($i['code']) ?></code> &middot; <?= e($i['category']) ?><?= $i['location'] ? ' &middot; ' . e($i['location']) : '' ?></p></div>
-    <a class="btn btn-sm btn-light" href="<?= url('/assets/stock') ?>">&larr; Stores</a>
+    <a class="btn btn-sm btn-light" href="<?= url('/assets/stock') ?>">&larr; Supplies &amp; Stock</a>
 </div>
 <div class="row g-3 mb-3">
     <div class="col-6 col-md-3"><div class="mini-stat"><b class="<?= $low ? 'text-danger' : '' ?>"><?= $fmt($i['quantity']) ?> <?= e($i['unit']) ?></b><span>In stock<?= $low ? ' - reorder now' : '' ?></span></div></div>

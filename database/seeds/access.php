@@ -49,7 +49,8 @@ return [
         'library'       => ['view' => 'View the library', 'create' => 'Add titles', 'edit' => 'Edit titles', 'delete' => 'Remove titles', 'issue' => 'Issue and receive books'],
         'hostel'        => ['view' => 'View accommodation', 'create' => 'Create hostels and rooms', 'edit' => 'Edit accommodation', 'delete' => 'Delete accommodation', 'allocate' => 'Allocate rooms'],
         'facilities'    => ['view' => 'View buildings and rooms', 'create' => 'Add buildings and rooms', 'edit' => 'Edit buildings and rooms', 'delete' => 'Remove buildings and rooms'],
-        'assets'        => ['view' => 'View assets and stores', 'manage' => 'Manage assets, stock and maintenance'],
+        'assets'        => ['view' => 'View assets and internal supplies', 'manage' => 'Manage assets, supplies and maintenance'],
+        'store'         => ['view' => 'View store products and sales', 'sell' => 'Sell at the store counter', 'manage' => 'Manage store products, prices and stock', 'void' => 'Void store sales'],
         'clearance'     => ['view' => 'View clearance', 'edit' => 'Sign off clearance'],
         'medical'       => ['view' => 'View health records', 'create' => 'Add health records', 'edit' => 'Edit health records', 'delete' => 'Delete health records'],
         'discipline'    => ['view' => 'View disciplinary cases', 'create' => 'Open cases', 'edit' => 'Update cases', 'delete' => 'Delete cases'],
@@ -94,7 +95,7 @@ return [
              'tickets.view', 'tickets.edit', 'clearance.view', 'clearance.edit', 'reports.view', 'announcements.*', 'events.*']],
 
         ['Internal Auditor', 'internal-auditor', 4, 'Independent review of finance, payroll and records: reads everything, changes nothing.',
-            ['dashboard.view', 'audit.view', 'reports.*', 'finance.view', 'budgets.view', 'payroll.view', 'assets.view',
+            ['dashboard.view', 'audit.view', 'reports.*', 'finance.view', 'budgets.view', 'payroll.view', 'assets.view', 'store.view',
              'students.view', 'staff.view', 'hr.view', 'library.view', 'admissions.view', 'results.view', 'documents.view']],
 
         /* ---- Registry and academic administration ---- */
@@ -155,20 +156,20 @@ return [
 
         /* ---- Finance ---- */
         ['Bursar', 'bursar', 3, 'Heads finance: fees, payments, budgets, payroll and assets.',
-            ['dashboard.view', 'finance.*', 'budgets.*', 'payroll.*', 'assets.view', 'students.view', 'staff.view',
+            ['dashboard.view', 'finance.*', 'budgets.*', 'payroll.*', 'assets.view', 'store.*', 'students.view', 'staff.view',
              'clearance.view', 'clearance.edit', 'reports.*', 'audit.view', 'announcements.view']],
 
         ['Finance Officer', 'finance-officer', 5, 'Fees, invoicing, receipting and payroll.',
             ['dashboard.view', 'finance.*', 'payroll.view', 'payroll.create', 'payroll.edit', 'payroll.export',
-             'budgets.view', 'students.view', 'reports.view', 'reports.export',
+             'budgets.view', 'store.view', 'students.view', 'reports.view', 'reports.export',
              'clearance.view', 'clearance.edit', 'announcements.view']],
 
         ['Accountant', 'accountant', 5, 'Keeps the books: invoices, payments, expenses and budget lines.',
             ['dashboard.view', 'finance.view', 'finance.create', 'finance.edit', 'finance.manage',
-             'budgets.view', 'budgets.manage', 'payroll.view', 'payroll.export', 'students.view', 'reports.*']],
+             'budgets.view', 'budgets.manage', 'payroll.view', 'payroll.export', 'store.view', 'students.view', 'reports.*']],
 
         ['Cashier', 'cashier', 6, 'Receives payments at the counter and issues receipts.',
-            ['dashboard.view', 'finance.view', 'finance.create', 'students.view', 'clearance.view', 'reports.view']],
+            ['dashboard.view', 'finance.view', 'finance.create', 'store.view', 'store.sell', 'students.view', 'staff.view', 'clearance.view', 'reports.view']],
 
         ['Payroll Officer', 'payroll-officer', 5, 'Prepares the monthly payroll: salaries, allowances, loans and payslips.',
             ['dashboard.view', 'payroll.view', 'payroll.create', 'payroll.edit', 'payroll.export',
@@ -177,8 +178,14 @@ return [
         ['Procurement Officer', 'procurement-officer', 5, 'Buys for the university and keeps the asset register.',
             ['dashboard.view', 'assets.*', 'budgets.view', 'finance.view', 'facilities.view', 'reports.view']],
 
-        ['Stores Officer', 'stores-officer', 6, 'Receives, issues and counts stock.',
+        ['Stores Officer', 'stores-officer', 6, 'Receives, issues and counts internal supplies.',
             ['dashboard.view', 'assets.*', 'reports.view']],
+
+        ['Store Manager', 'store-manager', 5, 'Runs the university store: products, prices, stock and sales to students and staff.',
+            ['dashboard.view', 'store.*', 'students.view', 'staff.view', 'reports.view']],
+
+        ['Store Attendant', 'store-attendant', 7, 'Sells at the store counter and issues receipts.',
+            ['dashboard.view', 'store.view', 'store.sell', 'students.view', 'staff.view']],
 
         /* ---- Human resources ---- */
         ['HR Officer', 'hr-officer', 5, 'Staff records, leave, appraisal, recruitment and payroll input.',

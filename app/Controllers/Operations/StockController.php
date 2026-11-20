@@ -11,16 +11,20 @@ use App\Core\ResourceController;
 use App\Models\StockItem;
 use App\Support\Lookup;
 
-/** Consumable stores (stationery, cleaning, laboratory supplies): balances, receipts and issues. */
+/**
+ * Supplies & Stock: internal consumables that are not for sale (stationery, cleaning,
+ * laboratory supplies). Balances, receipts and issues to departments.
+ * Goods sold to students and staff live in the Store module (App\Controllers\Store).
+ */
 final class StockController extends ResourceController
 {
-    protected string $title = 'Stores & Stock';
-    protected string $entity = 'Stock item';
+    protected string $title = 'Supplies & Stock';
+    protected string $entity = 'Supply item';
     protected string $routeBase = '/assets/stock';
     protected string $permission = 'assets';
     protected bool $viewManagePermissions = true;
     protected string $icon = 'clipboard';
-    protected string $lede = 'Consumable supplies. Receive stock in, issue it to departments, and see what needs reordering.';
+    protected string $lede = 'Internal supplies, not for sale. Receive stock in, issue it to departments, and see what needs reordering.';
     protected string $defaultSort = 'name';
     protected string $defaultDir = 'asc';
 
@@ -92,7 +96,7 @@ final class StockController extends ResourceController
     public function movements(Request $request, string $id): string
     {
         $this->permit('view');
-        $item = $this->findOrFail($this->model, (int) $id, 'Stock item');
+        $item = $this->findOrFail($this->model, (int) $id, 'Supply item');
         return $this->view('operations.stock-movements', [
             'pageTitle'   => $item['name'],
             'item'        => $item,

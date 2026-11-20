@@ -35,7 +35,7 @@ final class PaymentController extends Controller
         $this->authorize('finance.create');
         return $this->view('finance.payments.create', [
             'pageTitle' => 'Record Payment',
-            'students'  => Database::select("SELECT s.id, CONCAT(s.admission_number,' – ',u.first_name,' ',u.last_name) AS label FROM students s JOIN users u ON u.id=s.user_id WHERE s.status='active' ORDER BY u.last_name"),
+            'students'  => Database::select("SELECT s.id, s.admission_number, CONCAT(u.first_name,' ',u.last_name) AS name, CONCAT(s.admission_number,' – ',u.first_name,' ',u.last_name) AS label FROM students s JOIN users u ON u.id=s.user_id WHERE s.status='active' ORDER BY u.last_name, u.first_name"),
             'invoices'  => [],
         ]);
     }

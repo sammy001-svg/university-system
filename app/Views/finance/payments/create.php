@@ -11,9 +11,22 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Student <span class="text-danger">*</span></label>
-                    <select name="student_id" class="form-select" required>
-                        <?= options(array_column($students, 'label', 'id'), old('student_id'), 'Select Student') ?>
-                    </select>
+                    <?php
+                        $oldStudentId = (string) old('student_id');
+                        $oldStudentLabel = '';
+                        foreach ($students as $s) {
+                            if ((string) $s['id'] === $oldStudentId) { $oldStudentLabel = $s['label']; break; }
+                        }
+                    ?>
+                    <div class="student-picker position-relative">
+                        <input type="hidden" name="student_id" id="student_id" value="<?= e($oldStudentLabel !== '' ? $oldStudentId : '') ?>">
+                        <input type="text" id="student_search" class="form-control" autocomplete="off"
+                               placeholder="Search by name or admission number…" value="<?= e($oldStudentLabel) ?>"
+                               role="combobox" aria-expanded="false" aria-controls="student_results" required>
+                        <ul id="student_results" class="list-group position-absolute w-100 shadow-sm d-none"
+                            role="listbox" style="z-index:1050;max-height:280px;overflow-y:auto;"></ul>
+                    </div>
+                    <div class="form-text">Type at least part of the student's name or admission number, then pick from the list.</div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Amount (<?= e(currency_code()) ?>) <span class="text-danger">*</span></label>
@@ -41,4 +54,107 @@
         </div>
     </form>
 </div>
+<?php endsection(); ?>
+
+<?php section('scripts'); ?>
+<script>
+(function () {
+    const students = <?= json_encode(array_map(fn($s) => [
+        'id'    => (int) $s['id'],
+        'adm'   => (string) $s['admission_number'],
+        'name'  => (string) $s['name'],
+        'label' => (string) $s['label'],
+    ], $students), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;
+
+    const input   = document.getElementById('student_search');
+    const hidden  = document.getElementById('student_id');
+    const list    = document.getElementById('student_results');
+    const form    = input.closest('form');
+    const MAX     = 50;
+    let matches   = [];
+    let active    = -1;
+
+    const norm = (v) => String(v).toLowerCase().replace(/\s+/g, ' ').trim();
+    students.forEach((s) => { s._adm = norm(s.adm); s._name = norm(s.name); });
+
+    function search(q) {
+        q = norm(q);
+        if (!q) return students.slice(0, MAX);
+        const terms = q.split(' ');
+        const res = students.filter((s) =>
+            s._adm.includes(q) || terms.every((t) => s._name.includes(t) || s._adm.includes(t))
+        );
+        // Exact / prefix admission-number matches first
+        res.sort((a, b) => (b._adm.startsWith(q) - a._adm.startsWith(q)));
+        return res.slice(0, MAX);
+    }
+
+    function render() {
+        list.innerHTML = '';
+        if (!matches.length) {
+            const li = document.createElement('li');
+            li.className = 'list-group-item text-muted small';
+            li.textContent = 'No matching students';
+            list.appendChild(li);
+        }
+        matches.forEach((s, i) => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item list-group-item-action' + (i === active ? ' active' : '');
+            li.setAttribute('role', 'option');
+            li.style.cursor = 'pointer';
+            const adm = document.createElement('strong');
+            adm.textContent = s.adm;
+            li.appendChild(adm);
+            li.appendChild(document.createTextNode(' – ' + s.name));
+            li.addEventListener('mousedown', (e) => { e.preventDefault(); choose(s); });
+            list.appendChild(li);
+        });
+        open(true);
+    }
+
+    function open(show) {
+        list.classList.toggle('d-none', !show);
+        input.setAttribute('aria-expanded', show ? 'true' : 'false');
+    }
+
+    function choose(s) {
+        hidden.value = s.id;
+        input.value = s.label;
+        input.setCustomValidity('');
+        input.classList.remove('is-invalid');
+        open(false);
+    }
+
+    input.addEventListener('input', () => {
+        hidden.value = '';
+        active = -1;
+        matches = search(input.value);
+        render();
+    });
+    input.addEventListener('focus', () => { if (!hidden.value) { matches = search(input.value); render(); } });
+    input.addEventListener('blur', () => setTimeout(() => open(false), 100));
+    input.addEventListener('keydown', (e) => {
+        if (list.classList.contains('d-none') && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+            matches = search(input.value); render();
+        }
+        if (e.key === 'ArrowDown') { e.preventDefault(); active = Math.min(active + 1, matches.length - 1); render(); scroll(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); render(); scroll(); }
+        else if (e.key === 'Enter' && !list.classList.contains('d-none')) {
+            e.preventDefault();
+            const pick = matches[active >= 0 ? active : (matches.length === 1 ? 0 : -1)];
+            if (pick) choose(pick);
+        } else if (e.key === 'Escape') { open(false); }
+    });
+    function scroll() { const el = list.children[active]; if (el) el.scrollIntoView({ block: 'nearest' }); }
+
+    form.addEventListener('submit', (e) => {
+        if (!hidden.value) {
+            e.preventDefault();
+            input.setCustomValidity('Please select a student from the list.');
+            input.classList.add('is-invalid');
+            input.reportValidity();
+        }
+    });
+})();
+</script>
 <?php endsection(); ?>

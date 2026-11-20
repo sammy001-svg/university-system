@@ -33,11 +33,37 @@ final class EventController extends ResourceController
         ];
     }
 
+    protected function filters(): array
+    {
+        return [
+            ['name' => 'event_type', 'label' => 'Type', 'options' => [
+                'academic' => 'Academic',
+                'sports' => 'Sports',
+                'cultural' => 'Cultural',
+                'graduation' => 'Graduation',
+                'orientation' => 'Orientation',
+                'meeting' => 'Meeting',
+                'gathering' => 'Gathering',
+                'holiday' => 'Holiday',
+                'other' => 'Other',
+            ]],
+        ];
+    }
+
+    protected function listQuery(\App\Core\Request $request): \App\Core\QueryBuilder
+    {
+        $q = $this->model->query();
+        if ($request->filled('event_type')) {
+            $q->where('event_type', $request->query('event_type'));
+        }
+        return $q;
+    }
+
     protected function fields(): array
     {
         return [
             ['name' => 'title', 'label' => 'Event title', 'width' => 8, 'required' => true],
-            ['name' => 'event_type', 'label' => 'Event type', 'type' => 'enum', 'width' => 4, 'required' => true, 'values' => ['academic', 'sports', 'cultural', 'graduation', 'orientation', 'meeting', 'holiday', 'other']],
+            ['name' => 'event_type', 'label' => 'Event type', 'type' => 'enum', 'width' => 4, 'required' => true, 'values' => ['academic', 'sports', 'cultural', 'graduation', 'orientation', 'meeting', 'gathering', 'holiday', 'other']],
             ['name' => 'start_datetime', 'label' => 'Starts', 'type' => 'datetime-local', 'width' => 4, 'required' => true],
             ['name' => 'end_datetime', 'label' => 'Ends', 'type' => 'datetime-local', 'width' => 4],
             ['name' => 'venue', 'label' => 'Venue', 'width' => 4],

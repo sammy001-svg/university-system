@@ -159,10 +159,18 @@ return [
         ],
     ],
     [
+        'title' => 'Store',
+        'items' => [
+            ['label' => 'Point of Sale', 'url' => '/store/sales/create', 'icon' => 'money',     'permission' => 'store.sell'],
+            ['label' => 'Store Sales',   'url' => '/store/sales',        'icon' => 'file',      'permission' => 'store.view', 'match' => '#/store/sales(/\d+.*)?$#'],
+            ['label' => 'Store Products','url' => '/store/products',     'icon' => 'clipboard', 'permission' => 'store.view'],
+        ],
+    ],
+    [
         'title' => 'Operations',
         'items' => [
             ['label' => 'Asset Register', 'url' => '/assets',       'icon' => 'building',  'permission' => 'assets.view', 'match' => '#/assets(/\d+.*)?$#'],
-            ['label' => 'Stores & Stock', 'url' => '/assets/stock', 'icon' => 'clipboard', 'permission' => 'assets.view'],
+            ['label' => 'Supplies & Stock', 'url' => '/assets/stock', 'icon' => 'clipboard', 'permission' => 'assets.view'],
         ],
     ],
     [

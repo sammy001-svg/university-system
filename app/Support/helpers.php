@@ -211,7 +211,7 @@ function status_class(?string $status): string
         'active', 'approved', 'paid', 'confirmed', 'cleared', 'present', 'published', 'pass', 'graduated', 'available', 'completed', 'returned', 'open' => 'success',
         'pending', 'partial', 'draft', 'planned', 'under_review', 'submitted', 'requested', 'processing', 'in_progress', 'late', 'borrowed', 'on_leave' => 'warning',
         'inactive', 'closed', 'archived', 'dropped', 'excused', 'deferred', 'reserved', 'maintenance' => 'secondary',
-        'suspended', 'rejected', 'failed', 'fail', 'overdue', 'absent', 'cancelled', 'expelled', 'withdrawn', 'blocked', 'lost', 'reversed', 'terminated', 'urgent' => 'danger',
+        'suspended', 'rejected', 'failed', 'fail', 'overdue', 'absent', 'cancelled', 'expelled', 'withdrawn', 'blocked', 'lost', 'reversed', 'voided', 'terminated', 'urgent' => 'danger',
         default => 'info',
     };
 }

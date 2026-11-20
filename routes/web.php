@@ -133,13 +133,23 @@ $router->group(['middleware' => ['auth']], static function ($r) use ($resource):
     // Research output.
     $resource($r, '/research', 'Quality\ResearchController');
 
-    // Assets and stores.
+    // Assets and internal supplies (not for sale).
     $resource($r, '/assets/stock', 'Operations\StockController');
     $r->get('/assets/stock/{id}/movements', 'Operations\StockController@movements');
     $r->post('/assets/stock/{id}/movements', 'Operations\StockController@move');
     $resource($r, '/assets', 'Operations\AssetController');
     $r->get('/assets/{id}/maintenance', 'Operations\AssetController@maintenance');
     $r->post('/assets/{id}/maintenance', 'Operations\AssetController@addMaintenance');
+
+    // Store: goods sold to students and staff. /store/sales/create comes before /store/sales/{id}.
+    $r->get('/store/sales', 'Store\SaleController@index');
+    $r->get('/store/sales/create', 'Store\SaleController@create');
+    $r->post('/store/sales', 'Store\SaleController@store');
+    $r->get('/store/sales/{id}', 'Store\SaleController@show');
+    $r->post('/store/sales/{id}/void', 'Store\SaleController@void');
+    $resource($r, '/store/products', 'Store\ProductController');
+    $r->get('/store/products/{id}/stock', 'Store\ProductController@stock');
+    $r->post('/store/products/{id}/stock', 'Store\ProductController@move');
 
     // Staff appraisal and recruitment.
     $r->get('/hr/appraisals', 'HR\AppraisalController@index');

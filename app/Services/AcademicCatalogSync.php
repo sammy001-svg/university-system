@@ -43,6 +43,7 @@ final class AcademicCatalogSync
             . (string) sha1_file($this->basePath . '/database/migrations/2026_11_06_services.sql')
             . (string) sha1_file($this->basePath . '/database/migrations/2026_11_07_modules.sql')
             . (string) sha1_file($this->basePath . '/database/migrations/2026_11_20_payroll.sql')
+            . (string) sha1_file($this->basePath . '/database/migrations/2026_11_20_store.sql')
             . (string) sha1_file($this->basePath . '/database/seeds/access.php')
             . (string) sha1_file($this->basePath . '/app/Services/AccessSync.php')
         );
@@ -295,6 +296,8 @@ final class AcademicCatalogSync
         $this->runMigration($pdo, '2026_11_07_modules.sql');
         // Payroll: the register the Finance Office prints, salary components, staff loans and tax bands.
         $this->runMigration($pdo, '2026_11_20_payroll.sql');
+        // Store: products sold to students and staff, sales and receipts.
+        $this->runMigration($pdo, '2026_11_20_store.sql');
         // The payslip carries the columns of the university's own payroll sheet.
         if (!$hasColumn('payslips', 'taxable_amount')) {
             $pdo->exec(
@@ -340,6 +343,15 @@ final class AcademicCatalogSync
             $pdo->exec('ALTER TABLE users ADD COLUMN two_factor_secret VARCHAR(64) DEFAULT NULL,
                           ADD COLUMN two_factor_enabled_at DATETIME DEFAULT NULL,
                           ADD COLUMN two_factor_recovery_codes TEXT DEFAULT NULL');
+        }
+        // Event types: include gathering.
+        $eventType = (string) $pdo->query(
+            "SELECT column_type FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = 'events' AND column_name = 'event_type'"
+        )->fetchColumn();
+        if ($eventType !== '' && !str_contains($eventType, "'gathering'")) {
+            $pdo->exec("ALTER TABLE events MODIFY `event_type`
+                        ENUM('academic','sports','cultural','graduation','orientation','meeting','gathering','holiday','other') NOT NULL DEFAULT 'academic'");
         }
     }
 
