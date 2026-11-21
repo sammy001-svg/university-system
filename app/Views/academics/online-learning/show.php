@@ -1,0 +1,164 @@
+<?php
+use App\Services\Elearning\ClassroomService;
+use App\Services\Elearning\CourseAccess;
+use App\Services\Elearning\ExamService;
+use App\Services\Elearning\Oversight;
+
+layout('layouts.app');
+section('content');
+$o = $offering;
+$canDownload = CourseAccess::mayTeach((int) $o['id']);
+$byWeek = [];
+foreach ($materials as $m) {
+    $byWeek[$m['week'] === null ? 'General' : 'Week ' . $m['week']][] = $m;
+}
+?>
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a href="<?= url('/academics/online-learning') ?>">Online Learning</a> / <?= e($o['code']) ?></div>
+        <h1><?= e($o['code']) ?> &middot; <?= e($o['title']) ?></h1>
+        <p class="lede">Section <?= e($o['section']) ?> &middot; <?= e($o['semester_name'] . ' ' . $o['academic_year']) ?>
+            &middot; Lecturer: <?= $o['lecturer_name'] !== '' ? e($o['lecturer_name']) : 'Unassigned' ?>
+            &middot; <?= e(humanize($o['delivery_mode'])) ?></p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-sm btn-light" href="<?= url('/academics/online-learning') ?>">&larr; Online Learning</a>
+        <a class="btn btn-sm btn-outline-secondary" href="<?= url('/academics/offerings/' . $o['id'] . '/roster') ?>"><?= icon('users', 'ico-sm') ?> Class Roster</a>
+        <?php if ($canTeach): ?>
+            <a class="btn btn-sm btn-primary" href="<?= url('/teaching/' . $o['id'] . '/classroom') ?>"><?= icon('video', 'ico-sm') ?> Open Classroom</a>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3"><div class="mini-stat"><b><?= number_format($stats['held']) ?></b><span>Classes held</span></div></div>
+    <div class="col-6 col-md-3"><div class="mini-stat"><b><?= number_format($stats['upcoming']) ?></b><span>Live or upcoming</span></div></div>
+    <div class="col-6 col-md-3"><div class="mini-stat"><b><?= $stats['attendance'] === null ? '&ndash;' : $stats['attendance'] . '%' ?></b><span>Avg session attendance</span></div></div>
+    <div class="col-6 col-md-3"><div class="mini-stat"><b><?= number_format($stats['reached']) ?> / <?= number_format($registered) ?></b><span>Students joined &ge;1 class</span></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-7">
+        <div class="card mb-3">
+            <div class="card-header"><?= icon('video') ?> Online Class Sessions <span class="badge text-bg-light ms-1"><?= count($sessions) ?></span></div>
+            <div class="card-body py-1">
+                <?php if ($sessions === []): ?>
+                    <div class="empty-state py-4"><?= icon('video') ?><p class="mb-0">No online classes scheduled for this offering yet.</p></div>
+                <?php endif; ?>
+                <?php foreach ($sessions as $s):
+                    $phase = ClassroomService::phase($s);
+                    $t = strtotime((string) $s['starts_at']);
+                    $pct = Oversight::pct($s['attendees'], $registered);
+                ?>
+                    <div class="el-item">
+                        <div class="el-when <?= $phase === 'live' ? 'live' : '' ?>"><b><?= date('j', $t) ?></b><span><?= date('M', $t) ?></span></div>
+                        <div class="el-item-main">
+                            <div class="el-item-title">
+                                <?= e($s['title']) ?>
+                                <?php if ($phase === 'live'): ?><span class="live-badge ms-1">Live</span>
+                                <?php elseif ($phase === 'upcoming'): ?><span class="badge text-bg-info ms-1">Upcoming</span>
+                                <?php elseif ($phase === 'cancelled'): ?><span class="badge text-bg-secondary ms-1">Cancelled</span>
+                                <?php else: ?><span class="badge text-bg-light ms-1">Held</span><?php endif; ?>
+                            </div>
+                            <div class="el-item-meta">
+                                <?= date('D j M Y, H:i', $t) ?>&ndash;<?= date('H:i', strtotime(ClassroomService::endsAt($s))) ?>
+                                &middot; <?= e(explode(' (', ClassroomService::PLATFORMS[$s['platform']] ?? $s['platform'])[0]) ?>
+                                &middot; <?= (int) $s['attendees'] ?> / <?= $registered ?> joined<?= $pct !== null ? " ({$pct}%)" : '' ?>
+                                <?php if (!empty($s['recording_url'])): ?>
+                                    &middot; <a href="<?= e($s['recording_url']) ?>" target="_blank" rel="noopener">Recording</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><?= icon('book') ?> Course Materials <span class="badge text-bg-light ms-1"><?= count($materials) ?></span></div>
+            <div class="card-body">
+                <?php if ($materials === []): ?>
+                    <div class="empty-state py-4"><?= icon('file') ?><p class="mb-0">No lecture notes or links uploaded yet.</p></div>
+                <?php endif; ?>
+                <?php foreach ($byWeek as $weekLabel => $items): ?>
+                    <div class="week-label"><?= e($weekLabel) ?></div>
+                    <?php foreach ($items as $m): ?>
+                        <div class="material">
+                            <div class="material-ico"><?= icon($m['kind'] === 'link' ? 'link' : 'file') ?></div>
+                            <div class="el-item-main">
+                                <div class="fw-semibold">
+                                    <?php if ($m['kind'] === 'link' && !empty($m['url'])): ?>
+                                        <a href="<?= e($m['url']) ?>" target="_blank" rel="noopener"><?= e($m['title']) ?></a>
+                                    <?php elseif ($m['kind'] === 'file' && $canDownload): ?>
+                                        <a href="<?= url('/files/materials/' . $m['id']) ?>"><?= e($m['title']) ?></a>
+                                    <?php else: ?>
+                                        <?= e($m['title']) ?>
+                                    <?php endif; ?>
+                                    <?php if ((int) $m['is_published'] !== 1): ?><span class="badge text-bg-secondary ms-1">Hidden</span><?php endif; ?>
+                                </div>
+                                <div class="text-muted-sm">
+                                    <?= $m['kind'] === 'link' ? 'External link' : e((string) ($m['file_name'] ?? 'File')) ?>
+                                    &middot; Added <?= ago($m['created_at']) ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-5">
+        <div class="card mb-3">
+            <div class="card-header"><?= icon('exam') ?> Online Examinations <span class="badge text-bg-light ms-1"><?= count($exams) ?></span></div>
+            <div class="card-body py-1">
+                <?php if ($exams === []): ?>
+                    <div class="empty-state py-4"><?= icon('exam') ?><p class="mb-0">No online exams created for this offering yet.</p></div>
+                <?php endif; ?>
+                <?php foreach ($exams as $ex): $phase = ExamService::phase($ex); ?>
+                    <div class="el-item">
+                        <div class="el-item-main">
+                            <div class="el-item-title">
+                                <a href="<?= url('/academics/online-exams/' . $ex['id']) ?>"><?= e($ex['title']) ?></a>
+                                <?= status_badge(['draft' => 'draft', 'upcoming' => 'planned', 'open' => 'open', 'closed' => 'closed'][$phase]) ?>
+                            </div>
+                            <div class="el-item-meta">
+                                <?= e(ExamService::TYPES[$ex['exam_type']] ?? $ex['exam_type']) ?>
+                                &middot; <?= (int) $ex['question_count'] ?> Qs &middot; <?= (int) $ex['duration_minutes'] ?> min
+                                &middot; <?= (int) $ex['attempts'] ?> / <?= $registered ?> sat
+                                <?= $ex['avg_pct'] !== null ? ' &middot; Avg ' . round((float) $ex['avg_pct'], 1) . '%' : '' ?>
+                            </div>
+                            <div class="text-muted-sm"><?= fdatetime($ex['opens_at']) ?> &ndash; <?= fdatetime($ex['closes_at']) ?></div>
+                        </div>
+                        <a class="btn btn-sm btn-light" href="<?= url('/academics/online-exams/' . $ex['id']) ?>">Inspect</a>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><?= icon('clipboard') ?> Online Assignments <span class="badge text-bg-light ms-1"><?= count($assignments) ?></span></div>
+            <div class="card-body py-1">
+                <?php if ($assignments === []): ?>
+                    <div class="empty-state py-4"><?= icon('clipboard') ?><p class="mb-0">No assignments posted for this offering yet.</p></div>
+                <?php endif; ?>
+                <?php foreach ($assignments as $a): ?>
+                    <div class="el-item">
+                        <div class="el-item-main">
+                            <div class="el-item-title">
+                                <?= e($a['title']) ?>
+                                <?= status_badge($a['status']) ?>
+                            </div>
+                            <div class="el-item-meta">
+                                Due <?= fdatetime($a['due_at']) ?>
+                                &middot; <?= (int) $a['submitted'] ?> / <?= $registered ?> submitted
+                                &middot; Max <?= rtrim(rtrim(number_format((float) $a['max_score'], 2), '0'), '.') ?> marks
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endsection(); ?>

@@ -26,6 +26,7 @@ return [
                             'delete' => 'Remove reference data', 'manage' => 'Manage system settings'],
         'audit'         => ['view' => 'View the audit trail'],
         'academics'     => ['view' => 'View academic structure', 'create' => 'Create academic records', 'edit' => 'Edit academic records', 'delete' => 'Delete academic records', 'manage' => 'Manage calendar and curriculum'],
+        'elearning'     => ['view' => 'View online learning and online examinations'],
         'offerings'     => ['view' => 'View class offerings', 'create' => 'Create class offerings', 'edit' => 'Edit class offerings', 'delete' => 'Delete class offerings'],
         'registrations' => ['view' => 'View course registrations', 'create' => 'Register students', 'edit' => 'Edit registrations', 'delete' => 'Drop registrations', 'approve' => 'Approve registrations'],
         'admissions'    => ['view' => 'View applications', 'create' => 'Capture applications', 'edit' => 'Edit applications', 'delete' => 'Delete applications', 'manage' => 'Manage intakes', 'review' => 'Review applications', 'enrol' => 'Enrol applicants'],
@@ -76,17 +77,17 @@ return [
         ['Super Administrator', 'super-admin', 1, 'Unrestricted access to every part of the system.', ['*']],
 
         ['President', 'president', 2, 'Chief executive of the university: oversight and read access across every office.',
-            ['dashboard.view', 'reports.*', 'students.view', 'staff.view', 'academics.view', 'offerings.view', 'finance.view',
+            ['dashboard.view', 'reports.*', 'students.view', 'staff.view', 'academics.view', 'offerings.view', 'elearning.view', 'finance.view',
              'budgets.view', 'payroll.view', 'results.view', 'graduation.view', 'admissions.view', 'audit.view', 'assets.view',
              'hr.view', 'appraisals.view', 'research.view', 'evaluations.view', 'announcements.*', 'events.*', 'documents.view']],
 
         ['Vice Chancellor', 'vice-chancellor', 2, 'Executive oversight with read access across the institution.',
-            ['dashboard.view', 'reports.*', 'students.view', 'staff.view', 'academics.view', 'finance.view', 'budgets.view',
+            ['dashboard.view', 'reports.*', 'students.view', 'staff.view', 'academics.view', 'elearning.view', 'finance.view', 'budgets.view',
              'results.view', 'graduation.view', 'admissions.view', 'audit.view', 'research.view', 'evaluations.view',
              'announcements.*', 'events.*']],
 
         ['Vice President for Academic Affairs', 'vp-academic', 2, 'Heads the academic division: programmes, teaching, results and graduation.',
-            ['dashboard.view', 'academics.*', 'offerings.*', 'registrations.view', 'registrations.approve', 'timetable.view',
+            ['dashboard.view', 'academics.*', 'offerings.*', 'elearning.view', 'registrations.view', 'registrations.approve', 'timetable.view',
              'exams.view', 'results.view', 'results.publish', 'results.manage', 'graduation.*', 'advising.view', 'evaluations.*',
              'research.*', 'students.view', 'staff.view', 'appraisals.view', 'reports.*', 'announcements.*', 'events.view', 'documents.view']],
 
@@ -100,24 +101,24 @@ return [
 
         /* ---- Registry and academic administration ---- */
         ['Registrar', 'registrar', 3, 'Owns admissions, student records, examinations and graduation.',
-            ['dashboard.view', 'students.*', 'admissions.*', 'academics.*', 'offerings.*', 'registrations.*',
+            ['dashboard.view', 'students.*', 'admissions.*', 'academics.*', 'offerings.*', 'elearning.view', 'registrations.*',
              'exams.*', 'results.*', 'timetable.*', 'attendance.view', 'reports.*', 'clearance.*', 'graduation.*',
              'requests.*', 'advising.*', 'facilities.view', 'announcements.*', 'events.*', 'documents.*', 'discipline.*', 'users.view']],
 
         ['Deputy Registrar', 'deputy-registrar', 4, 'Runs the registry day to day, short of deleting records.',
             ['dashboard.view', 'students.view', 'students.create', 'students.edit', 'students.status',
              'admissions.view', 'admissions.create', 'admissions.edit', 'admissions.review', 'admissions.enrol',
-             'academics.view', 'offerings.view', 'offerings.create', 'offerings.edit',
+             'academics.view', 'offerings.view', 'offerings.create', 'offerings.edit', 'elearning.view',
              'registrations.view', 'registrations.create', 'registrations.edit', 'registrations.approve',
              'exams.view', 'exams.create', 'exams.edit', 'results.view', 'results.publish', 'timetable.*',
              'graduation.view', 'graduation.manage', 'requests.*', 'clearance.*', 'reports.*', 'documents.*']],
 
         ['Examinations Officer', 'exams-officer', 5, 'Schedules examinations, collates marks and publishes results.',
-            ['dashboard.view', 'exams.*', 'results.*', 'timetable.*', 'registrations.view', 'offerings.view',
+            ['dashboard.view', 'exams.*', 'results.*', 'elearning.view', 'timetable.*', 'registrations.view', 'offerings.view',
              'students.view', 'attendance.view', 'facilities.view', 'reports.*']],
 
         ['Quality Assurance Officer', 'quality-assurance', 5, 'Course evaluations, academic standards and institutional reporting.',
-            ['dashboard.view', 'evaluations.*', 'research.view', 'appraisals.view', 'academics.view', 'offerings.view',
+            ['dashboard.view', 'evaluations.*', 'elearning.view', 'research.view', 'appraisals.view', 'academics.view', 'offerings.view',
              'results.view', 'attendance.view', 'students.view', 'staff.view', 'reports.*']],
 
         ['Admissions Officer', 'admissions-officer', 5, 'Processes applications, offers and enrolment.',
@@ -126,13 +127,13 @@ return [
 
         /* ---- Colleges, departments and teaching ---- */
         ['Dean', 'dean', 4, 'College-level academic oversight.',
-            ['dashboard.view', 'academics.view', 'offerings.*', 'registrations.view', 'registrations.approve',
+            ['dashboard.view', 'academics.view', 'offerings.*', 'elearning.view', 'registrations.view', 'registrations.approve',
              'results.view', 'results.publish', 'students.view', 'staff.view', 'attendance.view', 'reports.view',
              'timetable.view', 'graduation.view', 'advising.view', 'evaluations.view', 'appraisals.view',
              'research.view', 'announcements.create', 'announcements.view']],
 
         ['Head of Department', 'hod', 5, 'Departmental academic management.',
-            ['dashboard.view', 'academics.view', 'offerings.*', 'registrations.view', 'registrations.approve',
+            ['dashboard.view', 'academics.view', 'offerings.*', 'elearning.view', 'registrations.view', 'registrations.approve',
              'results.view', 'results.create', 'results.edit', 'students.view', 'staff.view',
              'attendance.view', 'timetable.*', 'advising.*', 'evaluations.view', 'appraisals.view',
              'research.view', 'research.create', 'reports.view', 'teaching.access']],

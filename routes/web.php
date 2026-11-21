@@ -241,6 +241,12 @@ $router->group(['prefix' => '/academics', 'middleware' => ['auth']], static func
     $r->post('/registrations/{id}/approve', 'Academics\RegistrationController@approve');
     $r->post('/registrations/{id}/reject', 'Academics\RegistrationController@reject');
     $r->delete('/registrations/{id}', 'Academics\RegistrationController@destroy');
+
+    // Online learning and online examinations oversight.
+    $r->get('/online-learning', 'Academics\OnlineLearningController@index');
+    $r->get('/online-learning/{id}', 'Academics\OnlineLearningController@show');
+    $r->get('/online-exams', 'Academics\OnlineExamController@index');
+    $r->get('/online-exams/{id}', 'Academics\OnlineExamController@show');
 });
 
 /* ------------------------------------------------------------------ */
