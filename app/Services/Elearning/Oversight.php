@@ -87,7 +87,7 @@ final class Oversight
         ];
     }
 
-    public static function pct(float|int|null $part, float|int|null $whole): ?float
+    public static function pct(float|int|string|null $part, float|int|string|null $whole): ?float
     {
         return (float) $whole > 0 ? round((float) $part / (float) $whole * 100, 1) : null;
     }

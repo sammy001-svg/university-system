@@ -212,3 +212,4 @@ $maxBand = max(1, ...array_values($bands));
     </div>
 </div>
 <?php endsection(); ?>
+
