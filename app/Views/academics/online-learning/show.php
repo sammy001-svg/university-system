@@ -24,8 +24,12 @@ foreach ($materials as $m) {
     <div class="d-flex gap-2 flex-wrap">
         <a class="btn btn-sm btn-light" href="<?= url('/academics/online-learning') ?>">&larr; Online Learning</a>
         <a class="btn btn-sm btn-outline-secondary" href="<?= url('/academics/offerings/' . $o['id'] . '/roster') ?>"><?= icon('users', 'ico-sm') ?> Class Roster</a>
+        <?php if (can('elearning.manage')): ?>
+            <a class="btn btn-sm btn-outline-primary btn-icon" href="<?= url('/academics/online-exams/create?offering=' . $o['id']) ?>"><?= icon('plus', 'ico-sm') ?> Schedule Exam</a>
+            <a class="btn btn-sm btn-primary btn-icon" href="<?= url('/academics/online-learning/create?offering=' . $o['id']) ?>"><?= icon('plus', 'ico-sm') ?> Schedule Lesson</a>
+        <?php endif; ?>
         <?php if ($canTeach): ?>
-            <a class="btn btn-sm btn-primary" href="<?= url('/teaching/' . $o['id'] . '/classroom') ?>"><?= icon('video', 'ico-sm') ?> Open Classroom</a>
+            <a class="btn btn-sm btn-outline-secondary" href="<?= url('/teaching/' . $o['id'] . '/classroom') ?>"><?= icon('video', 'ico-sm') ?> Classroom</a>
         <?php endif; ?>
     </div>
 </div>
@@ -69,6 +73,28 @@ foreach ($materials as $m) {
                                 <?php endif; ?>
                             </div>
                         </div>
+                        <?php if (can('elearning.manage')): ?>
+                            <div class="d-flex gap-1 flex-wrap justify-content-end">
+                                <?php if (($phase === 'live' || $phase === 'upcoming') && !empty($s['meeting_url'])): ?>
+                                    <a class="btn btn-sm btn-primary" href="<?= e($s['meeting_url']) ?>" target="_blank" rel="noopener"><?= icon('play', 'ico-sm') ?> Join</a>
+                                <?php endif; ?>
+                                <a class="btn btn-sm btn-light" href="<?= url('/academics/online-learning/sessions/' . $s['id'] . '/edit') ?>" title="Edit"><?= icon('edit', 'ico-sm') ?></a>
+                                <?php if ($phase === 'live' || $phase === 'upcoming'): ?>
+                                    <form method="post" action="<?= url('/academics/online-learning/sessions/' . $s['id'] . '/status') ?>">
+                                        <?= csrf_field() ?><input type="hidden" name="action" value="complete">
+                                        <button class="btn btn-sm btn-light" title="Mark as held"><?= icon('check', 'ico-sm') ?></button>
+                                    </form>
+                                    <form method="post" action="<?= url('/academics/online-learning/sessions/' . $s['id'] . '/status') ?>" data-confirm="Cancel this online lesson and notify students?">
+                                        <?= csrf_field() ?><input type="hidden" name="action" value="cancel">
+                                        <button class="btn btn-sm btn-light" title="Cancel lesson"><?= icon('logout', 'ico-sm') ?></button>
+                                    </form>
+                                <?php endif; ?>
+                                <form method="post" action="<?= url('/academics/online-learning/sessions/' . $s['id']) ?>" data-confirm="Delete this online lesson and its attendance record?">
+                                    <?= csrf_field() ?><?= method_field('DELETE') ?>
+                                    <button class="btn btn-sm btn-light text-danger" title="Delete"><?= icon('trash', 'ico-sm') ?></button>
+                                </form>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>

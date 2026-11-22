@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 namespace App\Services\Elearning;
 
+use App\Core\Audit;
 use App\Core\Database;
 use App\Models\SemesterEnrollment;
+use App\Services\Alerts\Alerts;
 use RuntimeException;
 
 /**
@@ -34,9 +36,150 @@ final class ExamService
         'manual' => 'When I release them',
     ];
 
+    public const EXAM_RULES = [
+        'title'            => 'required|max:150',
+        'exam_type'        => 'required|in:quiz,test,midterm,final,assignment',
+        'opens_at'         => 'required',
+        'closes_at'        => 'required',
+        'duration_minutes' => 'required|integer',
+        'pass_percent'     => 'required|integer',
+        'show_results'     => 'required|in:after_close,immediately,manual',
+        'instructions'     => 'nullable',
+    ];
+
+    public const EXAM_LABELS = [
+        'opens_at'         => 'Opens',
+        'closes_at'        => 'Closes',
+        'duration_minutes' => 'Time allowed',
+        'pass_percent'     => 'Pass mark',
+    ];
+
     public static function now(): string
     {
         return date('Y-m-d H:i:s');
+    }
+
+    /**
+     * Validate and normalise online exam scheduling/settings fields.
+     * @throws RuntimeException when opening/closing times are invalid or inverted
+     */
+    public static function normalizeExamInput(array $data, array $flags): array
+    {
+        $opens  = strtotime(str_replace('T', ' ', (string) ($data['opens_at'] ?? '')));
+        $closes = strtotime(str_replace('T', ' ', (string) ($data['closes_at'] ?? '')));
+        if ($opens === false || $closes === false) {
+            throw new RuntimeException('Enter valid opening and closing times.');
+        }
+        if ($closes <= $opens) {
+            throw new RuntimeException('The exam must close after it opens.');
+        }
+        $data['opens_at']            = date('Y-m-d H:i:s', $opens);
+        $data['closes_at']           = date('Y-m-d H:i:s', $closes);
+        $data['duration_minutes']    = max(1, min(600, (int) ($data['duration_minutes'] ?? 30)));
+        $data['pass_percent']        = max(0, min(100, (int) ($data['pass_percent'] ?? 50)));
+        $data['instructions']        = trim((string) ($data['instructions'] ?? '')) ?: null;
+        $data['shuffle_questions']   = ($flags['shuffle_questions'] ?? null) === '1' ? 1 : 0;
+        $data['shuffle_options']     = ($flags['shuffle_options'] ?? null) === '1' ? 1 : 0;
+        $data['requires_enrollment'] = ($flags['requires_enrollment'] ?? null) === '1' ? 1 : 0;
+        return $data;
+    }
+
+    public static function createExam(array $offering, array $data, int $userId, bool $notifyLecturers = false): int
+    {
+        $offeringId = (int) $offering['id'];
+        Database::statement(
+            'INSERT INTO online_exams (offering_id, title, exam_type, instructions, opens_at, closes_at, duration_minutes, pass_percent,
+                                       shuffle_questions, shuffle_options, requires_enrollment, show_results, status, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "draft", ?)',
+            [$offeringId, $data['title'], $data['exam_type'], $data['instructions'], $data['opens_at'], $data['closes_at'],
+             $data['duration_minutes'], $data['pass_percent'], $data['shuffle_questions'], $data['shuffle_options'],
+             $data['requires_enrollment'], $data['show_results'], $userId]
+        );
+        $examId = Database::lastInsertId();
+        Audit::log('create', 'elearning', 'online_exams', (string) $examId, "Created online exam {$data['title']} for {$offering['code']}");
+        if ($notifyLecturers) {
+            $teachers = array_values(array_diff(Oversight::offeringTeachersUserIds($offeringId), [$userId]));
+            Alerts::sendMany($teachers, 'exam_published', 'Online exam scheduled: ' . $offering['code'] . ' - ' . $data['title'],
+                'Scheduled for ' . fdatetime($data['opens_at']) . ' to ' . fdatetime($data['closes_at']) . '. Add questions and publish when ready.',
+                '/teaching/online-exams/' . $examId, 'info', 'clipboard');
+        }
+        return $examId;
+    }
+
+    public static function updateExam(array $exam, array $data): void
+    {
+        if (self::hasAttempts((int) $exam['id']) && (int) $data['duration_minutes'] !== (int) $exam['duration_minutes']) {
+            throw new RuntimeException('Students have already started this exam, so its duration can no longer change.');
+        }
+        Database::statement(
+            'UPDATE online_exams SET title = ?, exam_type = ?, instructions = ?, opens_at = ?, closes_at = ?, duration_minutes = ?,
+                    pass_percent = ?, shuffle_questions = ?, shuffle_options = ?, requires_enrollment = ?, show_results = ?,
+                    status = IF(status = "closed" AND ? > ?, "published", status)
+              WHERE id = ?',
+            [$data['title'], $data['exam_type'], $data['instructions'], $data['opens_at'], $data['closes_at'], $data['duration_minutes'],
+             $data['pass_percent'], $data['shuffle_questions'], $data['shuffle_options'], $data['requires_enrollment'],
+             $data['show_results'], $data['closes_at'], self::now(), $exam['id']]
+        );
+        Audit::log('update', 'elearning', 'online_exams', (string) $exam['id'], "Updated online exam {$data['title']}");
+    }
+
+    public static function hasAttempts(int $examId): bool
+    {
+        return (bool) Database::scalar('SELECT 1 FROM online_exam_attempts WHERE exam_id = ? LIMIT 1', [$examId]);
+    }
+
+    public static function publish(array $exam, array $offering): void
+    {
+        $problems = self::publishProblems($exam);
+        if ($problems !== []) {
+            throw new RuntimeException(implode(' ', $problems));
+        }
+        Database::statement('UPDATE online_exams SET status = "published" WHERE id = ?', [$exam['id']]);
+        ClassroomService::notifyClass(
+            (int) $exam['offering_id'],
+            'Online exam: ' . $offering['code'] . ' - ' . $exam['title'],
+            'Opens ' . fdatetime($exam['opens_at']) . ', closes ' . fdatetime($exam['closes_at']) . '. Time allowed: '
+                . $exam['duration_minutes'] . ' minutes.',
+            '/portal/exams/' . $exam['id'],
+            'exam_published'
+        );
+        Audit::log('publish', 'elearning', 'online_exams', (string) $exam['id'], 'Published online exam ' . $exam['title']);
+    }
+
+    public static function unpublish(int $examId): void
+    {
+        if (self::hasAttempts($examId)) {
+            throw new RuntimeException('Students have already started this exam; close it instead.');
+        }
+        Database::statement('UPDATE online_exams SET status = "draft" WHERE id = ?', [$examId]);
+    }
+
+    public static function setResultsReleased(array $exam, array $offering, bool $released): void
+    {
+        Database::statement('UPDATE online_exams SET results_released = ? WHERE id = ?', [$released ? 1 : 0, $exam['id']]);
+        if ($released) {
+            Alerts::sendMany(
+                array_column(Database::select(
+                    'SELECT s.user_id FROM online_exam_attempts t JOIN students s ON s.id = t.student_id WHERE t.exam_id = ? AND t.status = "graded"',
+                    [$exam['id']]
+                ), 'user_id'),
+                'results_released',
+                'Result available: ' . $offering['code'] . ' - ' . $exam['title'],
+                'Your marked paper is ready to view.',
+                '/portal/exams/' . $exam['id'],
+                'success',
+                'chart'
+            );
+        }
+    }
+
+    public static function deleteExam(array $exam): void
+    {
+        if (self::hasAttempts((int) $exam['id'])) {
+            throw new RuntimeException('Students have taken this exam, so it cannot be deleted. Close it instead.');
+        }
+        Database::statement('DELETE FROM online_exams WHERE id = ?', [$exam['id']]);
+        Audit::log('delete', 'elearning', 'online_exams', (string) $exam['id'], 'Deleted online exam ' . $exam['title']);
     }
 
     /* ------------------------------------------------------------------ */

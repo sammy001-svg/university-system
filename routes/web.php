@@ -242,10 +242,23 @@ $router->group(['prefix' => '/academics', 'middleware' => ['auth']], static func
     $r->post('/registrations/{id}/reject', 'Academics\RegistrationController@reject');
     $r->delete('/registrations/{id}', 'Academics\RegistrationController@destroy');
 
-    // Online learning and online examinations oversight.
+    // Online learning and online examinations oversight & scheduling.
     $r->get('/online-learning', 'Academics\OnlineLearningController@index');
+    $r->get('/online-learning/create', 'Academics\OnlineLearningController@create');
+    $r->post('/online-learning', 'Academics\OnlineLearningController@store');
+    $r->get('/online-learning/sessions/{id}/edit', 'Academics\OnlineLearningController@editSession');
+    $r->put('/online-learning/sessions/{id}', 'Academics\OnlineLearningController@updateSession');
+    $r->post('/online-learning/sessions/{id}/status', 'Academics\OnlineLearningController@sessionStatus');
+    $r->delete('/online-learning/sessions/{id}', 'Academics\OnlineLearningController@destroySession');
     $r->get('/online-learning/{id}', 'Academics\OnlineLearningController@show');
+
     $r->get('/online-exams', 'Academics\OnlineExamController@index');
+    $r->get('/online-exams/create', 'Academics\OnlineExamController@create');
+    $r->post('/online-exams', 'Academics\OnlineExamController@store');
+    $r->get('/online-exams/{id}/edit', 'Academics\OnlineExamController@edit');
+    $r->put('/online-exams/{id}', 'Academics\OnlineExamController@update');
+    $r->post('/online-exams/{id}/status', 'Academics\OnlineExamController@status');
+    $r->delete('/online-exams/{id}', 'Academics\OnlineExamController@destroy');
     $r->get('/online-exams/{id}', 'Academics\OnlineExamController@show');
 });
 

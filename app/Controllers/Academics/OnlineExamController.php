@@ -8,9 +8,11 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\Session;
 use App\Services\Elearning\CourseAccess;
 use App\Services\Elearning\ExamService;
 use App\Services\Elearning\Oversight;
+use RuntimeException;
 
 /**
  * The online examinations register for the academic office: every quiz, test
@@ -173,8 +175,161 @@ final class OnlineExamController extends Controller
                 [(int) $id]
             ),
             'assessment'  => $exam['assessment_id'] ? Database::selectOne('SELECT * FROM assessments WHERE id = ?', [$exam['assessment_id']]) : null,
+            'problems'    => ExamService::publishProblems($exam),
+            'hasAttempts' => ExamService::hasAttempts((int) $id),
             'canTeach'    => Auth::can('teaching.access') && CourseAccess::mayTeach((int) $exam['offering_id']),
         ]);
+    }
+
+    /* ---------------- Scheduling & managing exams ---------------- */
+
+    public function create(Request $request): string
+    {
+        $this->authorize('elearning.manage');
+        $offeringId = $request->int('offering') ?: null;
+        return $this->view('academics.online-exams.form', [
+            'pageTitle'          => 'Schedule Online Exam',
+            'offerings'          => Oversight::offerings(),
+            'selectedOfferingId' => $offeringId,
+            'offering'           => null,
+            'lockedDuration'     => false,
+            'exam'               => [
+                'title'               => '',
+                'exam_type'           => 'quiz',
+                'instructions'        => '',
+                'duration_minutes'    => 60,
+                'pass_percent'        => 50,
+                'opens_at'            => date('Y-m-d H:00:00', strtotime('+1 day')),
+                'closes_at'           => date('Y-m-d H:00:00', strtotime('+2 days')),
+                'shuffle_questions'   => 1,
+                'shuffle_options'     => 1,
+                'requires_enrollment' => 1,
+                'show_results'        => 'after_close',
+            ],
+        ]);
+    }
+
+    public function store(Request $request): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $offeringId = $request->int('offering_id');
+        $back = '/academics/online-exams/create' . ($offeringId > 0 ? '?offering=' . $offeringId : '');
+        $offering = $offeringId > 0 ? CourseAccess::offering($offeringId) : null;
+        if ($offering === null || $offering['status'] === 'cancelled') {
+            Session::keepOldInput($request->all());
+            $this->error('Select an active class offering from the list.', $back);
+        }
+        $data   = $this->examData($request, $back);
+        $examId = ExamService::createExam($offering, $data, (int) Auth::id(), true);
+        Session::clearOldInput();
+        $this->success(
+            'Online exam scheduled as a draft for ' . $offering['code'] . '. The lecturer has been notified to add questions before publishing.',
+            '/academics/online-exams/' . $examId
+        );
+    }
+
+    public function edit(Request $request, string $id): string
+    {
+        $this->authorize('elearning.manage');
+        $exam = ExamService::find((int) $id);
+        if ($exam === null) {
+            $this->abort(404, 'Exam not found.');
+        }
+        return $this->view('academics.online-exams.form', [
+            'pageTitle'          => 'Edit Exam Schedule - ' . $exam['title'],
+            'offerings'          => [],
+            'selectedOfferingId' => (int) $exam['offering_id'],
+            'offering'           => CourseAccess::offering((int) $exam['offering_id']),
+            'lockedDuration'     => ExamService::hasAttempts((int) $id),
+            'exam'               => $exam,
+        ]);
+    }
+
+    public function update(Request $request, string $id): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $exam = ExamService::find((int) $id);
+        if ($exam === null) {
+            $this->abort(404, 'Exam not found.');
+        }
+        $back = '/academics/online-exams/' . $id . '/edit';
+        $data = $this->examData($request, $back);
+        try {
+            ExamService::updateExam($exam, $data);
+        } catch (RuntimeException $e) {
+            Session::keepOldInput($request->all());
+            $this->error($e->getMessage(), $back);
+        }
+        Session::clearOldInput();
+        $this->success('Online exam schedule saved.', '/academics/online-exams/' . $id);
+    }
+
+    public function status(Request $request, string $id): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $exam = ExamService::find((int) $id);
+        if ($exam === null) {
+            $this->abort(404, 'Exam not found.');
+        }
+        $offering = CourseAccess::offering((int) $exam['offering_id']);
+        $back     = '/academics/online-exams/' . $id;
+
+        try {
+            switch ($request->input('action')) {
+                case 'publish':
+                    ExamService::publish($exam, $offering);
+                    $this->success('Exam published; students on the class list have been notified.', $back);
+                case 'unpublish':
+                    ExamService::unpublish((int) $exam['id']);
+                    $this->success('Exam moved back to draft.', $back);
+                case 'close':
+                    ExamService::close((int) $exam['id']);
+                    $this->success('Exam closed. Any open attempts were submitted.', $back);
+                case 'release':
+                    ExamService::setResultsReleased($exam, $offering, true);
+                    $this->success('Results released to students.', $back);
+                case 'withhold':
+                    ExamService::setResultsReleased($exam, $offering, false);
+                    $this->success('Results hidden from students.', $back);
+            }
+        } catch (RuntimeException $e) {
+            $this->error($e->getMessage(), $back);
+        }
+        $this->error('Unknown action.', $back);
+    }
+
+    public function destroy(Request $request, string $id): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $exam = ExamService::find((int) $id);
+        if ($exam === null) {
+            $this->abort(404, 'Exam not found.');
+        }
+        try {
+            ExamService::deleteExam($exam);
+        } catch (RuntimeException $e) {
+            $this->error($e->getMessage(), '/academics/online-exams/' . $id);
+        }
+        $this->success('Online exam deleted.', '/academics/online-exams');
+    }
+
+    private function examData(Request $request, string $back): array
+    {
+        $data = $this->validate($request, ExamService::EXAM_RULES, ExamService::EXAM_LABELS);
+        try {
+            return ExamService::normalizeExamInput($data, [
+                'shuffle_questions'   => $request->input('shuffle_questions'),
+                'shuffle_options'     => $request->input('shuffle_options'),
+                'requires_enrollment' => $request->input('requires_enrollment'),
+            ]);
+        } catch (RuntimeException $e) {
+            Session::keepOldInput($request->all());
+            $this->error($e->getMessage(), $back);
+        }
     }
 
     /* ------------------------------------------------------------------ */

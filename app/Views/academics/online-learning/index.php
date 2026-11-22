@@ -26,6 +26,11 @@ $baseQuery = static fn (array $extra = []): string => url('/academics/online-lea
         <a class="btn btn-outline-secondary btn-sm btn-icon" href="<?= e(url('/academics/online-learning' . query_with(['semester' => $selectedSem, 'export' => 'csv', 'page' => null]))) ?>">
             <?= icon('download', 'ico-sm') ?> Export CSV
         </a>
+        <?php if (can('elearning.manage')): ?>
+            <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/academics/online-learning/create') ?>">
+                <?= icon('plus', 'ico-sm') ?> Schedule Lesson
+            </a>
+        <?php endif; ?>
     </div>
 </div>
 

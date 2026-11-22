@@ -8,7 +8,6 @@ use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Exceptions\HttpException;
-use App\Services\Alerts\Alerts;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
@@ -65,17 +64,7 @@ final class OnlineExamController extends Controller
         $this->verifyCsrf($request);
         $offering = CourseAccess::teaching((int) $id);
         $data     = $this->examData($request, '/teaching/' . $id . '/online-exams/create');
-
-        Database::statement(
-            'INSERT INTO online_exams (offering_id, title, exam_type, instructions, opens_at, closes_at, duration_minutes, pass_percent,
-                                       shuffle_questions, shuffle_options, requires_enrollment, show_results, status, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "draft", ?)',
-            [(int) $id, $data['title'], $data['exam_type'], $data['instructions'], $data['opens_at'], $data['closes_at'],
-             $data['duration_minutes'], $data['pass_percent'], $data['shuffle_questions'], $data['shuffle_options'],
-             $data['requires_enrollment'], $data['show_results'], Auth::id()]
-        );
-        $examId = Database::lastInsertId();
-        Audit::log('create', 'elearning', 'online_exams', (string) $examId, "Created online exam {$data['title']} for {$offering['code']}");
+        $examId   = ExamService::createExam($offering, $data, (int) Auth::id());
         $this->success('Exam created as a draft. Now add the questions, then publish it.', '/teaching/online-exams/' . $examId);
     }
 
@@ -95,19 +84,13 @@ final class OnlineExamController extends Controller
         $this->authorize('teaching.access');
         $this->verifyCsrf($request);
         $exam = $this->exam((int) $examId);
-        $data = $this->examData($request, '/teaching/online-exams/' . $examId . '/edit');
-        if ($this->hasAttempts((int) $examId) && (int) $data['duration_minutes'] !== (int) $exam['duration_minutes']) {
-            $this->error('Students have already started this exam, so its duration can no longer change.', '/teaching/online-exams/' . $examId . '/edit');
+        $back = '/teaching/online-exams/' . $examId . '/edit';
+        $data = $this->examData($request, $back);
+        try {
+            ExamService::updateExam($exam, $data);
+        } catch (RuntimeException $e) {
+            $this->error($e->getMessage(), $back);
         }
-        Database::statement(
-            'UPDATE online_exams SET title = ?, exam_type = ?, instructions = ?, opens_at = ?, closes_at = ?, duration_minutes = ?,
-                    pass_percent = ?, shuffle_questions = ?, shuffle_options = ?, requires_enrollment = ?, show_results = ?,
-                    status = IF(status = "closed" AND ? > ?, "published", status)
-              WHERE id = ?',
-            [$data['title'], $data['exam_type'], $data['instructions'], $data['opens_at'], $data['closes_at'], $data['duration_minutes'],
-             $data['pass_percent'], $data['shuffle_questions'], $data['shuffle_options'], $data['requires_enrollment'],
-             $data['show_results'], $data['closes_at'], ExamService::now(), $examId]
-        );
         $this->success('Exam settings saved.', '/teaching/online-exams/' . $examId);
     }
 
@@ -215,47 +198,27 @@ final class OnlineExamController extends Controller
         $offering = CourseAccess::teaching((int) $exam['offering_id']);
         $back     = '/teaching/online-exams/' . $examId;
 
-        switch ($request->input('action')) {
-            case 'publish':
-                $problems = ExamService::publishProblems($exam);
-                if ($problems !== []) {
-                    $this->error(implode(' ', $problems), $back);
-                }
-                Database::statement('UPDATE online_exams SET status = "published" WHERE id = ?', [$exam['id']]);
-                Alerts::sendMany(
-                    array_column(Database::select(
-                        'SELECT s.user_id FROM course_registrations cr JOIN students s ON s.id = cr.student_id
-                          WHERE cr.offering_id = ? AND cr.status <> "dropped"', [$exam['offering_id']]
-                    ), 'user_id'),
-                    'exam_published',
-                    'Online exam: ' . $offering['code'] . ' - ' . $exam['title'],
-                    'Opens ' . fdatetime($exam['opens_at']) . ', closes ' . fdatetime($exam['closes_at']) . '. Time allowed: '
-                        . $exam['duration_minutes'] . ' minutes.',
-                    '/portal/exams/' . $exam['id'], 'info', 'clipboard'
-                );
-                Audit::log('publish', 'elearning', 'online_exams', (string) $exam['id'], 'Published online exam ' . $exam['title']);
-                $this->success('Exam published; the class has been notified.', $back);
-            case 'unpublish':
-                if ($this->hasAttempts((int) $exam['id'])) {
-                    $this->error('Students have already started this exam; close it instead.', $back);
-                }
-                Database::statement('UPDATE online_exams SET status = "draft" WHERE id = ?', [$exam['id']]);
-                $this->success('Exam moved back to draft; students can no longer see it.', $back);
-            case 'close':
-                ExamService::close((int) $exam['id']);
-                Audit::log('close', 'elearning', 'online_exams', (string) $exam['id'], 'Closed online exam ' . $exam['title']);
-                $this->success('Exam closed. Attempts still open were submitted.', '/teaching/online-exams/' . $examId . '/results');
-            case 'release':
-                Database::statement('UPDATE online_exams SET results_released = 1 WHERE id = ?', [$exam['id']]);
-                Alerts::sendMany(array_column(Database::select(
-                    'SELECT s.user_id FROM online_exam_attempts t JOIN students s ON s.id = t.student_id WHERE t.exam_id = ? AND t.status = "graded"',
-                    [$exam['id']]), 'user_id'),
-                    'results_released', 'Result available: ' . $offering['code'] . ' - ' . $exam['title'],
-                    'Your marked paper is ready to view.', '/portal/exams/' . $exam['id'], 'success', 'chart');
-                $this->success('Results released to students.', '/teaching/online-exams/' . $examId . '/results');
-            case 'withhold':
-                Database::statement('UPDATE online_exams SET results_released = 0 WHERE id = ?', [$exam['id']]);
-                $this->success('Results hidden from students.', '/teaching/online-exams/' . $examId . '/results');
+        try {
+            switch ($request->input('action')) {
+                case 'publish':
+                    ExamService::publish($exam, $offering);
+                    $this->success('Exam published; the class has been notified.', $back);
+                case 'unpublish':
+                    ExamService::unpublish((int) $exam['id']);
+                    $this->success('Exam moved back to draft; students can no longer see it.', $back);
+                case 'close':
+                    ExamService::close((int) $exam['id']);
+                    Audit::log('close', 'elearning', 'online_exams', (string) $exam['id'], 'Closed online exam ' . $exam['title']);
+                    $this->success('Exam closed. Attempts still open were submitted.', '/teaching/online-exams/' . $examId . '/results');
+                case 'release':
+                    ExamService::setResultsReleased($exam, $offering, true);
+                    $this->success('Results released to students.', '/teaching/online-exams/' . $examId . '/results');
+                case 'withhold':
+                    ExamService::setResultsReleased($exam, $offering, false);
+                    $this->success('Results hidden from students.', '/teaching/online-exams/' . $examId . '/results');
+            }
+        } catch (RuntimeException $e) {
+            $this->error($e->getMessage(), $back);
         }
         $this->error('Unknown action.', $back);
     }
@@ -265,11 +228,11 @@ final class OnlineExamController extends Controller
         $this->authorize('teaching.access');
         $this->verifyCsrf($request);
         $exam = $this->exam((int) $examId);
-        if ($this->hasAttempts((int) $examId)) {
-            $this->error('Students have taken this exam, so it cannot be deleted. Close it instead.', '/teaching/online-exams/' . $examId);
+        try {
+            ExamService::deleteExam($exam);
+        } catch (RuntimeException $e) {
+            $this->error($e->getMessage(), '/teaching/online-exams/' . $examId);
         }
-        Database::statement('DELETE FROM online_exams WHERE id = ?', [$exam['id']]);
-        Audit::log('delete', 'elearning', 'online_exams', (string) $exam['id'], 'Deleted online exam ' . $exam['title']);
         $this->success('Exam deleted.', '/teaching/' . $exam['offering_id'] . '/classroom#exams');
     }
 
@@ -409,38 +372,21 @@ final class OnlineExamController extends Controller
 
     private function hasAttempts(int $examId): bool
     {
-        return (bool) Database::scalar('SELECT 1 FROM online_exam_attempts WHERE exam_id = ? LIMIT 1', [$examId]);
+        return ExamService::hasAttempts($examId);
     }
 
     private function examData(Request $request, string $back): array
     {
-        $data = $this->validate($request, [
-            'title'            => 'required|max:150',
-            'exam_type'        => 'required|in:' . implode(',', array_keys(ExamService::TYPES)),
-            'opens_at'         => 'required',
-            'closes_at'        => 'required',
-            'duration_minutes' => 'required|integer',
-            'pass_percent'     => 'required|integer',
-            'show_results'     => 'required|in:' . implode(',', array_keys(ExamService::RESULT_POLICIES)),
-            'instructions'     => 'nullable',
-        ], ['opens_at' => 'Opens', 'closes_at' => 'Closes', 'duration_minutes' => 'Time allowed', 'pass_percent' => 'Pass mark']);
-
-        $opens  = strtotime(str_replace('T', ' ', (string) $data['opens_at']));
-        $closes = strtotime(str_replace('T', ' ', (string) $data['closes_at']));
-        if ($opens === false || $closes === false) {
-            $this->error('Enter valid opening and closing times.', $back);
+        $data = $this->validate($request, ExamService::EXAM_RULES, ExamService::EXAM_LABELS);
+        try {
+            return ExamService::normalizeExamInput($data, [
+                'shuffle_questions'   => $request->input('shuffle_questions'),
+                'shuffle_options'     => $request->input('shuffle_options'),
+                'requires_enrollment' => $request->input('requires_enrollment'),
+            ]);
+        } catch (RuntimeException $e) {
+            Session::keepOldInput($request->all());
+            $this->error($e->getMessage(), $back);
         }
-        if ($closes <= $opens) {
-            $this->error('The exam must close after it opens.', $back);
-        }
-        $data['opens_at']            = date('Y-m-d H:i:s', $opens);
-        $data['closes_at']           = date('Y-m-d H:i:s', $closes);
-        $data['duration_minutes']    = max(1, min(600, (int) $data['duration_minutes']));
-        $data['pass_percent']        = max(0, min(100, (int) $data['pass_percent']));
-        $data['instructions']        = trim((string) ($data['instructions'] ?? '')) ?: null;
-        $data['shuffle_questions']   = $request->input('shuffle_questions') === '1' ? 1 : 0;
-        $data['shuffle_options']     = $request->input('shuffle_options') === '1' ? 1 : 0;
-        $data['requires_enrollment'] = $request->input('requires_enrollment') === '1' ? 1 : 0;
-        return $data;
     }
 }

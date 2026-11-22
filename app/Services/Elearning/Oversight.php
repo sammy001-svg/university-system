@@ -87,6 +87,37 @@ final class Oversight
         ];
     }
 
+    /** Non-cancelled class offerings for scheduling dropdowns/pickers, current semester first. */
+    public static function offerings(): array
+    {
+        return Database::select(
+            'SELECT o.id, o.section, o.delivery_mode, o.semester_id, c.code, c.title,
+                    sem.name AS semester_name, sem.is_current, ay.name AS academic_year,
+                    ' . self::LECTURER_NAME . ' AS lecturer_name, ' . self::REGISTERED . ' AS registered
+               FROM course_offerings o
+               JOIN courses c         ON c.id = o.course_id
+               JOIN semesters sem     ON sem.id = o.semester_id
+               JOIN academic_years ay ON ay.id = sem.academic_year_id
+               ' . self::LECTURER_JOIN . '
+              WHERE o.status <> "cancelled"
+              ORDER BY sem.is_current DESC, ay.start_date DESC, sem.semester_number DESC, c.code ASC, o.section ASC'
+        );
+    }
+
+    /** User ids of the primary lecturer and co-lecturers assigned to an offering. */
+    public static function offeringTeachersUserIds(int $offeringId): array
+    {
+        $rows = Database::select(
+            'SELECT DISTINCT sf.user_id
+               FROM staff sf
+              WHERE sf.user_id IS NOT NULL
+                AND (sf.id = (SELECT o.lecturer_id FROM course_offerings o WHERE o.id = ?)
+                     OR EXISTS (SELECT 1 FROM offering_lecturers ol WHERE ol.offering_id = ? AND ol.staff_id = sf.id))',
+            [$offeringId, $offeringId]
+        );
+        return array_values(array_unique(array_filter(array_map('intval', array_column($rows, 'user_id')))));
+    }
+
     public static function pct(float|int|string|null $part, float|int|string|null $whole): ?float
     {
         return (float) $whole > 0 ? round((float) $part / (float) $whole * 100, 1) : null;

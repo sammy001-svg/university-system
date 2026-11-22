@@ -20,6 +20,11 @@ $selectedSem = $filters['semester'] ?? '0';
         <a class="btn btn-outline-secondary btn-sm btn-icon" href="<?= e(url('/academics/online-exams' . query_with(['semester' => $selectedSem, 'export' => 'csv', 'page' => null]))) ?>">
             <?= icon('download', 'ico-sm') ?> Export CSV
         </a>
+        <?php if (can('elearning.manage')): ?>
+            <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/academics/online-exams/create') ?>">
+                <?= icon('plus', 'ico-sm') ?> Schedule Online Exam
+            </a>
+        <?php endif; ?>
     </div>
 </div>
 

@@ -8,9 +8,11 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\Session;
 use App\Services\Elearning\ClassroomService;
 use App\Services\Elearning\CourseAccess;
 use App\Services\Elearning\Oversight;
+use RuntimeException;
 
 /**
  * Online learning across the institution, for the academic office: live and
@@ -93,6 +95,128 @@ final class OnlineLearningController extends Controller
             ),
             'canTeach'   => Auth::can('teaching.access') && CourseAccess::mayTeach((int) $id),
         ]);
+    }
+
+    /* ---------------- Scheduling & managing lessons ---------------- */
+
+    public function create(Request $request): string
+    {
+        $this->authorize('elearning.manage');
+        $offeringId = $request->int('offering') ?: null;
+        return $this->view('academics.online-learning.lesson-form', [
+            'pageTitle'          => 'Schedule Online Lesson',
+            'offerings'          => Oversight::offerings(),
+            'selectedOfferingId' => $offeringId,
+            'session'            => null,
+            'form'               => [
+                'title'            => '',
+                'description'      => '',
+                'platform'         => 'jitsi',
+                'meeting_url'      => '',
+                'meeting_id'       => '',
+                'passcode'         => '',
+                'starts_at'        => date('Y-m-d H:00:00', strtotime('+1 day')),
+                'duration_minutes' => 60,
+                'recording_url'    => '',
+            ],
+        ]);
+    }
+
+    public function store(Request $request): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $offeringId = $request->int('offering_id');
+        $back = '/academics/online-learning/create' . ($offeringId > 0 ? '?offering=' . $offeringId : '');
+        $offering = $offeringId > 0 ? CourseAccess::offering($offeringId) : null;
+        if ($offering === null || $offering['status'] === 'cancelled') {
+            Session::keepOldInput($request->all());
+            $this->error('Select an active class offering from the list.', $back);
+        }
+        $data = $this->sessionData($request, $offering, $back);
+        ClassroomService::createSession($offering, $data, (int) Auth::id(), true);
+        Session::clearOldInput();
+        $this->success(
+            'Online lesson scheduled for ' . $offering['code'] . '. Students and the lecturer have been notified.',
+            '/academics/online-learning/' . $offeringId
+        );
+    }
+
+    public function editSession(Request $request, string $id): string
+    {
+        $this->authorize('elearning.manage');
+        $session  = $this->findSession((int) $id);
+        $offering = CourseAccess::offering((int) $session['offering_id']);
+        return $this->view('academics.online-learning.lesson-form', [
+            'pageTitle'          => 'Edit Online Lesson - ' . $session['title'],
+            'offerings'          => [],
+            'selectedOfferingId' => (int) $offering['id'],
+            'offering'           => $offering,
+            'session'            => $session,
+            'form'               => $session,
+        ]);
+    }
+
+    public function updateSession(Request $request, string $id): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $session  = $this->findSession((int) $id);
+        $offering = CourseAccess::offering((int) $session['offering_id']);
+        $back     = '/academics/online-learning/sessions/' . $session['id'] . '/edit';
+        $data     = $this->sessionData($request, $offering, $back, $session, true);
+        ClassroomService::updateSession($session, $data);
+        Session::clearOldInput();
+        $this->success('Online lesson updated.', '/academics/online-learning/' . $offering['id']);
+    }
+
+    public function sessionStatus(Request $request, string $id): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $session  = $this->findSession((int) $id);
+        $offering = CourseAccess::offering((int) $session['offering_id']);
+        $action   = (string) $request->input('action');
+        if (!in_array($action, ['cancel', 'complete'], true)) {
+            $this->error('Unknown action.', '/academics/online-learning/' . $offering['id']);
+        }
+        ClassroomService::setSessionStatus($session, $offering, $action);
+        $this->success(
+            $action === 'cancel' ? 'Online lesson cancelled; students have been notified.' : 'Online lesson marked as held.',
+            '/academics/online-learning/' . $offering['id']
+        );
+    }
+
+    public function destroySession(Request $request, string $id): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $session = $this->findSession((int) $id);
+        ClassroomService::deleteSession($session);
+        $this->success('Online lesson deleted.', '/academics/online-learning/' . $session['offering_id']);
+    }
+
+    private function findSession(int $id): array
+    {
+        $session = Database::selectOne('SELECT * FROM class_sessions WHERE id = ?', [$id]);
+        if ($session === null) {
+            $this->abort(404, 'Online lesson not found.');
+        }
+        return $session;
+    }
+
+    private function sessionData(Request $request, array $offering, string $back, ?array $existing = null, bool $withRecording = false): array
+    {
+        $data = $this->validate($request, ClassroomService::SESSION_RULES, ClassroomService::SESSION_LABELS);
+        if ($withRecording) {
+            $data['recording_url'] = (string) $request->input('recording_url', '');
+        }
+        try {
+            return ClassroomService::normalizeSessionInput($data, $offering, $existing);
+        } catch (RuntimeException $e) {
+            Session::keepOldInput($request->all());
+            $this->error($e->getMessage(), $back);
+        }
     }
 
     /* ------------------------------------------------------------------ */

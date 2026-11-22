@@ -23,11 +23,60 @@ $maxBand = max(1, ...array_values($bands));
         <a class="btn btn-sm btn-light" href="<?= url('/academics/online-exams') ?>">&larr; All Online Exams</a>
         <a class="btn btn-sm btn-outline-secondary" href="<?= url('/academics/online-learning/' . $offering['id']) ?>"><?= icon('video', 'ico-sm') ?> Class Activity</a>
         <a class="btn btn-sm btn-outline-secondary btn-icon" href="<?= e(url('/academics/online-exams/' . $exam['id'] . query_with(['export' => 'csv']))) ?>"><?= icon('download', 'ico-sm') ?> Export CSV</a>
+        <?php if (can('elearning.manage')): ?>
+            <a class="btn btn-sm btn-outline-secondary" href="<?= url('/academics/online-exams/' . $exam['id'] . '/edit') ?>"><?= icon('settings', 'ico-sm') ?> Edit Schedule</a>
+            <?php if ($phase === 'draft'): ?>
+                <form method="post" action="<?= url('/academics/online-exams/' . $exam['id'] . '/status') ?>">
+                    <?= csrf_field() ?><input type="hidden" name="action" value="publish">
+                    <button class="btn btn-sm btn-primary" <?= $problems !== [] ? 'disabled' : '' ?>><?= icon('check', 'ico-sm') ?> Publish</button>
+                </form>
+            <?php elseif ($phase === 'open' || ($phase === 'upcoming' && $hasAttempts)): ?>
+                <form method="post" action="<?= url('/academics/online-exams/' . $exam['id'] . '/status') ?>" data-confirm="Close this exam now? Any open attempts will be submitted.">
+                    <?= csrf_field() ?><input type="hidden" name="action" value="close">
+                    <button class="btn btn-sm btn-outline-danger">Close Exam</button>
+                </form>
+            <?php elseif ($phase === 'upcoming' && !$hasAttempts): ?>
+                <form method="post" action="<?= url('/academics/online-exams/' . $exam['id'] . '/status') ?>">
+                    <?= csrf_field() ?><input type="hidden" name="action" value="unpublish">
+                    <button class="btn btn-sm btn-outline-secondary">Unpublish</button>
+                </form>
+            <?php endif; ?>
+            <?php if ($exam['show_results'] === 'manual' && $phase !== 'draft'): ?>
+                <form method="post" action="<?= url('/academics/online-exams/' . $exam['id'] . '/status') ?>">
+                    <?= csrf_field() ?><input type="hidden" name="action" value="<?= (int) $exam['results_released'] === 1 ? 'withhold' : 'release' ?>">
+                    <button class="btn btn-sm <?= (int) $exam['results_released'] === 1 ? 'btn-outline-secondary' : 'btn-outline-primary' ?>">
+                        <?= (int) $exam['results_released'] === 1 ? 'Hide Results' : 'Release Results' ?>
+                    </button>
+                </form>
+            <?php endif; ?>
+            <?php if (!$hasAttempts): ?>
+                <form method="post" action="<?= url('/academics/online-exams/' . $exam['id']) ?>" data-confirm="Delete this exam? This cannot be undone.">
+                    <?= csrf_field() ?><?= method_field('DELETE') ?>
+                    <button class="btn btn-sm btn-outline-danger" title="Delete exam"><?= icon('trash', 'ico-sm') ?></button>
+                </form>
+            <?php endif; ?>
+        <?php endif; ?>
         <?php if ($canTeach): ?>
             <a class="btn btn-sm btn-primary" href="<?= url('/teaching/online-exams/' . $exam['id'] . ($phase === 'draft' ? '' : '/results')) ?>"><?= icon('edit', 'ico-sm') ?> Lecturer View</a>
         <?php endif; ?>
     </div>
 </div>
+
+<?php if ($phase === 'draft'): ?>
+    <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+            <strong>Draft &mdash; not visible to students yet.</strong>
+            <?php if ($problems !== []): ?>
+                <?= e(implode(' ', $problems)) ?> The assigned lecturer can add questions from Teaching before publishing.
+            <?php else: ?>
+                Questions are ready. Click <strong>Publish</strong> to make the exam visible to students during its scheduled window.
+            <?php endif; ?>
+        </div>
+        <?php if ($canTeach): ?>
+            <a class="btn btn-sm btn-primary" href="<?= url('/teaching/online-exams/' . $exam['id']) ?>">Add / Edit Questions</a>
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
 
 <div class="row g-3 mb-3">
     <div class="col-6 col-md-4 col-xl-2">
