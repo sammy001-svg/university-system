@@ -76,14 +76,10 @@ final class PayrollService
             // Rebuilding: give back every loan repayment this period had taken.
             self::reverseRepayments($periodId);
 
-            $gross = 0.0;
-            $net   = 0.0;
             foreach ($staff as $member) {
-                $figures = self::compute((int) $member['id'], (float) $member['basic_salary'], $on, $components, $bands);
+                $figures   = self::compute((int) $member['id'], (float) $member['basic_salary'], $on, $components, $bands);
                 $payslipId = self::savePayslip($periodId, (int) $member['id'], $figures);
                 self::applyLoans($payslipId, (int) $member['id'], $figures, $on);
-                $gross += $figures['gross_pay'];
-                $net   += $figures['net_pay'];
             }
 
             // Anyone no longer on the active payroll drops out of a draft run.
@@ -98,13 +94,19 @@ final class PayrollService
                 'UPDATE payroll_periods SET status = "processing", processed_by = ? WHERE id = ?',
                 [$actorId, $periodId]
             );
+            // Read the totals back, so they are the figures actually saved.
+            $sums = Database::selectOne(
+                'SELECT COUNT(*) AS staff, COALESCE(SUM(gross_pay), 0) AS gross, COALESCE(SUM(net_pay), 0) AS net
+                   FROM payslips WHERE payroll_period_id = ?',
+                [$periodId]
+            );
             Database::commit();
         } catch (\Throwable $e) {
             Database::rollBack();
             throw $e;
         }
 
-        return ['staff' => count($staff), 'gross' => $gross, 'net' => $net];
+        return ['staff' => (int) $sums['staff'], 'gross' => (float) $sums['gross'], 'net' => (float) $sums['net']];
     }
 
     /** Recalculate one payslip in place, after an edit to a salary, allowance or loan. */
@@ -176,7 +178,7 @@ final class PayrollService
         return Database::select(
             'SELECT ps.*, st.staff_number, st.designation,
                     u.first_name, u.other_name, u.last_name, u.gender, u.phone, u.date_of_birth,
-                    COALESCE(d.name, f.name) AS department_name
+                    COALESCE(d.name, f.name, IF(st.staff_category = "academic", NULL, "Administration")) AS department_name
                FROM payslips ps
                JOIN staff st          ON st.id = ps.staff_id
                JOIN users u           ON u.id = st.user_id
@@ -337,7 +339,7 @@ final class PayrollService
              ON DUPLICATE KEY UPDATE basic_salary = VALUES(basic_salary), allowances = VALUES(allowances),
                  gross_pay = VALUES(gross_pay), taxable_amount = VALUES(taxable_amount),
                  tax_deduction = VALUES(tax_deduction), social_security = VALUES(social_security),
-                 other_deductions = VALUES(other_deductions)',
+                 other_deductions = VALUES(other_deductions), status = "draft"',
             [$periodId, $staffId, $f['basic_salary'], $f['allowances'], $f['gross_pay'], $f['taxable_amount'],
              $f['tax_deduction'], $f['social_security'], $f['other_deductions'], 0, 0]
         );
@@ -370,15 +372,22 @@ final class PayrollService
             [$staffId, $on]
         );
 
+        // What the pay can bear once tax and the standing deductions are off.
+        $available = round($f['gross_pay'] - $f['tax_deduction'] - $f['other_deductions'], 2);
+
         $loanTaken = 0.0;
         $penalty   = 0.0;
         foreach ($loans as $loan) {
-            $balance   = (float) $loan['balance'];
+            if ($available <= 0.0) {
+                break;   // nothing left this month; the balance carries forward
+            }
+            $balance    = (float) $loan['balance'];
             $instalment = (float) $loan['monthly_deduction'];
-            $amount    = round(min($instalment > 0 ? $instalment : $balance, $balance), 2);
+            $amount     = round(min($instalment > 0 ? $instalment : $balance, $balance, $available), 2);
             if ($amount <= 0.0) {
                 continue;
             }
+            $available -= $amount;
             $after = round($balance - $amount, 2);
             Database::statement(
                 'INSERT INTO staff_loan_repayments (loan_id, payslip_id, amount, balance_after) VALUES (?,?,?,?)

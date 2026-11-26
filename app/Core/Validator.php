@@ -37,12 +37,18 @@ final class Validator
             if (in_array('nullable', $rules, true) && ($value === null || $value === '')) {
                 continue;
             }
+            // Form input always arrives as a string, so "min"/"max" cannot tell a
+            // number from a word on its own. A field declared integer or numeric
+            // means a value, not a length.
+            $isNumber = array_intersect(['integer', 'numeric'],
+                array_map(static fn (string $r): string => explode(':', $r, 2)[0], $rules)) !== [];
+
             foreach ($rules as $rule) {
                 if ($rule === 'nullable') {
                     continue;
                 }
                 [$name, $param] = array_pad(explode(':', $rule, 2), 2, null);
-                $this->applyRule($field, $value, $name, $param);
+                $this->applyRule($field, $value, $name, $param, $isNumber);
             }
         }
         return $this->errors === [];
@@ -58,7 +64,7 @@ final class Validator
         $this->errors[$field][] = $message;
     }
 
-    private function applyRule(string $field, mixed $value, string $rule, ?string $param): void
+    private function applyRule(string $field, mixed $value, string $rule, ?string $param, bool $isNumber = false): void
     {
         $label = $this->label($field);
 
@@ -88,7 +94,7 @@ final class Validator
                 break;
 
             case 'min':
-                if (is_numeric($value) && !is_string($value)) {
+                if ($isNumber || (is_numeric($value) && !is_string($value))) {
                     if ((float) $value < (float) $param) {
                         $this->fail($field, "{$label} must be at least {$param}.");
                     }
@@ -98,7 +104,7 @@ final class Validator
                 break;
 
             case 'max':
-                if (is_numeric($value) && !is_string($value)) {
+                if ($isNumber || (is_numeric($value) && !is_string($value))) {
                     if ((float) $value > (float) $param) {
                         $this->fail($field, "{$label} may not be greater than {$param}.");
                     }
