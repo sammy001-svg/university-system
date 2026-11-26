@@ -47,6 +47,13 @@ final class UserController extends Controller
             );
         }
 
+        // An account with no role holds no permissions at all: the person can sign
+        // in and then find that nothing works. It is the commonest way an account
+        // ends up broken, so it is worth being able to find them.
+        if ($request->query('no_role') === '1') {
+            $query->whereRaw('NOT EXISTS (SELECT 1 FROM user_roles ur3 WHERE ur3.user_id = u.id)');
+        }
+
         $result = $query->orderBy('u.created_at', 'DESC')
             ->paginate($this->page($request), $this->perPage($request));
 
@@ -54,6 +61,11 @@ final class UserController extends Controller
             'pageTitle' => 'User Accounts',
             'result'    => $result,
             'roles'     => $this->roles->options('name', 'level'),
+            'noRole'    => (int) Database::scalar(
+                'SELECT COUNT(*) FROM users u
+                  WHERE u.deleted_at IS NULL AND u.status = "active"
+                    AND NOT EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id)'
+            ),
         ]);
     }
 

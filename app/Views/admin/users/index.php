@@ -16,7 +16,19 @@ $rows = $result['data'];
     <?php endif; ?>
 </div>
 
+<?php if ($noRole > 0 && ($_GET['no_role'] ?? '') !== '1'): ?>
+    <div class="alert alert-warning d-flex align-items-start gap-2">
+        <?= icon('bell') ?>
+        <div><strong><?= $noRole ?></strong> active account<?= $noRole === 1 ? ' has' : 's have' ?> no role.
+            <?= $noRole === 1 ? 'It holds' : 'They hold' ?> no permissions at all, so the
+            <?= $noRole === 1 ? 'person signs' : 'people sign' ?> in and then find nothing works &mdash;
+            a new password will not help until a role is given back.
+            <a class="fw-semibold" href="<?= url('/admin/users?no_role=1') ?>">Show them</a></div>
+    </div>
+<?php endif; ?>
+
 <form class="filter-bar" method="get">
+    <?php if (($_GET['no_role'] ?? '') === '1'): ?><input type="hidden" name="no_role" value="1"><?php endif; ?>
     <div class="row g-2 align-items-end">
         <div class="col-md-4">
             <label class="form-label">Search</label>

@@ -129,9 +129,13 @@ return static function (PDO $pdo): void {
         ]);
         $staffIdByUsername[$username] = (int) $pdo->lastInsertId();
 
-        if (isset($roleIds[$role])) {
-            $assignRole->execute([$userId, $roleIds[$role]]);
+        if (!isset($roleIds[$role])) {
+            throw new RuntimeException(
+                "Seed error: staff account \"{$username}\" names the role \"{$role}\", which does not exist. "
+                . 'Without a role the account can sign in but do nothing; fix the slug in database/seeds/access.php or here.'
+            );
         }
+        $assignRole->execute([$userId, $roleIds[$role]]);
     }
     echo "  " . count($staffSeed) . " staff accounts.\n";
 
