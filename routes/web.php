@@ -250,6 +250,8 @@ $router->group(['prefix' => '/academics', 'middleware' => ['auth']], static func
     $r->put('/online-learning/sessions/{id}', 'Academics\OnlineLearningController@updateSession');
     $r->post('/online-learning/sessions/{id}/status', 'Academics\OnlineLearningController@sessionStatus');
     $r->delete('/online-learning/sessions/{id}', 'Academics\OnlineLearningController@destroySession');
+    $r->post('/online-learning/{id}/materials', 'Academics\OnlineLearningController@storeMaterial');
+    $r->delete('/online-learning/materials/{id}', 'Academics\OnlineLearningController@destroyMaterial');
     $r->get('/online-learning/{id}', 'Academics\OnlineLearningController@show');
 
     $r->get('/online-exams', 'Academics\OnlineExamController@index');
@@ -259,6 +261,13 @@ $router->group(['prefix' => '/academics', 'middleware' => ['auth']], static func
     $r->put('/online-exams/{id}', 'Academics\OnlineExamController@update');
     $r->post('/online-exams/{id}/status', 'Academics\OnlineExamController@status');
     $r->delete('/online-exams/{id}', 'Academics\OnlineExamController@destroy');
+    // Setting the paper and marking written answers (academic office).
+    $r->get('/online-exams/{id}/questions', 'Academics\OnlineExamController@questions');
+    $r->post('/online-exams/{id}/questions', 'Academics\OnlineExamController@saveQuestion');
+    $r->delete('/exam-questions/{id}', 'Academics\OnlineExamController@destroyQuestion');
+    $r->post('/exam-questions/{id}/move', 'Academics\OnlineExamController@moveQuestion');
+    $r->get('/online-exams/attempts/{id}', 'Academics\OnlineExamController@attempt');
+    $r->post('/online-exams/attempts/{id}', 'Academics\OnlineExamController@mark');
     $r->get('/online-exams/{id}', 'Academics\OnlineExamController@show');
 });
 

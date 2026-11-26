@@ -7,7 +7,7 @@ use App\Services\Elearning\Oversight;
 layout('layouts.app');
 section('content');
 $o = $offering;
-$canDownload = CourseAccess::mayTeach((int) $o['id']);
+$canDownload = CourseAccess::mayTeach((int) $o['id']) || can('elearning.manage');
 $byWeek = [];
 foreach ($materials as $m) {
     $byWeek[$m['week'] === null ? 'General' : 'Week ' . $m['week']][] = $m;
@@ -127,9 +127,78 @@ foreach ($materials as $m) {
                                     &middot; Added <?= ago($m['created_at']) ?>
                                 </div>
                             </div>
+                            <?php if (can('elearning.manage')): ?>
+                                <form method="post" action="<?= url('/academics/online-learning/materials/' . $m['id']) ?>"
+                                      data-confirm="Remove &quot;<?= e($m['title']) ?>&quot; from the class?">
+                                    <?= csrf_field() ?><?= method_field('DELETE') ?>
+                                    <button class="btn btn-sm btn-light text-danger" title="Remove"><?= icon('trash', 'ico-sm') ?></button>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 <?php endforeach; ?>
+
+                <?php if (can('elearning.manage')): ?>
+                    <hr>
+                    <h6 id="materials"><?= icon('upload') ?> Share notes with this class</h6>
+                    <p class="text-muted-sm">A PDF, slide deck, spreadsheet or link. Published material appears on the
+                        students' course page at once and they are notified. Up to <?= ClassroomService::MATERIAL_MAX_MB ?> MB.</p>
+                    <form method="post" action="<?= url('/academics/online-learning/' . $o['id'] . '/materials') ?>" enctype="multipart/form-data">
+                        <?= csrf_field() ?>
+                        <div class="row g-2">
+                            <div class="col-md-7">
+                                <label class="form-label">Title <span class="req">*</span></label>
+                                <input class="form-control form-control-sm" name="title" maxlength="150" required
+                                       value="<?= e((string) old_raw('title', '')) ?>" placeholder="e.g. Week 3 lecture notes">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Week</label>
+                                <input class="form-control form-control-sm" type="number" name="week" min="1" max="30"
+                                       value="<?= e((string) old_raw('week', '')) ?>">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Kind</label>
+                                <select class="form-select form-select-sm" name="kind" data-material-kind>
+                                    <?= options(['file' => 'Upload a file', 'link' => 'Link'], old_raw('kind', 'file')) ?>
+                                </select>
+                            </div>
+                            <div class="col-12" data-material-for="file">
+                                <label class="form-label">File <span class="req">*</span></label>
+                                <input class="form-control form-control-sm" type="file" name="file"
+                                       accept=".<?= implode(',.', ClassroomService::MATERIAL_TYPES) ?>">
+                            </div>
+                            <div class="col-12" data-material-for="link" style="display:none">
+                                <label class="form-label">Link <span class="req">*</span></label>
+                                <input class="form-control form-control-sm" type="url" name="url" placeholder="https://"
+                                       value="<?= e((string) old_raw('url', '')) ?>">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control form-control-sm" name="description" rows="2"><?= e((string) old_raw('description', '')) ?></textarea>
+                            </div>
+                            <div class="col-12 d-flex align-items-center gap-3">
+                                <label class="form-check mb-0">
+                                    <input class="form-check-input" type="checkbox" name="is_published" value="1" checked>
+                                    Publish to students now
+                                </label>
+                                <button class="btn btn-sm btn-primary ms-auto"><?= icon('upload', 'ico-sm') ?> Share with the class</button>
+                            </div>
+                        </div>
+                    </form>
+                    <script>
+                    (function () {
+                      var kind = document.querySelector('[data-material-kind]');
+                      if (!kind) { return; }
+                      var sync = function () {
+                        document.querySelectorAll('[data-material-for]').forEach(function (el) {
+                          el.style.display = el.getAttribute('data-material-for') === kind.value ? '' : 'none';
+                        });
+                      };
+                      kind.addEventListener('change', sync);
+                      sync();
+                    })();
+                    </script>
+                <?php endif; ?>
             </div>
         </div>
     </div>

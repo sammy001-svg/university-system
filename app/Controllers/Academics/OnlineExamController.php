@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Academics;
 
+use App\Core\Audit;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Database;
@@ -179,6 +180,165 @@ final class OnlineExamController extends Controller
             'hasAttempts' => ExamService::hasAttempts((int) $id),
             'canTeach'    => Auth::can('teaching.access') && CourseAccess::mayTeach((int) $exam['offering_id']),
         ]);
+    }
+
+    /* ---------------- The question paper ---------------- */
+
+    /**
+     * Set the paper. The oversight page shows composition only, so a paper cannot
+     * leak to everyone who may merely view online learning; the wording lives
+     * here, behind elearning.manage, where the academic office sets questions for
+     * a class whose lecturer is away, or for a paper issued centrally.
+     */
+    public function questions(Request $request, string $id): string
+    {
+        $this->authorize('elearning.manage');
+        $exam      = $this->examOrFail((int) $id);
+        $questions = ExamService::questions((int) $id);
+        $editing   = null;
+        foreach ($questions as $question) {
+            if ($request->filled('question') && (int) $question['id'] === $request->int('question')) {
+                $editing = $question;
+            }
+        }
+
+        return $this->view('academics.online-exams.questions', [
+            'pageTitle' => 'Question paper - ' . $exam['title'],
+            'exam'      => $exam,
+            'offering'  => CourseAccess::offering((int) $exam['offering_id']),
+            'phase'     => ExamService::phase($exam),
+            'questions' => $questions,
+            'editing'   => $editing,
+            'locked'    => ExamService::hasAttempts((int) $id),
+            'problems'  => ExamService::publishProblems($exam),
+        ]);
+    }
+
+    public function saveQuestion(Request $request, string $id): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $exam = $this->examOrFail((int) $id);
+        $back = '/academics/online-exams/' . (int) $id . '/questions';
+        if (ExamService::hasAttempts((int) $id)) {
+            $this->error('Students have started this exam, so its questions are locked.', $back);
+        }
+
+        $type    = (string) $request->input('question_type', 'single');
+        $correct = array_map('strval', (array) $request->input('option_correct', []));
+        $options = [];
+        foreach ((array) $request->input('option_body', []) as $i => $body) {
+            $options[] = ['body' => (string) $body, 'correct' => in_array((string) $i, $correct, true)];
+        }
+        if ($type === 'true_false') {
+            $options = [['body' => $request->input('true_false_answer') === 'false' ? 'false' : 'true', 'correct' => true]];
+        }
+        $questionId = $request->filled('question_id') ? (int) $request->input('question_id') : null;
+        try {
+            ExamService::saveQuestion((int) $exam['id'], $questionId, $type, (string) $request->input('body', ''),
+                (float) $request->input('marks', 1), trim((string) $request->input('explanation', '')) ?: null, $options);
+        } catch (RuntimeException $e) {
+            Session::keepOldInput($request->all());
+            $this->error($e->getMessage(), $back . ($questionId ? '?question=' . $questionId : '') . '#question-form');
+        }
+        Session::clearOldInput();
+        Audit::log($questionId ? 'update' : 'create', 'elearning', 'ExamQuestion', (string) $questionId,
+            'Question set on online exam #' . $exam['id']);
+        $this->success($questionId ? 'Question updated.' : 'Question added.', $back . '#question-form');
+    }
+
+    public function destroyQuestion(Request $request, string $questionId): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $question = Database::selectOne('SELECT * FROM online_exam_questions WHERE id = ?', [(int) $questionId]);
+        if ($question === null) {
+            $this->abort(404, 'Question not found.');
+        }
+        $back = '/academics/online-exams/' . (int) $question['exam_id'] . '/questions';
+        if (ExamService::hasAttempts((int) $question['exam_id'])) {
+            $this->error('Students have started this exam, so its questions are locked.', $back);
+        }
+        Database::statement('DELETE FROM online_exam_questions WHERE id = ?', [$question['id']]);
+        Audit::deleted('ExamQuestion', (int) $questionId, $question, 'elearning');
+        $this->success('Question deleted.', $back);
+    }
+
+    /** Move a question up or down the paper. */
+    public function moveQuestion(Request $request, string $questionId): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $question = Database::selectOne('SELECT * FROM online_exam_questions WHERE id = ?', [(int) $questionId]);
+        if ($question === null) {
+            $this->abort(404, 'Question not found.');
+        }
+        $ids = array_map('intval', array_column(Database::select(
+            'SELECT id FROM online_exam_questions WHERE exam_id = ? ORDER BY sort_order, id', [$question['exam_id']]
+        ), 'id'));
+        $at = array_search((int) $question['id'], $ids, true);
+        $to = $request->input('direction') === 'up' ? $at - 1 : $at + 1;
+        if ($at !== false && isset($ids[$to])) {
+            [$ids[$at], $ids[$to]] = [$ids[$to], $ids[$at]];
+            foreach ($ids as $i => $questionIdInOrder) {
+                Database::statement('UPDATE online_exam_questions SET sort_order = ? WHERE id = ?', [$i + 1, $questionIdInOrder]);
+            }
+        }
+        $this->redirect('/academics/online-exams/' . (int) $question['exam_id'] . '/questions#q' . (int) $question['id']);
+    }
+
+    /* ---------------- Marking written answers ---------------- */
+
+    /** One student's paper, for marking the answers a computer cannot mark. */
+    public function attempt(Request $request, string $attemptId): string
+    {
+        $this->authorize('elearning.manage');
+        $attempt = Database::selectOne(
+            'SELECT t.*, s.admission_number, u.first_name, u.last_name
+               FROM online_exam_attempts t JOIN students s ON s.id = t.student_id JOIN users u ON u.id = s.user_id
+              WHERE t.id = ?',
+            [(int) $attemptId]
+        );
+        if ($attempt === null) {
+            $this->abort(404, 'Attempt not found.');
+        }
+        $exam    = $this->examOrFail((int) $attempt['exam_id']);
+        $attempt = ExamService::expireIfDue($attempt) + $attempt;
+
+        return $this->view('academics.online-exams.attempt', [
+            'pageTitle' => 'Marking - ' . $attempt['first_name'] . ' ' . $attempt['last_name'],
+            'exam'      => $exam,
+            'offering'  => CourseAccess::offering((int) $exam['offering_id']),
+            'attempt'   => $attempt,
+            'questions' => ExamService::questions((int) $exam['id']),
+            'answers'   => array_column(Database::select('SELECT * FROM online_exam_answers WHERE attempt_id = ?', [$attempt['id']]), null, 'question_id'),
+        ]);
+    }
+
+    public function mark(Request $request, string $attemptId): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $attempt = Database::selectOne('SELECT * FROM online_exam_attempts WHERE id = ?', [(int) $attemptId]);
+        if ($attempt === null) {
+            $this->abort(404, 'Attempt not found.');
+        }
+        try {
+            ExamService::mark((int) $attemptId, (array) $request->input('marks', []), (array) $request->input('feedback', []), (int) Auth::id());
+        } catch (RuntimeException $e) {
+            $this->error($e->getMessage(), '/academics/online-exams/attempts/' . (int) $attemptId);
+        }
+        Audit::log('mark', 'elearning', 'ExamAttempt', (string) (int) $attemptId, 'Marked an online exam attempt');
+        $this->success('Marks saved.', '/academics/online-exams/' . (int) $attempt['exam_id']);
+    }
+
+    private function examOrFail(int $id): array
+    {
+        $exam = ExamService::find($id);
+        if ($exam === null) {
+            $this->abort(404, 'Exam not found.');
+        }
+        return $exam;
     }
 
     /* ---------------- Scheduling & managing exams ---------------- */

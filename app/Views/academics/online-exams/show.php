@@ -56,6 +56,9 @@ $maxBand = max(1, ...array_values($bands));
                 </form>
             <?php endif; ?>
         <?php endif; ?>
+        <?php if (can('elearning.manage')): ?>
+            <a class="btn btn-sm btn-outline-primary" href="<?= url('/academics/online-exams/' . $exam['id'] . '/questions') ?>"><?= icon('exam', 'ico-sm') ?> Question paper</a>
+        <?php endif; ?>
         <?php if ($canTeach): ?>
             <a class="btn btn-sm btn-primary" href="<?= url('/teaching/online-exams/' . $exam['id'] . ($phase === 'draft' ? '' : '/results')) ?>"><?= icon('edit', 'ico-sm') ?> Lecturer View</a>
         <?php endif; ?>
@@ -67,13 +70,13 @@ $maxBand = max(1, ...array_values($bands));
         <div>
             <strong>Draft &mdash; not visible to students yet.</strong>
             <?php if ($problems !== []): ?>
-                <?= e(implode(' ', $problems)) ?> The assigned lecturer can add questions from Teaching before publishing.
+                <?= e(implode(' ', $problems)) ?> The assigned lecturer can set the paper from Teaching, or you can set it here.
             <?php else: ?>
                 Questions are ready. Click <strong>Publish</strong> to make the exam visible to students during its scheduled window.
             <?php endif; ?>
         </div>
-        <?php if ($canTeach): ?>
-            <a class="btn btn-sm btn-primary" href="<?= url('/teaching/online-exams/' . $exam['id']) ?>">Add / Edit Questions</a>
+        <?php if (can('elearning.manage')): ?>
+            <a class="btn btn-sm btn-primary" href="<?= url('/academics/online-exams/' . $exam['id'] . '/questions') ?>">Set the question paper</a>
         <?php endif; ?>
     </div>
 <?php endif; ?>
@@ -134,6 +137,7 @@ $maxBand = max(1, ...array_values($bands));
                         <th class="text-end">Score</th>
                         <th class="text-end">%</th>
                         <th>Integrity</th>
+                        <th class="text-end">&nbsp;</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -179,6 +183,12 @@ $maxBand = max(1, ...array_values($bands));
                                     <span class="badge text-bg-warning">Left window &times;<?= (int) $r['focus_lost'] ?></span>
                                 <?php elseif ($r['attempt_id'] !== null): ?>
                                     <span class="text-muted-sm">&ndash;</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-end">
+                                <?php if ($r['attempt_id'] !== null && $r['status'] !== 'in_progress' && can('elearning.manage')): ?>
+                                    <a class="btn btn-sm btn-light" href="<?= url('/academics/online-exams/attempts/' . $r['attempt_id']) ?>">
+                                        <?= icon('edit', 'ico-sm') ?> <?= $r['status'] === 'submitted' ? 'Mark' : 'Review' ?></a>
                                 <?php endif; ?>
                             </td>
                         </tr>

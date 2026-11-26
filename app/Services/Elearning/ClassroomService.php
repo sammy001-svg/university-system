@@ -6,6 +6,7 @@ namespace App\Services\Elearning;
 use App\Core\Audit;
 use App\Core\Database;
 use App\Core\Setting;
+use App\Core\Upload;
 use App\Services\Alerts\Alerts;
 use RuntimeException;
 
@@ -194,6 +195,84 @@ final class ClassroomService
     }
 
     /** Tell everyone on the class list (in-app notification, plus email/SMS if enabled). */
+    /* ---------------- Course materials (notes, slides, readings) ---------------- */
+
+    /** What a material upload accepts: documents, images and zipped sets, up to 25 MB. */
+    public const MATERIAL_TYPES = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'ppt', 'pptx',
+                                   'jpg', 'jpeg', 'png', 'gif', 'webp', 'zip'];
+    public const MATERIAL_MAX_MB = 25;
+
+    /**
+     * Add or edit a course material. Shared by the lecturer's classroom and the
+     * academic office, so a note shared from either place behaves the same.
+     *
+     * @param  array      $offering the class the material belongs to
+     * @param  array      $input    title, description, week, kind, url, is_published
+     * @param  array|null $upload   the $_FILES entry when kind is "file"
+     * @return int the material's id
+     * @throws RuntimeException when the title, link or file is unusable
+     */
+    public static function saveMaterial(array $offering, array $input, ?array $upload, int $userId, ?array $existing = null): int
+    {
+        $title = trim((string) ($input['title'] ?? ''));
+        if ($title === '') {
+            throw new RuntimeException('Give the material a title.');
+        }
+        $week      = ($input['week'] ?? '') !== '' ? max(1, min(30, (int) $input['week'])) : null;
+        $kind      = ($input['kind'] ?? 'file') === 'link' ? 'link' : 'file';
+        $published = ($input['is_published'] ?? '1') === '1' ? 1 : 0;
+
+        $file = ['path' => null, 'name' => null, 'size' => null];
+        $link = null;
+        if ($kind === 'link') {
+            $link = self::optionalUrl((string) ($input['url'] ?? ''), 'Link');
+            if ($link === null) {
+                throw new RuntimeException('Enter the link (starting with https://).');
+            }
+        } elseif ($upload !== null && ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            $file = Upload::storePrivate($upload, 'materials/' . (int) $offering['id'], self::MATERIAL_TYPES, self::MATERIAL_MAX_MB);
+        } elseif ($existing === null || $existing['kind'] !== 'file') {
+            throw new RuntimeException('Choose a file to upload.');
+        } else {
+            // Editing a file material without replacing the file: keep the one on disk.
+            $file = ['path' => $existing['file_path'], 'name' => $existing['file_name'], 'size' => $existing['file_size']];
+        }
+
+        $description = trim((string) ($input['description'] ?? '')) ?: null;
+        if ($existing !== null) {
+            Database::statement(
+                'UPDATE course_materials SET title = ?, description = ?, week = ?, kind = ?, file_path = ?, file_name = ?,
+                        file_size = ?, url = ?, is_published = ? WHERE id = ?',
+                [$title, $description, $week, $kind, $file['path'], $file['name'], $file['size'], $link, $published, $existing['id']]
+            );
+            // A replaced file leaves the old one behind.
+            if ($existing['file_path'] !== null && $existing['file_path'] !== $file['path']) {
+                Upload::delete($existing['file_path']);
+            }
+            return (int) $existing['id'];
+        }
+
+        Database::statement(
+            'INSERT INTO course_materials (offering_id, title, description, week, kind, file_path, file_name, file_size, url, is_published, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [(int) $offering['id'], $title, $description, $week, $kind,
+             $file['path'], $file['name'], $file['size'], $link, $published, $userId]
+        );
+        $materialId = Database::lastInsertId();
+
+        if ($published === 1) {
+            self::notifyClass((int) $offering['id'], 'New course material: ' . $offering['code'], $title,
+                '/portal/courses/' . (int) $offering['id'], 'material_shared');
+        }
+        return $materialId;
+    }
+
+    public static function deleteMaterial(array $material): void
+    {
+        Database::statement('DELETE FROM course_materials WHERE id = ?', [$material['id']]);
+        Upload::delete($material['file_path']);
+    }
+
     public static function notifyClass(int $offeringId, string $title, string $message, string $link, string $event = 'class_scheduled'): void
     {
         $userIds = array_column(Database::select(

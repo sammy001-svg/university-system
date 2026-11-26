@@ -10,7 +10,6 @@ use App\Core\Database;
 use App\Core\Exceptions\HttpException;
 use App\Core\Request;
 use App\Core\Session;
-use App\Core\Upload;
 use App\Services\Elearning\ClassroomService;
 use App\Services\Elearning\CourseAccess;
 use RuntimeException;
@@ -132,41 +131,13 @@ final class ClassroomController extends Controller
         $this->verifyCsrf($request);
         $offering = CourseAccess::teaching((int) $id);
         $back     = '/teaching/' . $id . '/classroom#materials';
-
-        $title = trim((string) $request->input('title', ''));
-        if ($title === '') {
-            $this->error('Give the material a title.', $back);
-        }
-        $week = $request->filled('week') ? max(1, min(30, (int) $request->input('week'))) : null;
-        $kind = $request->input('kind') === 'link' ? 'link' : 'file';
-        $file = ['path' => null, 'name' => null, 'size' => null];
-        $link = null;
         try {
-            if ($kind === 'link') {
-                $link = ClassroomService::optionalUrl((string) $request->input('url', ''), 'Link');
-                if ($link === null) {
-                    throw new RuntimeException('Enter the link (starting with https://).');
-                }
-            } else {
-                $upload = $request->file('file');
-                if ($upload === null || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-                    throw new RuntimeException('Choose a file to upload.');
-                }
-                $file = Upload::storePrivate($upload, 'materials/' . (int) $id, array_merge(Upload::DOCUMENTS, Upload::IMAGES, Upload::ARCHIVES), 25);
-            }
+            ClassroomService::saveMaterial($offering, $request->all(), $request->file('file'), (int) Auth::id());
         } catch (RuntimeException $e) {
+            Session::keepOldInput($request->all());
             $this->error($e->getMessage(), $back);
         }
-
-        Database::statement(
-            'INSERT INTO course_materials (offering_id, title, description, week, kind, file_path, file_name, file_size, url, is_published, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [(int) $id, $title, trim((string) $request->input('description', '')) ?: null, $week, $kind,
-             $file['path'], $file['name'], $file['size'], $link, $request->input('is_published', '1') === '1' ? 1 : 0, Auth::id()]
-        );
-        if ($request->input('is_published', '1') === '1') {
-            ClassroomService::notifyClass((int) $id, 'New course material: ' . $offering['code'], $title, '/portal/courses/' . $id);
-        }
+        Session::clearOldInput();
         $this->success('Material shared with the class.', $back);
     }
 
@@ -179,8 +150,7 @@ final class ClassroomController extends Controller
             throw new HttpException(404);
         }
         CourseAccess::teaching((int) $material['offering_id']);
-        Database::statement('DELETE FROM course_materials WHERE id = ?', [$material['id']]);
-        Upload::delete($material['file_path']);
+        ClassroomService::deleteMaterial($material);
         $this->success('Material removed.', '/teaching/' . $material['offering_id'] . '/classroom#materials');
     }
 

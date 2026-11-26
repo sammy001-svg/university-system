@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Exceptions\HttpException;
@@ -19,7 +20,7 @@ final class FileController extends Controller
         if ($m === null) {
             throw new HttpException(404);
         }
-        $teacher = CourseAccess::mayTeach((int) $m['offering_id']);
+        $teacher = CourseAccess::mayTeach((int) $m['offering_id']) || Auth::can('elearning.manage');
         if (!$teacher && ((int) $m['is_published'] !== 1 || CourseAccess::studentOn((int) $m['offering_id']) === null)) {
             throw new HttpException(403, 'This file is for the students of the class.');
         }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Academics;
 
+use App\Core\Audit;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Database;
@@ -95,6 +96,46 @@ final class OnlineLearningController extends Controller
             ),
             'canTeach'   => Auth::can('teaching.access') && CourseAccess::mayTeach((int) $id),
         ]);
+    }
+
+    /* ---------------- Course materials (notes handed to the class) ---------------- */
+
+    /**
+     * Share a note, slide deck or reading with a class. The academic office does
+     * this for classes whose lecturer is away, or for material issued centrally;
+     * it goes to the students exactly as a lecturer's own upload does.
+     */
+    public function storeMaterial(Request $request, string $id): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $offering = CourseAccess::offering((int) $id);
+        if ($offering === null) {
+            $this->abort(404, 'Class not found.');
+        }
+        $back = '/academics/online-learning/' . (int) $id . '#materials';
+        try {
+            $materialId = ClassroomService::saveMaterial($offering, $request->all(), $request->file('file'), (int) Auth::id());
+        } catch (RuntimeException $e) {
+            Session::keepOldInput($request->all());
+            $this->error($e->getMessage(), $back);
+        }
+        Session::clearOldInput();
+        Audit::created('CourseMaterial', $materialId, ['offering_id' => (int) $id, 'title' => $request->input('title')], 'elearning');
+        $this->success('Material shared with the class.', $back);
+    }
+
+    public function destroyMaterial(Request $request, string $materialId): never
+    {
+        $this->authorize('elearning.manage');
+        $this->verifyCsrf($request);
+        $material = Database::selectOne('SELECT * FROM course_materials WHERE id = ?', [(int) $materialId]);
+        if ($material === null) {
+            $this->abort(404, 'Material not found.');
+        }
+        ClassroomService::deleteMaterial($material);
+        Audit::deleted('CourseMaterial', (int) $materialId, $material, 'elearning');
+        $this->success('Material removed.', '/academics/online-learning/' . (int) $material['offering_id'] . '#materials');
     }
 
     /* ---------------- Scheduling & managing lessons ---------------- */
