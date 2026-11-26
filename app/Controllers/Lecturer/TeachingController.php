@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Exceptions\HttpException;
 use App\Core\Request;
+use App\Services\Elearning\CourseAccess;
 
 final class TeachingController extends Controller
 {
@@ -68,17 +69,13 @@ final class TeachingController extends Controller
         return (int) $row['id'];
     }
 
+    /**
+     * The class, if the signed-in user teaches it. The page carries the whole
+     * roster - names, student IDs, e-mail addresses and marks - so it is limited
+     * to the class's own teaching team and to the examinations office.
+     */
     private function findOffering(int $id): array
     {
-        $row = Database::selectOne(
-            'SELECT o.*, c.code, c.title, c.credit_hours, sem.name AS semester_name
-               FROM course_offerings o
-               JOIN courses c     ON c.id = o.course_id
-               JOIN semesters sem ON sem.id = o.semester_id
-              WHERE o.id = ?',
-            [$id]
-        );
-        if (!$row) { throw new HttpException(404, 'Offering not found.'); }
-        return $row;
+        return CourseAccess::teaching($id);
     }
 }

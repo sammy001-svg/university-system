@@ -243,6 +243,10 @@ $router->group(['prefix' => '/academics', 'middleware' => ['auth']], static func
     $r->delete('/registrations/{id}', 'Academics\RegistrationController@destroy');
 
     // Online learning and online examinations oversight & scheduling.
+    // Who teaches what: the link every lecturer's workspace hangs off.
+    $r->get('/teaching-assignments', 'Academics\TeachingAssignmentController@index');
+    $r->post('/teaching-assignments', 'Academics\TeachingAssignmentController@save');
+
     $r->get('/online-learning', 'Academics\OnlineLearningController@index');
     $r->get('/online-learning/create', 'Academics\OnlineLearningController@create');
     $r->post('/online-learning', 'Academics\OnlineLearningController@store');

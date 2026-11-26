@@ -6,8 +6,8 @@ namespace App\Controllers\Lecturer;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Database;
-use App\Core\Exceptions\HttpException;
 use App\Core\Request;
+use App\Services\Elearning\CourseAccess;
 use App\Services\Alerts\Alerts;
 
 final class MarkEntryController extends Controller
@@ -99,14 +99,18 @@ final class MarkEntryController extends Controller
         $this->success('Results published.', '/teaching/' . $id . '/marks');
     }
 
+    /**
+     * The class, if the signed-in user teaches it. Marks are the record a degree
+     * rests on, so entering them is limited to the class's own teaching team and
+     * to the examinations office, exactly as the rest of the workspace is.
+     */
     private function offering(int $id): array
     {
-        $row = Database::selectOne(
-            'SELECT o.*, c.code, c.title, o.coursework_weight, o.exam_weight
-               FROM course_offerings o JOIN courses c ON c.id = o.course_id WHERE o.id = ?',
+        $offering = CourseAccess::teaching($id);
+        $weights  = Database::selectOne(
+            'SELECT coursework_weight, exam_weight FROM course_offerings WHERE id = ?',
             [$id]
-        );
-        if (!$row) { throw new HttpException(404); }
-        return $row;
+        ) ?: [];
+        return $offering + $weights;
     }
 }

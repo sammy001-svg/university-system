@@ -106,6 +106,7 @@ return [
             ['label' => 'Semesters',     'url' => '/academics/semesters',    'icon' => 'calendar', 'permission' => 'academics.manage'],
             ['label' => 'Class Offerings','url' => '/academics/offerings',   'icon' => 'clipboard','permission' => 'offerings.view'],
             ['label' => 'Registrations', 'url' => '/academics/registrations','icon' => 'check',    'permission' => 'registrations.view'],
+            ['label' => 'Teaching Assignments','url' => '/academics/teaching-assignments','icon' => 'users', 'permission' => 'offerings.view'],
             ['label' => 'Online Learning','url' => '/academics/online-learning','icon' => 'video', 'permission' => 'elearning.view'],
             ['label' => 'Online Exams',  'url' => '/academics/online-exams',   'icon' => 'exam',  'permission' => 'elearning.view'],
         ],

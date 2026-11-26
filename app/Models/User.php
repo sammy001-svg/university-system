@@ -93,6 +93,37 @@ final class User extends Model
     }
 
     /** Users eligible to be picked as lecturers/approvers. */
+    /**
+     * Staff who teach, for a lecturer picker: academic staff only, so a class is
+     * never handed to a janitor by a slip of the mouse. Each is labelled with the
+     * college they are posted to.
+     *
+     * @return array<int,string> staff id => label
+     */
+    public function teachingStaffOptions(): array
+    {
+        $rows = Database::select(
+            "SELECT s.id, s.staff_number, s.designation,
+                    CONCAT_WS(' ', COALESCE(u.title, ''), u.first_name, u.last_name) AS name,
+                    COALESCE(f.name, d.name, '') AS posting
+               FROM staff s
+               JOIN users u      ON u.id = s.user_id
+          LEFT JOIN faculties f  ON f.id = s.faculty_id
+          LEFT JOIN departments d ON d.id = s.department_id
+              WHERE s.status = 'active' AND u.deleted_at IS NULL AND s.staff_category = 'academic'
+              ORDER BY u.last_name, u.first_name"
+        );
+        $out = [];
+        foreach ($rows as $row) {
+            $label = trim((string) preg_replace('/\s+/', ' ', $row['name']));
+            if ($row['posting'] !== '') {
+                $label .= ' - ' . $row['posting'];
+            }
+            $out[(int) $row['id']] = $label;
+        }
+        return $out;
+    }
+
     public function staffOptions(): array
     {
         $rows = Database::select(
