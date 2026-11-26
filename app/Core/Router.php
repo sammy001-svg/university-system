@@ -14,6 +14,52 @@ final class Router
     private array $names = [];
     private array $groupStack = [];
 
+    /** The router handling this request; one is built per request in App. */
+    private static ?self $current = null;
+
+    public function __construct()
+    {
+        self::$current = $this;
+    }
+
+    public static function current(): ?self
+    {
+        return self::$current;
+    }
+
+    /**
+     * Whether the signed-in user could open this path: it has to match a route,
+     * and they have to satisfy every permission or role its middleware demands.
+     *
+     * Only middleware is read, so a controller may still refuse with its own
+     * authorize() check. This answers the narrower question of whether it is
+     * safe to send somebody to a page, rather than bouncing them into a 403.
+     */
+    public function allows(string $uri, string $method = 'GET'): bool
+    {
+        $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+        foreach ($this->routes[$method] ?? [] as $route) {
+            if (!preg_match($route['pattern'], $path)) {
+                continue;
+            }
+            foreach ($route['middleware'] as $middleware) {
+                [$name, $argument] = array_pad(explode(':', $middleware, 2), 2, null);
+                if ($argument === null || $argument === '') {
+                    continue;
+                }
+                $values = array_map('trim', explode(',', $argument));
+                if ($name === 'permission' && !Auth::can($values)) {
+                    return false;
+                }
+                if ($name === 'role' && !Auth::hasRole($values)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;   // nothing answers that path: better to send them home
+    }
+
     public function get(string $uri, mixed $action, array $middleware = []): self
     {
         return $this->add('GET', $uri, $action, $middleware);
