@@ -3,6 +3,8 @@
 # Keep the runtime directories in the repo, ignore whatever lands in them.
 /storage/logs/*
 /storage/cache/*
+# Database dumps: these hold every student's and staff member's personal data.
+/storage/backups/*
 /storage/uploads/*
 !/storage/uploads/avatars/
 !/storage/uploads/documents/

@@ -7,6 +7,7 @@ use App\Core\Audit;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Csrf;
+use App\Core\Logger;
 use App\Core\Request;
 use App\Core\Router;
 use App\Core\Session;
@@ -137,14 +138,34 @@ final class LoginController extends Controller
         return true;
     }
 
-    /** Landing page appropriate to the account type. */
+    /**
+     * Each account type's own workspace, with the permission that page demands.
+     * /family and /dashboard ask for nothing beyond being signed in.
+     */
+    private const HOMES = [
+        'student'  => ['/portal',   'portal.access'],
+        'lecturer' => ['/teaching', 'teaching.access'],
+        'parent'   => ['/family',   null],
+    ];
+
+    /**
+     * Where to land this account. Somebody whose own workspace would refuse them
+     * is missing a role they should hold; sending them there anyway produces a
+     * bare 403 at sign-in, and /dashboard is no refuge because it bounces them
+     * straight back. They go to their profile, which asks nothing of anybody, and
+     * the gap is logged so an administrator can put the role back.
+     */
     private function homeFor(string $userType): string
     {
-        return match ($userType) {
-            'student'  => '/portal',
-            'parent'   => '/family',
-            'lecturer' => '/teaching',
-            default    => '/dashboard',
-        };
+        [$path, $permission] = self::HOMES[$userType] ?? ['/dashboard', null];
+        if ($permission === null || Auth::can($permission)) {
+            return $path;
+        }
+
+        Logger::warning(sprintf(
+            'Account cannot open its own workspace: %s (user #%d, type %s) needs %s for %s',
+            Auth::user()['username'] ?? '?', (int) Auth::id(), $userType, $permission, $path
+        ));
+        return '/profile';
     }
 }

@@ -19,14 +19,16 @@ final class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Students and lecturers get their own workspaces.
-        if ($user['user_type'] === 'student' && !Auth::can('students.view')) {
+        // Students and lecturers get their own workspaces - but only where that
+        // workspace will actually admit them. An account missing the role for its
+        // own area would otherwise be bounced here and straight back again.
+        if ($user['user_type'] === 'student' && !Auth::can('students.view') && Auth::can('portal.access')) {
             Response::redirect('/portal');
         }
         if ($user['user_type'] === 'parent') {
             Response::redirect('/family');
         }
-        if ($user['user_type'] === 'lecturer' && !Auth::can('students.view')) {
+        if ($user['user_type'] === 'lecturer' && !Auth::can('students.view') && Auth::can('teaching.access')) {
             Response::redirect('/teaching');
         }
 

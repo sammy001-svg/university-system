@@ -26,7 +26,7 @@ final class AccessSync
 
     /**
      * @return array{permissions:int, permissions_added:int, roles:int, roles_added:int, grants_added:int,
-     *               grants_revoked:int, students_repaired:int}
+     *               grants_revoked:int, students_repaired:int, lecturers_repaired:int}
      */
     public static function apply(PDO $pdo, string $basePath, bool $authoritative = false): array
     {
@@ -113,6 +113,23 @@ final class AccessSync
                 )'
         );
 
+        /* ---------------- Lecturers with no role at all ---------------- */
+        // Same failure one account type over: a lecturer account carrying no role
+        // holds no teaching.access, so signing in lands on the teaching workspace
+        // and is refused there. Only accounts with no role whatsoever are touched,
+        // because a lecturer deliberately moved to another role - a dean, a head
+        // of department - must keep the role they were given.
+        $idle = (int) $pdo->exec(
+            'INSERT IGNORE INTO user_roles (user_id, role_id)
+             SELECT u.id, r.id
+               FROM users u
+               JOIN staff st ON st.user_id = u.id
+               JOIN roles r  ON r.slug = "lecturer"
+              WHERE u.user_type = "lecturer"
+                AND u.deleted_at IS NULL
+                AND NOT EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id)'
+        );
+
         return [
             'permissions'       => $permissions,
             'permissions_added' => $permissionsAdded,
@@ -121,6 +138,7 @@ final class AccessSync
             'grants_added'      => (int) $pdo->query('SELECT COUNT(*) FROM role_permissions')->fetchColumn() - $grantsBefore + $revoked,
             'grants_revoked'    => $revoked,
             'students_repaired' => $orphans,
+            'lecturers_repaired' => $idle,
         ];
     }
 
