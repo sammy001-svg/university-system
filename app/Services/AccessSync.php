@@ -25,7 +25,7 @@ final class AccessSync
     }
 
     /**
-     * @return array{permissions:int, permissions_added:int, roles:int, roles_added:int, grants_added:int}
+     * @return array{permissions:int, permissions_added:int, roles:int, roles_added:int, grants_added:int, grants_revoked:int}
      */
     public static function apply(PDO $pdo, string $basePath, bool $authoritative = false): array
     {
@@ -77,12 +77,28 @@ final class AccessSync
             }
         }
 
+        /* ---------------- Withdrawn grants ---------------- */
+        // The only place this sync takes anything away: grants the catalogue
+        // itself once got wrong, named one by one in access.php.
+        $revoked = 0;
+        $drop    = $pdo->prepare(
+            'DELETE rp FROM role_permissions rp
+               JOIN roles r       ON r.id = rp.role_id
+               JOIN permissions p ON p.id = rp.permission_id
+              WHERE r.slug = ? AND p.slug = ?'
+        );
+        foreach ($catalogue['revoke'] ?? [] as [$roleSlug, $permissionSlug]) {
+            $drop->execute([$roleSlug, $permissionSlug]);
+            $revoked += $drop->rowCount();
+        }
+
         return [
             'permissions'       => $permissions,
             'permissions_added' => $permissionsAdded,
             'roles'             => count($catalogue['roles']),
             'roles_added'       => (int) $pdo->query('SELECT COUNT(*) FROM roles')->fetchColumn() - $rolesBefore,
-            'grants_added'      => (int) $pdo->query('SELECT COUNT(*) FROM role_permissions')->fetchColumn() - $grantsBefore,
+            'grants_added'      => (int) $pdo->query('SELECT COUNT(*) FROM role_permissions')->fetchColumn() - $grantsBefore + $revoked,
+            'grants_revoked'    => $revoked,
         ];
     }
 

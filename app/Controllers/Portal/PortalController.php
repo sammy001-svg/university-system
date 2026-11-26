@@ -225,14 +225,46 @@ final class PortalController extends Controller
                JOIN books b ON b.id = bl.book_id
                JOIN students s ON s.user_id = bl.user_id
               WHERE s.id = ?
-              ORDER BY bl.issued_at DESC',
+              ORDER BY bl.returned_at IS NOT NULL, bl.due_date',
             [$student['id']]
         );
+
+        // The catalogue, searchable but read-only: the staff circulation desk
+        // lists every borrower, so students never see that page.
+        $search  = trim((string) $request->query('q', ''));
+        $results = [];
+        if ($search !== '') {
+            $like    = '%' . $search . '%';
+            $results = \App\Core\Database::select(
+                'SELECT b.id, b.accession_number, b.title, b.author, b.publisher, b.publication_year,
+                        b.shelf_location, b.total_copies, b.available_copies, c.name AS category
+                   FROM books b
+              LEFT JOIN book_categories c ON c.id = b.category_id
+                  WHERE b.status = "available"
+                    AND (b.title LIKE ? OR b.author LIKE ? OR b.isbn LIKE ? OR b.accession_number LIKE ?)
+                  ORDER BY b.title
+                  LIMIT 50',
+                [$like, $like, $like, $like]
+            );
+        }
+
+        $open = array_filter($loans, static fn (array $l): bool => $l['returned_at'] === null);
 
         return $this->view('portal.library', [
             'pageTitle' => 'Library',
             'student'   => $student,
             'loans'     => $loans,
+            'search'    => $search,
+            'results'   => $results,
+            'summary'   => [
+                'on_loan' => count($open),
+                'overdue' => count(array_filter($open, static fn (array $l): bool =>
+                    $l['due_date'] !== null && strtotime((string) $l['due_date']) < strtotime(date('Y-m-d')))),
+                'fines'   => array_sum(array_map(
+                    static fn (array $l): float => (int) $l['fine_paid'] === 1 ? 0.0 : (float) $l['fine_amount'],
+                    $loans
+                )),
+            ],
         ]);
     }
 

@@ -68,6 +68,22 @@ return [
     ],
 
     /* ---------------------------------------------------------------
+     | Grants to withdraw from a database that already has them.
+     |
+     | The sync is additive everywhere else, so a grant given by mistake would
+     | otherwise stay for ever on a running system. Each entry is [role slug,
+     | permission slug] and is removed once; an administrator who deliberately
+     | grants it again by hand keeps it, because the entry only names what the
+     | catalogue itself once got wrong.
+     * -------------------------------------------------------------*/
+    'revoke' => [
+        // library.view is the staff catalogue and circulation desk: it lists
+        // every borrower by name. Students search the catalogue and read their
+        // own loans on their portal library page instead.
+        ['student', 'library.view'],
+    ],
+
+    /* ---------------------------------------------------------------
      | Roles: [name, slug, level, description, grants].
      | Level 1 is the most senior; it orders listings and nothing else.
      | Each role carries the least access its job needs.
@@ -249,8 +265,11 @@ return [
              'admissions.view', 'announcements.view', 'events.view']],
 
         /* ---- The people the university serves ---- */
+        // No library.view: that is the staff catalogue and circulation desk, which
+        // lists every borrower. Students search the catalogue and see their own
+        // loans on their portal library page, under portal.access.
         ['Student', 'student', 9, 'Access to the student self-service portal.',
-            ['portal.access', 'announcements.view', 'events.view', 'tickets.view', 'tickets.create', 'library.view']],
+            ['portal.access', 'announcements.view', 'events.view', 'tickets.view', 'tickets.create']],
 
         ['Alumnus', 'alumni', 9, 'A graduate: keeps portal access to records and alumni news.',
             ['portal.access', 'announcements.view', 'events.view']],

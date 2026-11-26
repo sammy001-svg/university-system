@@ -20,6 +20,21 @@ final class MessageController extends Controller
         return $this->view('comms.messages.inbox', ['pageTitle' => 'Inbox', 'messages' => $messages]);
     }
 
+    /** Messages this person has sent. One row per recipient, newest first. */
+    public function sent(Request $request): string
+    {
+        $messages = Database::select(
+            'SELECT m.*, u.first_name, u.last_name
+               FROM messages m
+               JOIN users u ON u.id = m.recipient_id
+              WHERE m.sender_id = ?
+              ORDER BY m.created_at DESC
+              LIMIT 50',
+            [Auth::id()]
+        );
+        return $this->view('comms.messages.sent', ['pageTitle' => 'Sent Messages', 'messages' => $messages]);
+    }
+
     public function compose(Request $request): string
     {
         $users = Database::select(

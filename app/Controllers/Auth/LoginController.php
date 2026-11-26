@@ -29,7 +29,7 @@ final class LoginController extends Controller
             'identifier' => 'required|max:150',
             'password'   => 'required',
         ], [
-            'identifier' => $as === 'student' ? 'Email address' : 'Username or email',
+            'identifier' => $as === 'student' ? 'Student ID number' : 'Username or email',
         ]);
 
         $result = Auth::attempt(

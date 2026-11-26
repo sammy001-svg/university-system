@@ -7,8 +7,8 @@ $as = $as === 'student' ? 'student' : 'staff';
 $fields = [
     'staff'   => ['label' => 'Username or email', 'placeholder' => 'e.g. jdoe or jdoe@bestbrain.edu.lr',
                   'hint'  => 'Administrators, lecturers and staff.'],
-    'student' => ['label' => 'Email address', 'placeholder' => 'e.g. you@example.com',
-                  'hint'  => 'Use the email address the university has on record for you.'],
+    'student' => ['label' => 'Student ID number', 'placeholder' => 'e.g. BBU/BSPH/0015/2023',
+                  'hint'  => 'The student ID number on your card, exactly as it is printed.'],
 ];
 ?>
 <h1>Welcome back</h1>

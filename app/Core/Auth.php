@@ -22,10 +22,11 @@ final class Auth
     public static function attempt(string $identifier, string $password, string $ip, string $agent, string $as = 'staff'): array
     {
         if ($as === 'student') {
+            // Students sign in with the student ID number on their card.
             $identifier = trim($identifier);
             $user = Database::selectOne(
                 'SELECT u.* FROM users u JOIN students s ON s.user_id = u.id
-                  WHERE u.email = ? AND u.deleted_at IS NULL LIMIT 1',
+                  WHERE s.admission_number = ? AND u.deleted_at IS NULL LIMIT 1',
                 [$identifier]
             );
         } else {
@@ -41,7 +42,7 @@ final class Auth
 
         if ($user === null) {
             return ['ok' => false, 'message' => $as === 'student'
-                ? 'Email address or password is incorrect. Please try again.'
+                ? 'Student ID or password is incorrect. Please try again.'
                 : 'Invalid credentials. Please try again.'];
         }
 
@@ -60,12 +61,12 @@ final class Auth
         if (!Hash::check($password, $user['password_hash'])) {
             self::registerFailure($user);
             return ['ok' => false, 'message' => $as === 'student'
-                ? 'Email address or password is incorrect. Please try again.'
+                ? 'Student ID or password is incorrect. Please try again.'
                 : 'Invalid credentials. Please try again.'];
         }
 
         if ($as !== 'student' && $user['user_type'] === 'student') {
-            return ['ok' => false, 'message' => 'This is a student account. Choose "Student" and sign in with your email address.'];
+            return ['ok' => false, 'message' => 'This is a student account. Choose "Student" and sign in with your student ID number.'];
         }
 
         if ($user['status'] === 'suspended') {

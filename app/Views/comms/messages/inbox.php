@@ -4,9 +4,12 @@
         <h1>Inbox</h1>
         <p class="lede">Internal system messages.</p>
     </div>
-    <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/messages/compose') ?>">
-        <?= icon('plus', 'ico-sm') ?> New Message
-    </a>
+    <div class="d-flex gap-2">
+        <a class="btn btn-light btn-sm btn-icon" href="<?= url('/messages/sent') ?>"><?= icon('file', 'ico-sm') ?> Sent</a>
+        <a class="btn btn-primary btn-sm btn-icon" href="<?= url('/messages/compose') ?>">
+            <?= icon('plus', 'ico-sm') ?> New Message
+        </a>
+    </div>
 </div>
 
 <div class="card">

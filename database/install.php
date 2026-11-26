@@ -118,6 +118,10 @@ if (!isset($options['no-demo'])) {
     echo "  Registrar     : registrar  / Staff@2026\n";
     echo "  Finance       : bursar     / Staff@2026\n";
     echo "  Lecturer      : vtubman    / Staff@2026\n";
-    echo "  Student       : mjohnson   / Student@2026\n";
+    // Students sign in with the student ID number on their card, not a username.
+    $studentId = (string) ($pdo->query(
+        "SELECT s.admission_number FROM students s JOIN users u ON u.id = s.user_id WHERE u.username = 'mjohnson'"
+    )->fetchColumn() ?: 'see the students list');
+    echo "  Student       : {$studentId} / Student@2026\n";
 }
 echo "\nChange these passwords immediately after the first sign-in.\n";
