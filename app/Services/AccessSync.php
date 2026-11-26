@@ -25,7 +25,8 @@ final class AccessSync
     }
 
     /**
-     * @return array{permissions:int, permissions_added:int, roles:int, roles_added:int, grants_added:int, grants_revoked:int}
+     * @return array{permissions:int, permissions_added:int, roles:int, roles_added:int, grants_added:int,
+     *               grants_revoked:int, students_repaired:int}
      */
     public static function apply(PDO $pdo, string $basePath, bool $authoritative = false): array
     {
@@ -92,6 +93,26 @@ final class AccessSync
             $revoked += $drop->rowCount();
         }
 
+        /* ---------------- Students missing the student role ---------------- */
+        // Without that role a student holds no portal.access, so the portal turns
+        // them away at the door and they cannot reach anything at all - which is
+        // what a fresh password looks like from their side: it is accepted, then
+        // the next page refuses them. That is broken state rather than a decision,
+        // because an account barred on purpose is suspended, not stripped of its
+        // role, so the role goes back. It grants only the portal and the notices
+        // every student sees, so it cannot widen anybody's access.
+        $orphans = (int) $pdo->exec(
+            'INSERT IGNORE INTO user_roles (user_id, role_id)
+             SELECT u.id, r.id
+               FROM users u
+               JOIN students s ON s.user_id = u.id
+               JOIN roles r    ON r.slug = "student"
+              WHERE u.deleted_at IS NULL
+                AND NOT EXISTS (
+                      SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_id = r.id
+                )'
+        );
+
         return [
             'permissions'       => $permissions,
             'permissions_added' => $permissionsAdded,
@@ -99,6 +120,7 @@ final class AccessSync
             'roles_added'       => (int) $pdo->query('SELECT COUNT(*) FROM roles')->fetchColumn() - $rolesBefore,
             'grants_added'      => (int) $pdo->query('SELECT COUNT(*) FROM role_permissions')->fetchColumn() - $grantsBefore + $revoked,
             'grants_revoked'    => $revoked,
+            'students_repaired' => $orphans,
         ];
     }
 
